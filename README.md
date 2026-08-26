@@ -66,7 +66,7 @@ Install dependency:
 npm install
 ```
 
-Buat file `.env` dan masukkan konfigurasi yang diperlukan.
+Buat file `.env` berdasarkan `.env.example`, kemudian masukkan konfigurasi yang diperlukan.
 
 Jalankan project dalam mode development:
 
@@ -78,26 +78,75 @@ npm run dev
 
 ```text
 project/
+│
 ├── frontend/
 │   ├── src/
 │   ├── public/
 │   └── package.json
 │
 ├── backend/
-│   ├── src/
-│   ├── routes/
-│   ├── controllers/
-│   ├── middleware/
 │   ├── config/
-│   └── package.json
+│   ├── constants/
+│   ├── controller/
+│   ├── middleware/
+│   ├── routes/
+│   ├── services/
+│   ├── utils/
+│   ├── validations/
+│   ├── .env.example
+│   ├── .gitignore
+│   ├── PROJECT_DOCUMENTATION.md
+│   ├── README.md
+│   ├── app.js
+│   ├── package.json
+│   └── package-lock.json
 │
-├── .gitignore
 └── README.md
+```
+
+## Struktur Backend
+
+```text
+backend/
+│
+├── config/
+│   └── Konfigurasi aplikasi dan koneksi yang diperlukan
+│
+├── constants/
+│   └── Konstanta yang digunakan dalam aplikasi
+│
+├── controller/
+│   └── Menangani request dan response dari setiap fitur
+│
+├── middleware/
+│   └── Middleware untuk autentikasi, validasi, dan kebutuhan lainnya
+│
+├── routes/
+│   └── Mendefinisikan endpoint API
+│
+├── services/
+│   └── Berisi business logic aplikasi
+│
+├── utils/
+│   └── Fungsi-fungsi helper yang digunakan kembali
+│
+├── validations/
+│   └── Validasi data request
+│
+├── .env.example
+├── .gitignore
+├── PROJECT_DOCUMENTATION.md
+├── README.md
+├── app.js
+├── package.json
+└── package-lock.json
 ```
 
 ## Environment Variables
 
-Contoh konfigurasi:
+Gunakan `.env.example` sebagai referensi untuk membuat file `.env`.
+
+Contoh:
 
 ```env
 PORT=3000
@@ -106,11 +155,11 @@ SUPABASE_ANON_KEY=your_supabase_anon_key
 JWT_SECRET=your_jwt_secret
 ```
 
-Jangan memasukkan file `.env` ke repository GitHub.
+Jangan memasukkan file `.env` ke repository GitHub karena dapat berisi informasi rahasia.
 
 ## Database
 
-Database menggunakan Supabase untuk menyimpan data:
+Database menggunakan Supabase dengan PostgreSQL untuk menyimpan data:
 
 * User/Profile
 * Barang
