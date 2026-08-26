@@ -199,7 +199,7 @@ exports.updateStatus = async (id, { status, admin_note }) => {
   const { data: bItems } = await supabase
     .from('borrowings_items')
     .select('*')
-    .eq('id', id);
+    .eq('borrowing_id', id);
 
   // Jika dibatalkan/ditolak, pulihkan stok
   const isCancelling = ['Ditolak', 'Dibatalkan'].includes(status) && !['Ditolak', 'Dibatalkan', 'Selesai'].includes(currentBorrowing.status);
