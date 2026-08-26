@@ -6,6 +6,7 @@ const supabase = require('./config/supabaseClient');
 const apiRoutes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { startOverdueChecker } = require('./services/cronService');
 
 dotenv.config();
 
@@ -94,4 +95,6 @@ app.use(errorHandler);
 // Start Server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  // Aktifkan cron job pendeteksi peminjaman terlambat
+  startOverdueChecker();
 });
