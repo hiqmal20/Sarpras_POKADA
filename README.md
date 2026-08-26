@@ -196,6 +196,10 @@ git push origin feature/nama-fitur
 
 Kemudian buat Pull Request untuk menggabungkan branch ke `main`.
 
-## Developer
+Developer
 
-Project ini dibuat untuk kebutuhan pengembangan sistem peminjaman barang.
+Project Sarpras POKADA dikembangkan sebagai sistem informasi sarana dan prasarana untuk mendukung proses peminjaman dan pengelolaan barang.
+
+License
+
+Project ini dibuat untuk kebutuhan pengembangan dan pembelajaran.
