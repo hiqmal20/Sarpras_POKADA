@@ -22,6 +22,20 @@ exports.login = async (req, res, next) => {
   }
 };
 
+// Refresh token
+exports.refresh = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) {
+      return res.status(400).json({ status: 'fail', message: 'refreshToken wajib diisi' });
+    }
+    const result = await authService.refreshToken(refreshToken);
+    return sendSuccess(res, 'Token berhasil diperbarui', result, 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Get profile user yang sedang login (Me)
 exports.getMe = async (req, res, next) => {
   try {

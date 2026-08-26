@@ -1,12 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const damageReportController = require('../controller/damageReportController');
+const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const validateRequest = require('../middleware/validateRequest');
 const { createDamageReportSchema, updateDamageReportStatusSchema } = require('../validations/damageReportValidation');
 
-router.get('/', damageReportController.getAllReports);
-router.get('/:id', damageReportController.getReportById);
+// Semua route laporan kerusakan butuh login
+router.use(requireAuth);
+
+// Admin & Petugas bisa lihat semua laporan
+router.get('/', requireRole('Admin', 'Petugas'), damageReportController.getAllReports);
+router.get('/:id', requireRole('Admin', 'Petugas'), damageReportController.getReportById);
+
+// Semua user yang login bisa buat laporan kerusakan
 router.post('/', validateRequest(createDamageReportSchema), damageReportController.createReport);
-router.patch('/:id/status', validateRequest(updateDamageReportStatusSchema), damageReportController.updateReportStatus);
+
+// Hanya Admin & Petugas yang bisa update status laporan
+router.patch('/:id/status', requireRole('Admin', 'Petugas'), validateRequest(updateDamageReportStatusSchema), damageReportController.updateReportStatus);
 
 module.exports = router;
