@@ -1,6 +1,21 @@
-# Sistem Peminjaman Barang
+# Sarpras POKADA — Sistem Informasi Peminjaman Sarana dan Prasarana
 
-Aplikasi web untuk mempermudah proses peminjaman, pengembalian, dan pengelolaan barang.
+Sistem informasi berbasis web yang dirancang untuk mengelola proses peminjaman, pengembalian, inventarisasi barang, serta pelaporan sarana dan prasarana di lingkungan kampus secara terintegrasi..
+
+# Daftar Isi
+
+* Tentang Project
+* Fitur Utama
+* Tech Stack
+* Struktur Direktori
+* Panduan Instalasi & Development
+* Konfigurasi Environment
+* Kontribusi & Git Workflow
+* License
+
+# Tentang Project 
+
+Sarpras POKADA dikembangkan untuk mendigitalisasi proses administrasi peminjaman barang inventaris kampus yang sebelumnya manual. Aplikasi ini memfasilitasi civitas akademika (mahasiswa/dosen) untuk mengajukan peminjaman secara online, melihat ketersediaan paket/satuan barang, serta memudahkan tim sarpras dalam melakukan tracking peminjaman, manajemen stok, dan rekapitulasi laporan kerusakan atau kehilangan secara akurat.
 
 ## Fitur
 
@@ -32,19 +47,19 @@ Aplikasi web untuk mempermudah proses peminjaman, pengembalian, dan pengelolaan 
 
 ### Frontend
 
-* Next.js
-* Tailwind CSS
+* Next.js — React Framework untuk SSR dan interaksi antarmuka yang cepat.
+* Tailwind CSS — Utility-first CSS framework untuk styling yang konsisten dan responsif.
 
 ### Backend
 
-* Node.js
-* Express.js
-* JWT
+* Node.js — JavaScript runtime environment.
+* Express.js — Web framework untuk RESTful API.
+* JWT — Mekanisme otentikasi berbasis token yang aman.
 
 ### Database
 
-* Supabase
-* PostgreSQL
+* Supabase — Backend-as-a-Service platform.
+* PostgreSQL — Relational database management system.
 
 ## Instalasi
 
@@ -202,4 +217,4 @@ Project Sarpras POKADA dikembangkan sebagai sistem informasi sarana dan prasaran
 
 ## License
 
-Project ini dibuat untuk kebutuhan pengembangan dan pembelajaran.
+Project ini dikembangkan untuk kebutuhan operasional institusi kampus serta keperluan pembelajaran internal. Seluruh hak cipta dilindungi oleh ketentuan pengembang.
