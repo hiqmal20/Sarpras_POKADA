@@ -51,15 +51,19 @@ exports.createNotification = async ({ user_id, title, message, type = 'sistem' }
   return data;
 };
 
-exports.markAsRead = async (id) => {
+exports.markAsRead = async (id, userId) => {
   const { data, error } = await supabase
     .from('notifications')
     .update({ is_read: true })
     .eq('id', id)
+    .eq('user_id', userId)
     .select()
     .single();
 
-  if (error) throw error;
+  if (error || !data) {
+    throw new AppError('Notifikasi tidak ditemukan atau bukan milik Anda', 404);
+  }
+
   return data;
 };
 
@@ -74,12 +78,18 @@ exports.markAllAsRead = async (userId) => {
   return true;
 };
 
-exports.deleteNotification = async (id) => {
-  const { error } = await supabase
+exports.deleteNotification = async (id, userId) => {
+  const { data, error } = await supabase
     .from('notifications')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single();
 
-  if (error) throw error;
+  if (error || !data) {
+    throw new AppError('Notifikasi tidak ditemukan atau bukan milik Anda', 404);
+  }
+
   return true;
 };

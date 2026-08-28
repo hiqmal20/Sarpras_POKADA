@@ -10,10 +10,17 @@ const registerSchema = Joi.object({
     'string.empty': 'Email wajib diisi',
     'string.email': 'Format email tidak valid'
   }),
-  password: Joi.string().min(6).required().messages({
-    'string.empty': 'Password wajib diisi',
-    'string.min': 'Password minimal harus 6 karakter'
-  }),
+  password: Joi.string().min(8).max(128)
+    .pattern(/[a-z]/, 'lowercase')
+    .pattern(/[A-Z]/, 'uppercase')
+    .pattern(/[0-9]/, 'number')
+    .required()
+    .messages({
+      'string.empty': 'Password wajib diisi',
+      'string.min': 'Password minimal harus 8 karakter',
+      'string.max': 'Password maksimal 128 karakter',
+      'string.pattern.name': 'Password harus mengandung huruf kecil, huruf besar, dan angka'
+    }),
   role: Joi.string().valid(...ALL_ROLES).default('Mahasiswa'),
   no_hp: Joi.string().allow('', null),
   foto: Joi.string().uri().allow('', null)

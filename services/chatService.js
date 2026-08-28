@@ -1,5 +1,25 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { ROLES } = require('../constants/roles');
+
+const verifyChatAccess = async (chatId, userId, userRole) => {
+  const isPrivileged = [ROLES.ADMIN, ROLES.PETUGAS].includes(userRole);
+  if (isPrivileged) return;
+
+  const { data: chat, error } = await supabase
+    .from('chats')
+    .select('user_id, admin_id')
+    .eq('id', chatId)
+    .single();
+
+  if (error || !chat) {
+    throw new AppError('Chat tidak ditemukan', 404);
+  }
+
+  if (chat.user_id !== userId && chat.admin_id !== userId) {
+    throw new AppError('Akses ditolak: Anda bukan peserta chat ini', 403);
+  }
+};
 
 exports.findAllChats = async ({ user_id, admin_id, status }) => {
   let query = supabase
@@ -11,7 +31,7 @@ exports.findAllChats = async ({ user_id, admin_id, status }) => {
     `)
     .order('updated_at', { ascending: false });
 
-  if (user_id) query = query.eq('user_id', user_id);
+  if (user_id) query = query.or(`user_id.eq.${user_id},admin_id.eq.${user_id}`);
   if (admin_id) query = query.eq('admin_id', admin_id);
   if (status) query = query.eq('status', status);
 
@@ -21,7 +41,9 @@ exports.findAllChats = async ({ user_id, admin_id, status }) => {
   return data;
 };
 
-exports.findChatMessages = async (chatId) => {
+exports.findChatMessages = async (chatId, userId, userRole) => {
+  await verifyChatAccess(chatId, userId, userRole);
+
   const { data, error } = await supabase
     .from('chat_messages')
     .select(`
@@ -67,7 +89,9 @@ exports.createNewChat = async ({ user_id, admin_id, subject, initial_message, at
   return chat;
 };
 
-exports.postMessage = async (chatId, { sender_id, message, attachment_url }) => {
+exports.postMessage = async (chatId, { sender_id, message, attachment_url }, userId, userRole) => {
+  await verifyChatAccess(chatId, userId, userRole);
+
   const now = new Date().toISOString();
 
   const { data: newMsg, error: msgError } = await supabase
@@ -97,17 +121,12 @@ exports.postMessage = async (chatId, { sender_id, message, attachment_url }) => 
 };
 
 exports.markChatAsRead = async (chatId, userId) => {
-  let query = supabase
+  const { error } = await supabase
     .from('chat_messages')
     .update({ is_read: true })
-    .eq('chat_id', chatId);
+    .eq('chat_id', chatId)
+    .neq('sender_id', userId);
 
-  if (userId) {
-    query = query.neq('sender_id', userId);
-  }
-
-  const { error } = await query;
   if (error) throw error;
-
   return true;
 };

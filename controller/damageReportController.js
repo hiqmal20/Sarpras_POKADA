@@ -1,10 +1,15 @@
 const damageReportService = require('../services/damageReportService');
 const { sendSuccess } = require('../utils/responseHandler');
+const { ROLES } = require('../constants/roles');
 
-// Get all damage reports
 exports.getAllReports = async (req, res, next) => {
   try {
-    const result = await damageReportService.findAllReports(req.query);
+    const isPrivileged = [ROLES.ADMIN, ROLES.PETUGAS].includes(req.user.role);
+    const query = { ...req.query };
+    if (!isPrivileged) {
+      query.user_id = req.user.id;
+    }
+    const result = await damageReportService.findAllReports(query);
     return sendSuccess(
       res,
       'Data laporan kerusakan berhasil dimuat',
@@ -22,19 +27,25 @@ exports.getAllReports = async (req, res, next) => {
   }
 };
 
-// Get damage report by ID
 exports.getReportById = async (req, res, next) => {
   try {
     const data = await damageReportService.findReportById(req.params.id);
+    const isPrivileged = [ROLES.ADMIN, ROLES.PETUGAS].includes(req.user.role);
+    if (!isPrivileged && data.user_id !== req.user.id) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'Akses ditolak: Anda tidak memiliki izin untuk melihat data ini.'
+      });
+    }
     return sendSuccess(res, 'Detail laporan kerusakan berhasil dimuat', data, 200);
   } catch (err) {
     next(err);
   }
 };
 
-// Create report
 exports.createReport = async (req, res, next) => {
   try {
+    req.body.user_id = req.user.id;
     const data = await damageReportService.createNewReport(req.body);
     return sendSuccess(res, 'Laporan kerusakan berhasil dikirim', data, 201);
   } catch (err) {
@@ -42,7 +53,6 @@ exports.createReport = async (req, res, next) => {
   }
 };
 
-// Update status
 exports.updateReportStatus = async (req, res, next) => {
   try {
     const data = await damageReportService.updateStatus(req.params.id, req.body);

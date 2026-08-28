@@ -87,7 +87,32 @@ const requireRole = (...allowedRoles) => {
   };
 };
 
+const requireSelfOrRole = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        status: 'fail',
+        message: 'Pengguna belum terautentikasi.'
+      });
+    }
+
+    const targetUserId = req.params.id || req.body.user_id || req.query.user_id;
+    const isSelf = targetUserId && req.user.id === targetUserId;
+    const hasRole = allowedRoles.includes(req.user.role);
+
+    if (!isSelf && !hasRole) {
+      return res.status(403).json({
+        status: 'fail',
+        message: 'Akses ditolak: Anda tidak memiliki izin untuk mengakses data ini.'
+      });
+    }
+
+    next();
+  };
+};
+
 module.exports = {
   requireAuth,
-  requireRole
+  requireRole,
+  requireSelfOrRole
 };
