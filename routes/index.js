@@ -11,6 +11,7 @@ const returnRoutes = require('./returnRoutes');
 const damageReportRoutes = require('./damageReportRoutes');
 const chatRoutes = require('./chatRoutes');
 const notificationRoutes = require('./notificationRoutes');
+const dashboardRoutes = require('./dashboardRoutes');
 
 // Daftarkan semua sub-routes
 router.use('/auth', authRoutes);
@@ -23,5 +24,6 @@ router.use('/returns', returnRoutes);
 router.use('/damage-reports', damageReportRoutes);
 router.use('/chats', chatRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 module.exports = router;

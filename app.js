@@ -9,6 +9,7 @@ const supabase = require('./config/supabaseClient');
 const apiRoutes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { startOverdueChecker } = require('./services/cronService');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -77,4 +78,6 @@ app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  // Aktifkan cron job pendeteksi peminjaman terlambat
+  startOverdueChecker();
 });

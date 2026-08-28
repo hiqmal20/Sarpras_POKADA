@@ -56,6 +56,20 @@ exports.registerUser = async ({ email, password, name, role = 'Mahasiswa', no_hp
   };
 };
 
+exports.refreshToken = async (refreshToken) => {
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+
+  if (error || !data.session) {
+    throw new AppError('Refresh token tidak valid atau sudah kadaluarsa. Silakan login kembali.', 401);
+  }
+
+  return {
+    token: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+    expiresIn: data.session.expires_in
+  };
+};
+
 exports.loginUser = async ({ email, password }) => {
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
     email,
