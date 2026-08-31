@@ -170,7 +170,7 @@ export default function LandingPage() {
     },
     {
       q: "Bagaimana proses pengambilan dan pengembalian barang?",
-      a: "Setelah pengajuan disetujui secara daring, tunjukkan kode peminjaman unik (PJ-xxx) kepada petugas di lokasi sarpras masing-masing untuk serah terima barang.",
+      a: "Setelah mendapat persetujuan, datang ke lokasi sarpras untuk mengambil barang dan mengembalikannya setelah selesai digunakan.",
     },
     {
       q: "Apa yang terjadi jika barang mengalami kendala atau kerusakan?",
@@ -348,27 +348,24 @@ export default function LandingPage() {
       </header>
 
       {/* Hero Section */}
-      <section id="beranda" className="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24">
+      <section id="beranda" className="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center ">
             {/* Left Text Column */}
             <div className="lg:col-span-6 space-y-6 text-left">
               {/* Pill Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0785BC]/10 border border-[#0785BC]/20 text-[#0785BC] text-xs sm:text-sm font-semibold tracking-tight">
-                <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse"></span>
-                <span>Ekonomi Sirkular. Masa Depan Lebih Baik.</span>
-              </div>
+              
 
               {/* Main Heading */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-black text-slate-900 tracking-tight leading-[1.15]">
-                Akses Tanpa <span className="text-[#0785BC]">Batas</span>,<br />
-                Kurangi Jejak Karbon.
+              <h1 className="text-4x1 sm:text-5xl lg:text-[56px] font-black text-slate-900 tracking-tight leading-[1.15] mt-9">
+                Smart  <span className="text-[#0785BC]">Sarpras</span>,<br />
+                Untuk Smart kampus.
               </h1>
 
               {/* Subheading */}
               <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
-                Sewa barang berkualitas tinggi dari komunitas terpercaya. Dari kamera pro
-                hingga perlengkapan berkemah, nikmati akses kapan saja tanpa perlu membelinya.
+                Digitalisasi pengelolaan sarana dan prasarana untuk menciptakan sistem 
+                kampus yang lebih efisien, transparan, dan terorganisir.
               </p>
 
               {/* CTA Buttons */}
@@ -427,7 +424,7 @@ export default function LandingPage() {
                   </div>
                   <div>
                     <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                      Transaksi Aman
+                      Peminjaman 
                     </p>
                     <p className="text-[11px] text-slate-500 font-medium">Jaminan 100%</p>
                   </div>
@@ -504,11 +501,11 @@ export default function LandingPage() {
                 <ShieldCheck className="w-7 h-7 stroke-[2.2]" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2.5 group-hover:text-[#0785BC] transition-colors">
-                3. Transaksi Aman
+                3. Semua Lebih Teratur
               </h3>
               <p className="text-slate-500 text-sm leading-relaxed">
-                Bertemu atau gunakan jasa kurir. Pembayaran ditahan hingga barang dikembalikan
-                dengan aman.
+                Pantau peminjaman, cek status pengajuan, dan 
+                lihat riwayat sarpras dengan praktis dalam satu platform.
               </p>
             </div>
           </div>
@@ -701,17 +698,42 @@ export default function LandingPage() {
               <p className="text-blue-50 text-sm leading-relaxed">
                 Membangun komunitas untuk masa depan yang lebih berkelanjutan melalui berbagi.
               </p>
+              <div className="flex items-start gap-3 text-blue-50 text-sm leading-relaxed">
+                <img src="/images/phone (1).png" alt="phone" className="h-10 w-auto mt-0.5" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-blue-100">Customer Service</span>
+                  <span className="font-bold text-white">+021-2780-1509</span>
+                </div>
+              </div>
+
+              <div className="mt-10 flex items-start gap-3 text-blue-50 text-sm leading-relaxed">
+                <img src="/images/maps-and-flags (1).png" alt="location" className="h-10 w-auto mt-0.5" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-blue-100">Gedung Atlanta</span>
+                  <span className="text-white">Jl. Margonda Raya No. 28 Kel. Pondok Cina, Kec. Beji, Kota Depok, Jawa Barat 16424</span>
+                </div>
+              </div>
+
+              <div className="mt-10 flex items-center gap-3 text-blue-50 text-sm leading-relaxed">
+                <img src="/images/whatsapp (1).png" alt="whatsapp" className="h-10 w-auto" />
+                <span className=" text-blue-100">0821 1376 7144</span>
+              </div>
+
+              <div className="mt-10 flex items-center gap-3 text-blue-50 text-sm leading-relaxed">
+                <img src="/images/mail (1).png" alt="mail" className="h-10 w-auto" />
+                <span className=" text-blue-100">khj@khj.ac.id</span>
+              </div>
               <p className="text-blue-100/80 text-xs pt-2">
                 © 2026 POKADA.
               </p>
             </div>
 
             {/* Col 2 */}
-            <div>
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-4">
+            <div className="space-y-5">
+              <h4 className="text-base font-extrabold uppercase tracking-[0.12em] text-white">
                 Platform
               </h4>
-              <ul className="space-y-2.5 text-sm text-blue-50">
+              <ul className="space-y-3 text-sm text-blue-50">
                 <li>
                   <button
                     onClick={() => handleScrollTo("katalog")}
@@ -737,11 +759,11 @@ export default function LandingPage() {
             </div>
 
             {/* Col 3 */}
-            <div>
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-4">
+            <div className="space-y-5">
+              <h4 className="text-base font-extrabold uppercase tracking-[0.12em] text-white">
                 Perusahaan
               </h4>
-              <ul className="space-y-2.5 text-sm text-blue-50">
+              <ul className="space-y-3 text-sm text-blue-50">
                 <li>
                   <a href="#" className="hover:text-white transition-colors">
                     Tentang Kami
@@ -761,11 +783,11 @@ export default function LandingPage() {
             </div>
 
             {/* Col 4 */}
-            <div>
-              <h4 className="text-sm font-bold uppercase tracking-wider text-white mb-4">
+            <div className="space-y-5">
+              <h4 className="text-base font-extrabold uppercase tracking-[0.12em] text-white">
                 Bantuan & Legal
               </h4>
-              <ul className="space-y-2.5 text-sm text-blue-50">
+              <ul className="space-y-3 text-sm text-blue-50">
                 <li>
                   <button
                     onClick={() => handleScrollTo("faq")}
@@ -791,7 +813,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-          </div>
+          </div> 
         </div>
       </footer>
     </div>
