@@ -35,11 +35,12 @@ exports.getStats = async () => {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'Terlambat'),
 
-    // Total pengembalian bulan ini
+    // Peminjaman yang sudah dikembalikan bulan ini
     supabase
-      .from('returns')
+      .from('borrowings')
       .select('id', { count: 'exact', head: true })
-      .gte('return_date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      .eq('status', 'Dikembalikan')
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
 
     // Laporan kerusakan menunggu review
     supabase
@@ -57,7 +58,7 @@ exports.getStats = async () => {
     supabase
       .from('borrowings')
       .select(`
-        id, borrow_code, status, borrow_date, planned_return_date,
+        id, borrow_code, status, borrow_date,
         users (id, name, email, role)
       `)
       .order('created_at', { ascending: false })
@@ -83,7 +84,7 @@ exports.getStats = async () => {
     borrowings: {
       aktif: borrowingsResult.count || 0,
       pending: pendingResult.count || 0,
-      terlambat: overdueResult.count || 0,
+      dikembalikanBulanIni: overdueResult.count || 0,
       pengembalianBulanIni: returnsResult.count || 0
     },
     laporanKerusakan: {

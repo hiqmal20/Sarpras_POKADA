@@ -2,54 +2,45 @@ const cron = require('node-cron');
 const supabase = require('../config/supabaseClient');
 
 /**
- * Cron job: Deteksi peminjaman yang sudah melewati planned_return_date
- * Jalankan setiap hari pukul 00:05 WIB
+ * Cron job: Notifikasi harian untuk peminjaman yang sudah lama belum dikembalikan
+ * (lebih dari 7 hari sejak borrow_date)
+ * Jalankan setiap hari pukul 08:00 WIB
  */
 const startOverdueChecker = () => {
-  cron.schedule('5 0 * * *', async () => {
-    console.log('[CRON] Menjalankan pengecekan peminjaman terlambat...');
+  cron.schedule('0 8 * * *', async () => {
+    console.log('[CRON] Menjalankan pengecekan peminjaman lama...');
 
     try {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      // Hitung 7 hari yang lalu
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const cutoffDate = sevenDaysAgo.toISOString();
 
-      // Ambil semua peminjaman yang statusnya 'Dipinjam' dan sudah lewat batas pengembalian
-      const { data: overdueBorrowings, error } = await supabase
+      // Ambil peminjaman yang statusnya 'Dipinjam' dan sudah lebih dari 7 hari
+      const { data: longBorrowings, error } = await supabase
         .from('borrowings')
-        .select('id, borrow_code, user_id, planned_return_date')
+        .select('id, borrow_code, user_id, borrow_date')
         .eq('status', 'Dipinjam')
-        .lt('planned_return_date', today);
+        .lt('borrow_date', cutoffDate);
 
       if (error) {
         console.error('[CRON] Gagal mengambil data peminjaman:', error.message);
         return;
       }
 
-      if (!overdueBorrowings || overdueBorrowings.length === 0) {
-        console.log('[CRON] Tidak ada peminjaman terlambat.');
+      if (!longBorrowings || longBorrowings.length === 0) {
+        console.log('[CRON] Tidak ada peminjaman yang perlu diingatkan.');
         return;
       }
 
-      console.log(`[CRON] Ditemukan ${overdueBorrowings.length} peminjaman terlambat.`);
+      console.log(`[CRON] Mengirim ${longBorrowings.length} notifikasi pengingat pengembalian.`);
 
-      const overdueIds = overdueBorrowings.map(b => b.id);
-
-      // Update semua sekaligus ke status 'Terlambat'
-      const { error: updateError } = await supabase
-        .from('borrowings')
-        .update({ status: 'Terlambat' })
-        .in('id', overdueIds);
-
-      if (updateError) {
-        console.error('[CRON] Gagal update status terlambat:', updateError.message);
-        return;
-      }
-
-      // Kirim notifikasi ke masing-masing user
+      // Kirim notifikasi pengingat ke masing-masing user
       const now = new Date().toISOString();
-      const notifications = overdueBorrowings.map(b => ({
+      const notifications = longBorrowings.map(b => ({
         user_id: b.user_id,
-        title: 'Peminjaman Terlambat',
-        message: `Peminjaman dengan kode ${b.borrow_code} sudah melewati batas pengembalian (${b.planned_return_date}). Segera kembalikan barang ke petugas SARPRAS.`,
+        title: 'Pengingat: Segera Kembalikan Barang',
+        message: `Peminjaman dengan kode ${b.borrow_code} sudah berjalan lebih dari 7 hari. Harap segera kembalikan barang ke petugas SARPRAS.`,
         type: 'peminjaman',
         is_read: false,
         created_at: now
@@ -60,10 +51,10 @@ const startOverdueChecker = () => {
         .insert(notifications);
 
       if (notifError) {
-        console.error('[CRON] Gagal kirim notifikasi terlambat:', notifError.message);
+        console.error('[CRON] Gagal kirim notifikasi pengingat:', notifError.message);
       }
 
-      console.log(`[CRON] Berhasil update ${overdueIds.length} peminjaman ke status Terlambat.`);
+      console.log(`[CRON] Berhasil kirim ${longBorrowings.length} notifikasi pengingat.`);
     } catch (err) {
       console.error('[CRON] Error tidak terduga:', err.message);
     }
@@ -71,7 +62,7 @@ const startOverdueChecker = () => {
     timezone: 'Asia/Jakarta'
   });
 
-  console.log('[CRON] Overdue checker aktif — berjalan setiap hari pukul 00:05 WIB');
+  console.log('[CRON] Pengingat pengembalian aktif — berjalan setiap hari pukul 08:00 WIB');
 };
 
 module.exports = { startOverdueChecker };

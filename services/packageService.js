@@ -1,6 +1,32 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 
+/**
+ * Cek apakah semua item dalam package tersedia.
+ * Package dianggap tersedia HANYA jika semua item di dalamnya
+ * memiliki available_stock >= quantity yang dibutuhkan.
+ */
+const checkPackageAvailability = (pkgItems) => {
+  if (!pkgItems || pkgItems.length === 0) return false;
+
+  const unavailableItems = pkgItems.filter(pi => {
+    const item = pi.items;
+    if (!item) return true;
+    return item.available_stock < pi.quantity || item.status !== 'Tersedia';
+  });
+
+  return {
+    isAvailable: unavailableItems.length === 0,
+    unavailableItems: unavailableItems.map(pi => ({
+      item_id: pi.item_id,
+      name: pi.items?.name || 'Unknown',
+      needed: pi.quantity,
+      available: pi.items?.available_stock || 0,
+      status: pi.items?.status || 'Tidak diketahui'
+    }))
+  };
+};
+
 exports.findAllPackages = async ({ status, search }) => {
   let query = supabase
     .from('packages')
@@ -20,11 +46,8 @@ exports.findAllPackages = async ({ status, search }) => {
     const { data: pkgItems, error: itemsError } = await supabase
       .from('packages_items')
       .select(`
-        id,
-        quantity,
-        package_id,
-        item_id,
-        items (id, name, code, image_url, available_stock, condition)
+        id, quantity, package_id, item_id,
+        items (id, name, code, image_url, available_stock, stock, condition, status)
       `)
       .in('package_id', packageIds);
 
@@ -36,10 +59,16 @@ exports.findAllPackages = async ({ status, search }) => {
     }
   }
 
-  return packages.map(pkg => ({
-    ...pkg,
-    packages_items: itemsMap[pkg.id] || []
-  }));
+  return packages.map(pkg => {
+    const pkgItems = itemsMap[pkg.id] || [];
+    const availability = checkPackageAvailability(pkgItems);
+    return {
+      ...pkg,
+      is_available: availability.isAvailable,
+      unavailable_items: availability.isAvailable ? [] : availability.unavailableItems,
+      packages_items: pkgItems
+    };
+  });
 };
 
 exports.findPackageById = async (id) => {
@@ -56,16 +85,28 @@ exports.findPackageById = async (id) => {
   const { data: pkgItems } = await supabase
     .from('packages_items')
     .select(`
-      id,
-      quantity,
-      package_id,
-      item_id,
-      items (id, name, code, image_url, available_stock, condition)
+      id, quantity, package_id, item_id,
+      items (id, name, code, image_url, available_stock, stock, condition, status)
     `)
     .eq('package_id', id);
 
+  const availability = checkPackageAvailability(pkgItems || []);
+
   return {
     ...pkg,
+    is_available: availability.isAvailable,
+    unavailable_items: availability.isAvailable ? [] : availability.unavailableItems,
+    // Jika package tidak tersedia, sertakan info item yang bisa dipinjam satuan
+    individual_borrow_suggestion: availability.isAvailable ? null : {
+      message: 'Package tidak lengkap. Anda tetap bisa meminjam item yang tersedia secara satuan.',
+      available_items: (pkgItems || [])
+        .filter(pi => pi.items?.available_stock >= pi.quantity && pi.items?.status === 'Tersedia')
+        .map(pi => ({
+          item_id: pi.item_id,
+          name: pi.items?.name,
+          available_stock: pi.items?.available_stock
+        }))
+    },
     packages_items: pkgItems || []
   };
 };

@@ -13,12 +13,6 @@ const createBorrowingSchema = Joi.object({
   user_id: Joi.string().uuid().required().messages({
     'string.empty': 'user_id wajib diisi'
   }),
-  borrow_date: Joi.date().iso().required().messages({
-    'date.base': 'Format tanggal peminjaman tidak valid (gunakan format ISO/YYYY-MM-DD)'
-  }),
-  planned_return_date: Joi.date().iso().greater(Joi.ref('borrow_date')).required().messages({
-    'date.greater': 'Tanggal estimasi pengembalian harus setelah tanggal peminjaman'
-  }),
   purpose: Joi.string().trim().min(3).required().messages({
     'string.empty': 'Tujuan peminjaman wajib diisi'
   }),
@@ -28,7 +22,8 @@ const createBorrowingSchema = Joi.object({
 });
 
 const updateBorrowingStatusSchema = Joi.object({
-  status: Joi.string().valid('Pending', 'Disetujui', 'Ditolak', 'Dipinjam', 'Selesai', 'Terlambat', 'Dibatalkan').required().messages({
+  // Status Terlambat dihapus karena tidak relevan tanpa deadline
+  status: Joi.string().valid('Pending', 'Disetujui', 'Ditolak', 'Dipinjam', 'Dikembalikan', 'Dibatalkan').required().messages({
     'string.empty': 'Status wajib diisi'
   }),
   admin_note: Joi.string().allow('', null)
