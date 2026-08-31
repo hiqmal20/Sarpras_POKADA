@@ -3,8 +3,7 @@ const BORROWING_STATUS = {
   APPROVED: 'Disetujui',
   REJECTED: 'Ditolak',
   BORROWED: 'Dipinjam',
-  RETURNED: 'Selesai',
-  OVERDUE: 'Terlambat',
+  RETURNED: 'Dikembalikan',
   CANCELLED: 'Dibatalkan'
 };
 

@@ -31,6 +31,21 @@ const requireAuth = async (req, res, next) => {
       });
     }
 
+    // 2. Cek session timeout 2 jam — berdasarkan waktu token dibuat (iat)
+    try {
+      const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+      const issuedAt = payload.iat * 1000; // konversi ke ms
+      const twoHours = 2 * 60 * 60 * 1000;
+      if (Date.now() - issuedAt > twoHours) {
+        return res.status(401).json({
+          status: 'fail',
+          message: 'Sesi Anda telah berakhir. Silakan login kembali.'
+        });
+      }
+    } catch (_) {
+      // Jika decode gagal, lanjutkan — Supabase sudah verifikasi di atas
+    }
+
     const authUser = authData.user;
 
     // 2. Ambil data profil & role dari tabel public.users

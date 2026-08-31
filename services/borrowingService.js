@@ -27,7 +27,6 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
   const { data: borrowings, count, error } = await query;
   if (error) throw error;
 
-  // Pasang relasi item secara aman
   const borrowingIds = borrowings.map(b => b.id);
   let itemsMap = {};
 
@@ -42,9 +41,7 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
 
     if (!bItemsError && bItems) {
       bItems.forEach(item => {
-        if (!itemsMap[item.borrowing_id]) {
-          itemsMap[item.borrowing_id] = [];
-        }
+        if (!itemsMap[item.borrowing_id]) itemsMap[item.borrowing_id] = [];
         itemsMap[item.borrowing_id].push(item);
       });
     }
@@ -99,17 +96,21 @@ exports.findBorrowingById = async (id) => {
   };
 };
 
-exports.createBorrowingRequest = async ({ user_id, borrow_date, planned_return_date, purpose, items }) => {
-  // 1. Validasi ketersediaan stok
+exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
+  // Validasi ketersediaan stok
   for (const item of items) {
     const { data: itemData, error: itemError } = await supabase
       .from('items')
-      .select('id, name, available_stock')
+      .select('id, name, available_stock, status')
       .eq('id', item.item_id)
       .single();
 
     if (itemError || !itemData) {
       throw new AppError(`Barang dengan ID ${item.item_id} tidak ditemukan`, 404);
+    }
+
+    if (itemData.status !== 'Tersedia') {
+      throw new AppError(`Barang "${itemData.name}" sedang tidak tersedia (status: ${itemData.status})`, 400);
     }
 
     const requestedQty = Number(item.quantity) || 1;
@@ -121,14 +122,13 @@ exports.createBorrowingRequest = async ({ user_id, borrow_date, planned_return_d
   const borrowCode = generateBorrowCode();
   const now = new Date().toISOString();
 
-  // 2. Insert peminjaman
+  // Insert peminjaman — tanpa borrow_date & planned_return_date
   const { data: newBorrowing, error: borrowError } = await supabase
     .from('borrowings')
     .insert([{
       user_id,
       borrow_code: borrowCode,
-      borrow_date,
-      planned_return_date,
+      borrow_date: now,
       purpose,
       status: 'Pending',
       created_at: now
@@ -138,7 +138,7 @@ exports.createBorrowingRequest = async ({ user_id, borrow_date, planned_return_d
 
   if (borrowError) throw borrowError;
 
-  // 3. Insert items & potong stok
+  // Insert items & kurangi stok
   const borrowingItemsPayload = [];
   for (const item of items) {
     const qty = Number(item.quantity) || 1;
@@ -161,7 +161,7 @@ exports.createBorrowingRequest = async ({ user_id, borrow_date, planned_return_d
       const newStock = Math.max(0, currentItem.available_stock - qty);
       await supabase
         .from('items')
-        .update({ available_stock: newStock, update_at: now })
+        .update({ available_stock: newStock })
         .eq('id', item.item_id);
     }
   }
@@ -172,7 +172,7 @@ exports.createBorrowingRequest = async ({ user_id, borrow_date, planned_return_d
 
   if (insertItemsError) throw insertItemsError;
 
-  // 4. Notifikasi
+  // Notifikasi
   await supabase.from('notifications').insert([{
     user_id,
     title: 'Pengajuan Peminjaman Diterima',
@@ -202,7 +202,8 @@ exports.updateStatus = async (id, { status, admin_note }) => {
     .eq('borrowing_id', id);
 
   // Jika dibatalkan/ditolak, pulihkan stok
-  const isCancelling = ['Ditolak', 'Dibatalkan'].includes(status) && !['Ditolak', 'Dibatalkan', 'Selesai'].includes(currentBorrowing.status);
+  const isCancelling = ['Ditolak', 'Dibatalkan'].includes(status) &&
+    !['Ditolak', 'Dibatalkan', 'Dikembalikan'].includes(currentBorrowing.status);
 
   if (isCancelling && bItems) {
     for (const bItem of bItems) {
@@ -215,10 +216,7 @@ exports.updateStatus = async (id, { status, admin_note }) => {
       if (itemData) {
         await supabase
           .from('items')
-          .update({
-            available_stock: itemData.available_stock + bItem.quantity,
-            update_at: new Date().toISOString()
-          })
+          .update({ available_stock: itemData.available_stock + bItem.quantity })
           .eq('id', bItem.item_id);
       }
     }
@@ -236,11 +234,11 @@ exports.updateStatus = async (id, { status, admin_note }) => {
 
   if (updateError) throw updateError;
 
-  // Notifikasi status
+  // Notifikasi
   await supabase.from('notifications').insert([{
     user_id: currentBorrowing.user_id,
     title: `Status Peminjaman: ${status}`,
-    message: `Peminjaman ${currentBorrowing.borrow_code} statusnya telah diperbarui menjadi "${status}". ${admin_note ? `Catatan: ${admin_note}` : ''}`,
+    message: `Peminjaman ${currentBorrowing.borrow_code} statusnya telah diperbarui menjadi "${status}".${admin_note ? ` Catatan: ${admin_note}` : ''}`,
     type: 'peminjaman',
     is_read: false,
     created_at: new Date().toISOString()

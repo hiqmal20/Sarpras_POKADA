@@ -75,8 +75,8 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
     throw new AppError('Data peminjaman tidak ditemukan', 404);
   }
 
-  if (borrowing.status === 'Selesai') {
-    throw new AppError('Peminjaman ini sudah tercatat selesai/dikembalikan', 400);
+  if (borrowing.status === 'Dikembalikan') {
+    throw new AppError('Peminjaman ini sudah tercatat dikembalikan', 400);
   }
 
   const now = new Date().toISOString();
@@ -97,11 +97,11 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
 
   if (retError) throw retError;
 
-  // 3. Update status borrowing menjadi Selesai
+  // Update status borrowing menjadi Dikembalikan
   await supabase
     .from('borrowings')
     .update({
-      status: 'Selesai',
+      status: 'Dikembalikan',
       actual_return_date: return_date
     })
     .eq('id', borrowing_id);
