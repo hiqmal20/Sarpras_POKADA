@@ -42,3 +42,17 @@ next-env.d.ts
 
 
 .git
+
+# agents
+
+.agents
+.claude
+skills-lock.json
+MEMORY.md
+PROMPT.md
+SKILLS.md
+DESIGN.md
+agents-lock.json
+
+#lib
+db.js
