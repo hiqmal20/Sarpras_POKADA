@@ -1,6 +1,11 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
+// Check if using mock data mode
+export const USE_MOCK_DATA = 
+  process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' || 
+  !process.env.NEXT_PUBLIC_API_URL;
+
 export interface ApiResponse<T = any> {
   status: "success" | "fail" | "error";
   message: string;
@@ -50,6 +55,15 @@ async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
+  // If in mock mode, return fail status to trigger mock data fallback
+  if (USE_MOCK_DATA) {
+    console.log('🎭 Mock Data Mode: API call skipped for', endpoint);
+    return {
+      status: "fail",
+      message: "Using mock data (API disabled)",
+    };
+  }
+
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
   const headers: HeadersInit = {
