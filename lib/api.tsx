@@ -94,7 +94,7 @@ export const api = {
         body: JSON.stringify(payload),
       }),
 
-    login: (payload: { identifier: string; password: string }) =>
+    login: (payload: { email: string; nomor_induk: string; password: string }) =>
       apiFetch<{ user: any; token: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify(payload),

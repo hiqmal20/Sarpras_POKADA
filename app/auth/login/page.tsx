@@ -7,7 +7,8 @@ import { api, setAuthToken, setCurrentUser } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
+  const [nomorInduk, setNomorInduk] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -19,16 +20,23 @@ export default function LoginPage() {
 
     try {
       const res = await api.auth.login({
-        identifier: identifier.trim(),
+        email: email.trim(),
+        nomor_induk: nomorInduk.trim(),
         password,
       });
 
       if (res.status === "success" && res.data) {
         setAuthToken(res.data.token);
         setCurrentUser(res.data.user);
-        router.push("/dashboard");
+
+        const userRole = (res.data.user?.role || "").toLowerCase();
+        if (userRole === "admin" || userRole === "petugas") {
+          router.push("/admin/dasboard_admin");
+        } else {
+          router.push("/user/dashboard");
+        }
       } else {
-        setErrorMessage(res.message || "Email / Nomor Induk atau password salah.");
+        setErrorMessage(res.message || "Email, Nomor Induk, atau password salah.");
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Terjadi kesalahan saat masuk sistem.";
@@ -46,7 +54,7 @@ export default function LoginPage() {
             SARPRAS POKADA
           </h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Masuk dengan Email atau Nomor Induk (NIM / NIP / ID Staff)
+            Silakan masuk menggunakan Email, Nomor Induk, dan Password Anda
           </p>
         </div>
 
@@ -59,14 +67,28 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email atau NIM / NIP
+              Email atau Nama Akun
             </label>
             <input
               type="text"
               required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="Contoh: 21101234 atau user@kampus.ac.id"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email@gmail.com atau Nama Akun"
+              className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Nomor Induk
+            </label>
+            <input
+              type="text"
+              required
+              value={nomorInduk}
+              onChange={(e) => setNomorInduk(e.target.value)}
+              placeholder="Masukkan nomor induk Anda"
               className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
@@ -107,4 +129,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
 
