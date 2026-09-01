@@ -2,6 +2,11 @@ const Joi = require('joi');
 const { ALL_ROLES } = require('../constants/roles');
 
 const registerSchema = Joi.object({
+  nomor_induk: Joi.string().trim().min(3).max(50).required().messages({
+    'string.empty': 'Nomor Induk (NIM / NIP / ID Staff) wajib diisi',
+    'string.min': 'Nomor Induk minimal 3 karakter',
+    'string.max': 'Nomor Induk maksimal 50 karakter'
+  }),
   name: Joi.string().trim().min(3).max(100).required().messages({
     'string.empty': 'Nama lengkap wajib diisi',
     'string.min': 'Nama minimal harus 3 karakter'
@@ -27,9 +32,8 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  email: Joi.string().email().trim().required().messages({
-    'string.empty': 'Email wajib diisi',
-    'string.email': 'Format email tidak valid'
+  identifier: Joi.string().trim().required().messages({
+    'string.empty': 'Email atau Nomor Induk wajib diisi'
   }),
   password: Joi.string().required().messages({
     'string.empty': 'Password wajib diisi'
@@ -40,3 +44,4 @@ module.exports = {
   registerSchema,
   loginSchema
 };
+
