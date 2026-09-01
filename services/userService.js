@@ -48,19 +48,27 @@ exports.createUserProfile = async ({ nomor_induk, name, email, password, role = 
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanName = (name || '').trim();
 
-  // 1. Cek duplikasi nomor_induk & email (case-insensitive)
-  const { data: existingUser } = await supabase
+  // 1. Cek duplikasi email
+  const { data: existingByEmail } = await supabase
     .from('users')
-    .select('id, email, nomor_induk')
-    .or(`email.ilike.${cleanEmail},nomor_induk.ilike.${cleanNomorInduk}`)
+    .select('id')
+    .ilike('email', cleanEmail)
     .maybeSingle();
 
-  if (existingUser) {
-    if (existingUser.nomor_induk && existingUser.nomor_induk.toLowerCase() === cleanNomorInduk.toLowerCase()) {
+  if (existingByEmail) {
+    throw new AppError('Email sudah terdaftar', 400);
+  }
+
+  // Cek duplikasi nomor_induk (hanya jika diisi)
+  if (cleanNomorInduk) {
+    const { data: existingByNomorInduk } = await supabase
+      .from('users')
+      .select('id')
+      .ilike('nomor_induk', cleanNomorInduk)
+      .maybeSingle();
+
+    if (existingByNomorInduk) {
       throw new AppError('Nomor Induk sudah terdaftar', 400);
-    }
-    if (existingUser.email && existingUser.email.toLowerCase() === cleanEmail) {
-      throw new AppError('Email sudah terdaftar', 400);
     }
   }
 
@@ -163,3 +171,65 @@ exports.deleteUser = async (id) => {
   return true;
 };
 
+
+exports.importUsersFromCSV = async (csvBuffer) => {
+  const { parse } = require('csv-parse/sync');
+
+  // Parse CSV dari buffer
+  let records;
+  try {
+    records = parse(csvBuffer, {
+      columns: true,          // baris pertama jadi nama kolom
+      skip_empty_lines: true,
+      trim: true
+    });
+  } catch (err) {
+    throw new AppError('Format file CSV tidak valid: ' + err.message, 400);
+  }
+
+  if (!records || records.length === 0) {
+    throw new AppError('File CSV kosong atau tidak memiliki data', 400);
+  }
+
+  // Validasi kolom wajib ada
+  const requiredColumns = ['name', 'email', 'nomor_induk'];
+  const headers = Object.keys(records[0]);
+  const missingColumns = requiredColumns.filter(col => !headers.includes(col));
+  if (missingColumns.length > 0) {
+    throw new AppError(`Kolom wajib tidak ditemukan di CSV: ${missingColumns.join(', ')}`, 400);
+  }
+
+  const results = {
+    success: [],
+    failed: []
+  };
+
+  for (let i = 0; i < records.length; i++) {
+    const row = records[i];
+    const rowNum = i + 2; // +2 karena baris 1 adalah header
+
+    try {
+      // Validasi field wajib per baris
+      if (!row.name || !row.email || !row.nomor_induk) {
+        throw new Error('name, email, dan nomor_induk wajib diisi');
+      }
+
+      const userData = {
+        name: row.name,
+        email: row.email,
+        nomor_induk: row.nomor_induk,
+        role: row.role || 'Mahasiswa',
+        no_hp: row.no_hp || '',
+        password: row.password || 'Pokada@123',
+        status: row.status || 'Aktif'
+      };
+
+      const created = await exports.createUserProfile(userData);
+      results.success.push({ row: rowNum, email: row.email, id: created.id });
+    } catch (err) {
+      results.failed.push({ row: rowNum, email: row.email || '-', reason: err.message });
+    }
+  }
+
+  return results;
+};

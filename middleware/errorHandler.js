@@ -7,16 +7,34 @@ const errorHandler = (err, req, res, next) => {
     console.error('Error:', err.message);
   }
 
+  // PostgreSQL duplicate key
   if (err.code === '23505') {
     return sendError(res, 'Data duplikat telah terdaftar di sistem', 400);
   }
 
+  // PostgreSQL foreign key violation
   if (err.code === '23503') {
     return sendError(res, 'Relasi data tidak ditemukan atau melanggar batasan database', 400);
   }
 
+  // CORS
   if (err.message === 'Not allowed by CORS') {
     return sendError(res, 'Akses ditolak oleh CORS', 403);
+  }
+
+  // Multer file size exceeded
+  if (err.name === 'MulterError' && err.code === 'LIMIT_FILE_SIZE') {
+    return sendError(res, 'Ukuran file terlalu besar. Maksimal 2MB', 400);
+  }
+
+  // Multer error lainnya
+  if (err.name === 'MulterError') {
+    return sendError(res, 'Gagal mengunggah file: ' + err.message, 400);
+  }
+
+  // Error filter file bukan CSV
+  if (err.message && err.message.includes('Hanya file CSV')) {
+    return sendError(res, err.message, 400);
   }
 
   const statusCode = err.statusCode || 500;

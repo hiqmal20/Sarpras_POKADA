@@ -1,5 +1,6 @@
 const userService = require('../services/userService');
 const { sendSuccess } = require('../utils/responseHandler');
+const AppError = require('../utils/appError');
 
 // Get all users
 exports.getAllUsers = async (req, res, next) => {
@@ -37,6 +38,22 @@ exports.createUser = async (req, res, next) => {
   try {
     const data = await userService.createUserProfile(req.body);
     return sendSuccess(res, 'Profil pengguna berhasil disimpan', data, 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Import users from CSV
+exports.importUsers = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError('File CSV wajib diunggah', 400));
+    }
+
+    const result = await userService.importUsersFromCSV(req.file.buffer);
+
+    const message = `Import selesai: ${result.success.length} berhasil, ${result.failed.length} gagal`;
+    return sendSuccess(res, message, result, result.failed.length > 0 ? 207 : 201);
   } catch (err) {
     next(err);
   }
