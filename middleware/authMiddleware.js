@@ -60,17 +60,22 @@ const requireAuth = async (req, res, next) => {
       req.user = {
         id: authUser.id,
         email: authUser.email,
+        nomor_induk: authUser.user_metadata?.nomor_induk || '',
         role: authUser.user_metadata?.role || 'Mahasiswa',
         status: 'Aktif'
       };
     } else {
-      if (userProfile.status === 'Nonaktif') {
+      const userStatus = userProfile.status || 'Aktif';
+      if (userStatus === 'Nonaktif') {
         return res.status(403).json({
           status: 'fail',
           message: 'Akun Anda sedang dinonaktifkan. Silakan hubungi Administrator SARPRAS.'
         });
       }
-      req.user = userProfile;
+      req.user = {
+        ...userProfile,
+        status: userStatus
+      };
     }
 
     next();

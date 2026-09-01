@@ -44,35 +44,36 @@ exports.findUserById = async (id) => {
 };
 
 exports.createUserProfile = async ({ nomor_induk, name, email, password, role = 'Mahasiswa', no_hp = '', foto = null, status = 'Aktif' }) => {
-  const cleanNomorInduk = nomor_induk ? nomor_induk.trim() : '';
-  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  const cleanNomorInduk = (nomor_induk || '').trim();
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanName = (name || '').trim();
 
-  // 1. Cek duplikasi nomor_induk & email
+  // 1. Cek duplikasi nomor_induk & email (case-insensitive)
   const { data: existingUser } = await supabase
     .from('users')
     .select('id, email, nomor_induk')
-    .or(`email.eq.${cleanEmail},nomor_induk.eq.${cleanNomorInduk}`)
+    .or(`email.ilike.${cleanEmail},nomor_induk.ilike.${cleanNomorInduk}`)
     .maybeSingle();
 
   if (existingUser) {
-    if (existingUser.nomor_induk === cleanNomorInduk) {
+    if (existingUser.nomor_induk && existingUser.nomor_induk.toLowerCase() === cleanNomorInduk.toLowerCase()) {
       throw new AppError('Nomor Induk sudah terdaftar', 400);
     }
-    if (existingUser.email === cleanEmail) {
+    if (existingUser.email && existingUser.email.toLowerCase() === cleanEmail) {
       throw new AppError('Email sudah terdaftar', 400);
     }
   }
 
   let userId = null;
 
-  // 2. Buat akun di Supabase Auth Admin jika ada password atau dibuat oleh admin
-  const userPassword = password || 'Pokada@123'; // Default password jika admin tidak menentukan
+  // 2. Buat akun di Supabase Auth Admin
+  const userPassword = password || 'Pokada@123';
   const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
     email: cleanEmail,
     password: userPassword,
     email_confirm: true,
     user_metadata: {
-      name,
+      name: cleanName,
       role,
       nomor_induk: cleanNomorInduk,
       no_hp
@@ -80,13 +81,12 @@ exports.createUserProfile = async ({ nomor_induk, name, email, password, role = 
   });
 
   if (authError) {
-    // Jika auth gagal karena config supabase anon / bukan service role, fallback ke regular signup
     if (authError.message.includes('not authorized') || authError.status === 403) {
       const { data: fallbackAuth, error: fallbackErr } = await supabase.auth.signUp({
         email: cleanEmail,
         password: userPassword,
         options: {
-          data: { name, role, nomor_induk: cleanNomorInduk, no_hp }
+          data: { name: cleanName, role, nomor_induk: cleanNomorInduk, no_hp }
         }
       });
       if (fallbackErr) throw new AppError(fallbackErr.message, 400);
@@ -101,12 +101,12 @@ exports.createUserProfile = async ({ nomor_induk, name, email, password, role = 
   const payload = {
     id: userId,
     nomor_induk: cleanNomorInduk,
-    name,
+    name: cleanName,
     email: cleanEmail,
     role,
     no_hp,
     foto,
-    status,
+    status: status || 'Aktif',
     created_at: new Date().toISOString()
   };
 

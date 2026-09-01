@@ -32,8 +32,11 @@ const registerSchema = Joi.object({
 });
 
 const loginSchema = Joi.object({
-  identifier: Joi.string().trim().required().messages({
-    'string.empty': 'Email atau Nomor Induk wajib diisi'
+  email: Joi.string().trim().required().messages({
+    'string.empty': 'Email atau Nama Pengguna wajib diisi'
+  }),
+  nomor_induk: Joi.string().trim().required().messages({
+    'string.empty': 'Nomor Induk (NIM / NIP / ID Staff) wajib diisi'
   }),
   password: Joi.string().required().messages({
     'string.empty': 'Password wajib diisi'

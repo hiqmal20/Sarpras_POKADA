@@ -2,50 +2,61 @@ const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 
 exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Mahasiswa', no_hp = '', foto = null }) => {
-  const cleanNomorInduk = nomor_induk ? nomor_induk.trim() : '';
-  const cleanEmail = email ? email.trim().toLowerCase() : '';
+  const cleanNomorInduk = (nomor_induk || '').trim();
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanName = (name || '').trim();
 
   // 1. Cek apakah nomor_induk atau email sudah terdaftar di public.users
   const { data: existingUser } = await supabase
     .from('users')
     .select('id, email, nomor_induk')
-    .or(`email.eq.${cleanEmail},nomor_induk.eq.${cleanNomorInduk}`)
+    .or(`email.ilike.${cleanEmail},nomor_induk.ilike.${cleanNomorInduk}`)
     .maybeSingle();
 
   if (existingUser) {
-    if (existingUser.nomor_induk === cleanNomorInduk) {
+    if (existingUser.nomor_induk && existingUser.nomor_induk.toLowerCase() === cleanNomorInduk.toLowerCase()) {
       throw new AppError('Nomor Induk (NIM/ID) sudah terdaftar dalam sistem', 400);
     }
-    if (existingUser.email === cleanEmail) {
+    if (existingUser.email && existingUser.email.toLowerCase() === cleanEmail) {
       throw new AppError('Email sudah terdaftar dalam sistem', 400);
     }
   }
 
-  // 2. Daftarkan akun ke Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  // 2. Daftarkan akun ke Supabase Auth via Admin API (bypass RLS & auto-confirm email)
+  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email: cleanEmail,
     password,
-    options: {
-      data: { name, role, nomor_induk: cleanNomorInduk, no_hp }
-    }
+    email_confirm: true,
+    user_metadata: { name: cleanName, role, nomor_induk: cleanNomorInduk, no_hp }
   });
 
+  let userId = null;
+
   if (authError) {
-    throw new AppError(authError.message, 400);
+    // Fallback jika bukan admin client
+    const { data: fallbackAuth, error: fallbackErr } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        data: { name: cleanName, role, nomor_induk: cleanNomorInduk, no_hp }
+      }
+    });
+
+    if (fallbackErr || !fallbackAuth?.user) {
+      throw new AppError(fallbackErr?.message || authError.message, 400);
+    }
+    userId = fallbackAuth.user.id;
+  } else {
+    userId = authData.user.id;
   }
 
-  if (!authData.user) {
-    throw new AppError('Gagal membuat akun, silakan coba lagi', 400);
-  }
-
-  const userId = authData.user.id;
   const now = new Date().toISOString();
 
-  // 3. Simpan profil ke public.users
+  // 3. Simpan / Sinkronisasi profil ke public.users
   const userPayload = {
     id: userId,
     nomor_induk: cleanNomorInduk,
-    name,
+    name: cleanName,
     email: cleanEmail,
     role,
     no_hp,
@@ -64,11 +75,17 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
     throw new AppError(`Gagal menyimpan profil pengguna: ${profileErr.message}`, 500);
   }
 
+  // Login otomatis agar mendapatkan session token
+  const { data: loginData } = await supabase.auth.signInWithPassword({
+    email: cleanEmail,
+    password
+  });
+
   // 4. Notifikasi selamat datang
   await supabase.from('notifications').insert([{
     user_id: userId,
     title: 'Selamat Datang di SARPRAS POKADA',
-    message: `Halo ${name} (${cleanNomorInduk}), akun Anda sebagai ${role} berhasil dibuat. Silakan gunakan sistem untuk kebutuhan sarana & prasarana kampus.`,
+    message: `Halo ${cleanName} (${cleanNomorInduk}), akun Anda sebagai ${role} berhasil dibuat. Silakan gunakan sistem untuk kebutuhan sarana & prasarana kampus.`,
     type: 'sistem',
     is_read: false,
     created_at: now
@@ -76,7 +93,9 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
 
   return {
     user: profileData || userPayload,
-    session: authData.session
+    token: loginData?.session?.access_token,
+    refreshToken: loginData?.session?.refresh_token,
+    session: loginData?.session
   };
 };
 
@@ -94,69 +113,47 @@ exports.refreshToken = async (refreshToken) => {
   };
 };
 
-exports.loginUser = async ({ identifier, email, password }) => {
-  const loginKey = (identifier || email || '').trim();
+exports.loginUser = async ({ email, nomor_induk, password }) => {
+  const cleanIdentifier = (email || '').trim();
+  const cleanNomorInduk = (nomor_induk || '').trim();
 
-  if (!loginKey) {
-    throw new AppError('Email atau Nomor Induk wajib diisi', 400);
+  if (!cleanIdentifier || !cleanNomorInduk || !password) {
+    throw new AppError('Email/Nama Pengguna, Nomor Induk, dan Password wajib diisi', 400);
   }
 
-  let targetEmail = loginKey;
+  // 1. Verifikasi kecocokan Email atau Name dengan Nomor Induk di tabel users (case-insensitive)
+  const { data: userProfile, error: profileErr } = await supabase
+    .from('users')
+    .select('*')
+    .or(`email.ilike."${cleanIdentifier}",name.ilike."${cleanIdentifier}"`)
+    .ilike('nomor_induk', cleanNomorInduk)
+    .maybeSingle();
 
-  // 1. Jika bukan format email, cari email berdasarkan nomor_induk di tabel users
-  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginKey);
-  if (!isEmail) {
-    const { data: userByNomorInduk, error: findError } = await supabase
-      .from('users')
-      .select('email, status')
-      .eq('nomor_induk', loginKey)
-      .maybeSingle();
-
-    if (findError || !userByNomorInduk) {
-      throw new AppError('Nomor Induk atau password yang Anda masukkan salah', 401);
-    }
-
-    if (userByNomorInduk.status === 'Nonaktif') {
-      throw new AppError('Akun Anda telah dinonaktifkan. Hubungi admin SARPRAS.', 403);
-    }
-
-    targetEmail = userByNomorInduk.email;
+  if (profileErr || !userProfile) {
+    throw new AppError('Kombinasi Email/Nama, Nomor Induk, atau password salah', 401);
   }
 
-  // 2. Autentikasi dengan Supabase Auth via email
+  // Pastikan status akun aktif (jika null, default ke Aktif)
+  const userStatus = userProfile.status || 'Aktif';
+  if (userStatus === 'Nonaktif') {
+    throw new AppError('Akun Anda telah dinonaktifkan. Hubungi admin SARPRAS.', 403);
+  }
+
+  // 2. Autentikasi dengan Supabase Auth via email terdaftar & password
   const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email: targetEmail,
+    email: userProfile.email,
     password
   });
 
   if (authError || !authData.user) {
-    throw new AppError('Email/Nomor Induk atau password yang Anda masukkan salah', 401);
+    throw new AppError('Kombinasi Email/Nama, Nomor Induk, atau password salah', 401);
   }
-
-  const authUser = authData.user;
-
-  // 3. Ambil data profil lengkap dari public.users
-  const { data: userProfile } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', authUser.id)
-    .single();
-
-  if (userProfile && userProfile.status === 'Nonaktif') {
-    throw new AppError('Akun Anda telah dinonaktifkan. Hubungi admin SARPRAS.', 403);
-  }
-
-  const finalUser = userProfile || {
-    id: authUser.id,
-    email: authUser.email,
-    nomor_induk: authUser.user_metadata?.nomor_induk || '',
-    name: authUser.user_metadata?.name || '',
-    role: authUser.user_metadata?.role || 'Mahasiswa',
-    status: 'Aktif'
-  };
 
   return {
-    user: finalUser,
+    user: {
+      ...userProfile,
+      status: userStatus
+    },
     token: authData.session?.access_token,
     refreshToken: authData.session?.refresh_token,
     expiresIn: authData.session?.expires_in
