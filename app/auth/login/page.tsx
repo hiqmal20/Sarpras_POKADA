@@ -31,7 +31,7 @@ export default function LoginPage() {
 
         const userRole = (res.data.user?.role || "").toLowerCase();
         if (userRole === "admin" || userRole === "petugas") {
-          router.push("/admin/dasboard_admin");
+          router.push("/admin/dashboard_admin");
         } else {
           router.push("/user/dashboard");
         }
