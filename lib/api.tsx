@@ -82,19 +82,19 @@ export const api = {
   // 1. Auth Module
   auth: {
     register: (payload: {
+      nomor_induk: string;
       email: string;
       password: string;
-      full_name: string;
+      name: string;
       role?: string;
-      nim_nip?: string;
-      phone?: string;
+      no_hp?: string;
     }) =>
       apiFetch<{ user: any; token: string }>("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
 
-    login: (payload: { email: string; password: string }) =>
+    login: (payload: { identifier: string; password: string }) =>
       apiFetch<{ user: any; token: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -110,11 +110,24 @@ export const api = {
 
   // 2. Users Module
   users: {
-    getAll: (params?: { role?: string; page?: number; limit?: number }) => {
+    getAll: (params?: { role?: string; status?: string; search?: string; page?: number; limit?: number }) => {
       const q = new URLSearchParams(params as any).toString();
       return apiFetch<any[]>(`/users${q ? `?${q}` : ""}`, { method: "GET" });
     },
     getById: (id: string) => apiFetch<any>(`/users/${id}`, { method: "GET" }),
+    create: (payload: {
+      nomor_induk: string;
+      name: string;
+      email: string;
+      password?: string;
+      role?: string;
+      no_hp?: string;
+      status?: string;
+    }) =>
+      apiFetch<any>("/users", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
     update: (id: string, payload: any) =>
       apiFetch<any>(`/users/${id}`, {
         method: "PUT",
