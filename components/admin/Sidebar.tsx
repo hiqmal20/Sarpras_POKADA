@@ -9,15 +9,23 @@ import {
   Users,
   AlertTriangle,
   Tag,
+  Settings,
+  MessageSquare,
+  Box,
+  Package,
 } from "lucide-react";
 
 const navItems = [
   { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/barang", label: "Barang Per Item", icon: Box },
+  { href: "/admin/paket", label: "Paket Barang", icon: Package },
   { href: "/admin/manajemen_peminjaman", label: "Peminjaman", icon: BookOpen },
   { href: "/admin/pengembalian", label: "Pengembalian", icon: RotateCcw },
   { href: "/admin/manajemen_user", label: "Manage User", icon: Users },
   { href: "/admin/rekap_laporan", label: "Laporan Kerusakan", icon: AlertTriangle },
   { href: "/admin/kategori_barang", label: "Kategori Barang", icon: Tag },
+  { href: "/admin/messages", label: "Messages", icon: MessageSquare },
+  { href: "/admin/settings", label: "Pengaturan", icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -37,11 +45,14 @@ export default function Sidebar() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
+            const isMessages = item.href === "/admin/messages";
+            const unreadCount = isMessages ? 3 : 0; // Mock unread count
+            
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative ${
                     isActive
                       ? "bg-[#0785BC] text-white shadow-sm"
                       : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
@@ -49,6 +60,11 @@ export default function Sidebar() {
                 >
                   <Icon className="w-4 h-4 flex-shrink-0" />
                   <span>{item.label}</span>
+                  {unreadCount > 0 && (
+                    <span className="ml-auto w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                      {unreadCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );
