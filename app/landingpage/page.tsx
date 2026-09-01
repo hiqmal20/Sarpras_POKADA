@@ -687,7 +687,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer (Harmonized Brand Blue #0785BC / #066089) */}
-      <footer className="bg-[#0785BC] text-white pt-16 pb-12">
+      <footer className="bg-[#0785BC] text-white pt-16 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mb-12">
             {/* Col 1 */}
@@ -697,34 +697,6 @@ export default function LandingPage() {
               </h3>
               <p className="text-blue-50 text-sm leading-relaxed">
                 Membangun komunitas untuk masa depan yang lebih berkelanjutan melalui berbagi.
-              </p>
-              <div className="flex items-start gap-3 text-blue-50 text-sm leading-relaxed">
-                <img src="/images/phone (1).png" alt="phone" className="h-10 w-auto mt-0.5" />
-                <div className="flex flex-col">
-                  <span className="font-semibold text-blue-100">Customer Service</span>
-                  <span className="font-bold text-white">+021-2780-1509</span>
-                </div>
-              </div>
-
-              <div className="mt-10 flex items-start gap-3 text-blue-50 text-sm leading-relaxed">
-                <img src="/images/maps-and-flags (1).png" alt="location" className="h-10 w-auto mt-0.5" />
-                <div className="flex flex-col">
-                  <span className="font-semibold text-blue-100">Gedung Atlanta</span>
-                  <span className="text-white">Jl. Margonda Raya No. 28 Kel. Pondok Cina, Kec. Beji, Kota Depok, Jawa Barat 16424</span>
-                </div>
-              </div>
-
-              <div className="mt-10 flex items-center gap-3 text-blue-50 text-sm leading-relaxed">
-                <img src="/images/whatsapp (1).png" alt="whatsapp" className="h-10 w-auto" />
-                <span className=" text-blue-100">0821 1376 7144</span>
-              </div>
-
-              <div className="mt-10 flex items-center gap-3 text-blue-50 text-sm leading-relaxed">
-                <img src="/images/mail (1).png" alt="mail" className="h-10 w-auto" />
-                <span className=" text-blue-100">khj@khj.ac.id</span>
-              </div>
-              <p className="text-blue-100/80 text-xs pt-2">
-                © 2026 POKADA.
               </p>
             </div>
 
@@ -813,7 +785,57 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-          </div> 
+          </div>
+
+          {/* Contact Information - Horizontal Layout */}
+          <div className="pt-8 pb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
+              {/* Customer Service - Left */}
+              <div className="flex items-start gap-3">
+                <img src="/images/phone (1).png" alt="phone" className="h-8 w-8 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-blue-100 text-xs">Customer Service</span>
+                  <span className="font-bold text-white">+021-2780-1509</span>
+                </div>
+              </div>
+
+              {/* WhatsApp */}
+              <div className="flex items-start gap-3">
+                <img src="/images/whatsapp (1).png" alt="whatsapp" className="h-8 w-8 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-blue-100 text-xs">WhatsApp</span>
+                  <span className="text-white text-xs">0821 1376 7144</span>
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="flex items-start gap-3">
+                <img src="/images/mail (1).png" alt="mail" className="h-8 w-8 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-blue-100 text-xs">Email</span>
+                  <span className="text-white text-xs">khj@khj.ac.id</span>
+                </div>
+              </div>
+
+              {/* Address - Right */}
+              <div className="flex items-start gap-3">
+                <img src="/images/maps-and-flags (1).png" alt="location" className="h-8 w-8 flex-shrink-0" />
+                <div className="flex flex-col">
+                  <span className="font-semibold text-blue-100 text-xs">Gedung Atlanta</span>
+                  <span className="text-white text-xs leading-relaxed">
+                    Jl. Margonda Raya No. 28 Kel. Pondok Cina, Kec. Beji, Kota Depok, Jawa Barat 16424
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright - Center Bottom */}
+          <div className="pt-6">
+            <p className="text-blue-100/80 text-xs text-center">
+              © 2026 POKADA. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

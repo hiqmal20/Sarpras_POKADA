@@ -1,16 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
-  LayoutDashboard,
-  BookOpen,
-  RotateCcw,
-  Users,
-  AlertTriangle,
-  Tag,
-  Bell,
-  Settings,
   Plus,
   Search,
   Laptop,
@@ -19,18 +10,10 @@ import {
   Pencil,
   Trash2,
   X,
+  Tag,
 } from "lucide-react";
 import api from "@/lib/api";
-
-// ── Sidebar (same nav as dashboard) ──
-const navItems = [
-  { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/manajemen_peminjaman", label: "Peminjaman", icon: BookOpen },
-  { href: "/admin/pengembalian", label: "Pengembalian", icon: RotateCcw },
-  { href: "/admin/manajemen_user", label: "Manage User", icon: Users },
-  { href: "/admin/rekap_laporan", label: "Laporan Kerusakan", icon: AlertTriangle },
-  { href: "/admin/kategori_barang", label: "Kategori Barang", icon: Tag },
-];
+import { AdminLayout } from "@/components/admin";
 
 // Icon & color per kategori (fallback ke Tag)
 const iconMap: Record<string, { icon: React.ElementType; bg: string; color: string }> = {
@@ -55,7 +38,8 @@ function useMount() {
 }
 
 // ── Modal Tambah / Edit ──
-function CategoryModal({  initial,
+function CategoryModal({
+  initial,
   onClose,
   onSave,
 }: {
@@ -257,130 +241,71 @@ export default function KategoriBarangPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] text-slate-800">
-      {/* ── Sidebar ── */}
-      <aside className="w-56 shrink-0 bg-white border-r border-slate-100 flex flex-col justify-between sticky top-0 h-screen">
-        <div>
-          <div className="px-6 py-6 border-b border-slate-100">
-            <span className="text-lg font-extrabold text-[#0785BC] tracking-tight">
-              PinjamBarang
-            </span>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-              Internal Lending Platform
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Page header */}
+        <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Kategori Barang</h1>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Kelola klasifikasi inventaris perusahaan.
             </p>
           </div>
-          <nav className="px-3 py-4 space-y-0.5">
-            {navItems.map(({ href, label, icon: Icon }) => {
-              const isActive = href === "/admin/kategori_barang";
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-[#0785BC] text-white"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
+          <button
+            onClick={() => setModal({ open: true })}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Tambah Kategori
+          </button>
         </div>
-        <div className="px-4 py-4 border-t border-slate-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#0785BC]/20 flex items-center justify-center text-[#0785BC] font-bold text-sm shrink-0">
-            A
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">Admin User</p>
-            <p className="text-[11px] text-slate-400 truncate">System Administrator</p>
-          </div>
+
+        {/* Search */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Cari kategori..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+          />
         </div>
-      </aside>
 
-      {/* ── Main ── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center gap-3 sticky top-0 z-10">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari kategori..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-            />
+        {/* Cards */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
+                <div className="w-11 h-11 rounded-xl bg-slate-100 animate-pulse" />
+                <div className="h-4 bg-slate-100 rounded animate-pulse w-1/2" />
+                <div className="h-3 bg-slate-100 rounded animate-pulse" />
+                <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4" />
+              </div>
+            ))}
           </div>
-          <div className="ml-auto flex items-center gap-3">
-            <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
-            <button className="p-2 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-[#0785BC]/20 flex items-center justify-center text-[#0785BC] font-bold text-sm">
-              A
-            </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-20 text-slate-400 text-sm">
+            Tidak ada kategori ditemukan.
           </div>
-        </header>
-
-        <div className="p-8">
-          {/* Page header */}
-          <div className={`flex items-start justify-between mb-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Kategori Barang</h1>
-              <p className="text-sm text-slate-500 mt-0.5">
-                Kelola klasifikasi inventaris perusahaan.
-              </p>
-            </div>
-            <button
-              onClick={() => setModal({ open: true })}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Tambah Kategori
-            </button>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {filtered.map((cat, i) => (
+              <div
+                key={cat.id}
+                style={{ animationDelay: `${100 + i * 75}ms` }}
+                className={mounted ? "animate-fade-up" : "opacity-0"}
+              >
+                <KategoriCard
+                  cat={cat}
+                  onEdit={() => setModal({ open: true, item: cat })}
+                  onDelete={() => handleDelete(cat.id)}
+                />
+              </div>
+            ))}
           </div>
-
-          {/* Cards */}
-          {loading ? (
-            <div className="grid grid-cols-3 gap-5">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-6 space-y-4">
-                  <div className="w-11 h-11 rounded-xl bg-slate-100 animate-pulse" />
-                  <div className="h-4 bg-slate-100 rounded animate-pulse w-1/2" />
-                  <div className="h-3 bg-slate-100 rounded animate-pulse" />
-                  <div className="h-3 bg-slate-100 rounded animate-pulse w-3/4" />
-                </div>
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 text-slate-400 text-sm">
-              Tidak ada kategori ditemukan.
-            </div>
-          ) : (
-            <div className="grid grid-cols-3 gap-5">
-              {filtered.map((cat, i) => (
-                <div
-                  key={cat.id}
-                  style={{ animationDelay: `${100 + i * 75}ms` }}
-                  className={mounted ? "animate-fade-up" : "opacity-0"}
-                >
-                  <KategoriCard
-                    cat={cat}
-                    onEdit={() => setModal({ open: true, item: cat })}
-                    onDelete={() => handleDelete(cat.id)}
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+        )}
+      </div>
 
       {/* Modal */}
       {modal.open && (
@@ -390,6 +315,6 @@ export default function KategoriBarangPage() {
           onSave={handleSave}
         />
       )}
-    </div>
+    </AdminLayout>
   );
 }

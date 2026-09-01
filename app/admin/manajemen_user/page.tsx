@@ -1,17 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
-  LayoutDashboard,
-  BookOpen,
-  RotateCcw,
-  Users,
-  AlertTriangle,
-  Tag,
-  Bell,
-  Settings,
-  Search,
   Plus,
   Pencil,
   Ban,
@@ -20,17 +10,10 @@ import {
   ChevronRight,
   UserCheck,
   UserX,
+  Users,
 } from "lucide-react";
 import api from "@/lib/api";
-
-const navItems = [
-  { href: "/admin/dashboard_admin",      label: "Dashboard",         icon: LayoutDashboard },
-  { href: "/admin/manajemen_peminjaman", label: "Peminjaman",        icon: BookOpen },
-  { href: "/admin/pengembalian",         label: "Pengembalian",      icon: RotateCcw },
-  { href: "/admin/manajemen_user",       label: "Manage User",       icon: Users },
-  { href: "/admin/rekap_laporan",        label: "Laporan Kerusakan", icon: AlertTriangle },
-  { href: "/admin/kategori_barang",      label: "Kategori Barang",   icon: Tag },
-];
+import { AdminLayout } from "@/components/admin";
 
 interface User {
   id: string;
@@ -103,13 +86,24 @@ export default function ManajemenUserPage() {
     async function fetchData() {
       setLoading(true);
       const res = await api.users.getAll({ page, limit: PAGE_SIZE });
-      if (res.status === "success" && res.data && (res.data as any[]).length > 0) {
-        setUsers(res.data as User[]);
-        if (res.total) setTotal(res.total);
+      
+      if (res.status === "success") {
+        // Jika API berhasil, gunakan data dari API
+        if (res.data && Array.isArray(res.data)) {
+          setUsers(res.data as User[]);
+          if (res.total) setTotal(res.total);
+        } else {
+          // Jika data kosong dari API, set empty array
+          setUsers([]);
+          setTotal(0);
+        }
       } else {
+        // Jika API gagal (error/fail), fallback ke mock data
+        console.warn('API failed, using mock data:', res.message);
         setUsers(mockUsers);
         setTotal(124);
       }
+      
       setLoading(false);
     }
     fetchData();
@@ -143,117 +137,66 @@ export default function ManajemenUserPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] text-slate-800">
-      {/* ── Sidebar ── */}
-      <aside className="w-56 shrink-0 bg-white border-r border-slate-100 flex flex-col justify-between sticky top-0 h-screen">
-        <div>
-          <div className="px-6 py-6 border-b border-slate-100">
-            <span className="text-lg font-extrabold text-[#0785BC] tracking-tight">PinjamBarang</span>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">Internal Lending Platform</p>
+    <AdminLayout 
+      showSearch={true}
+      searchValue={search}
+      searchPlaceholder="Cari pengguna..."
+      onSearchChange={setSearch}
+    >
+      <div className="space-y-6">
+        {/* Page header */}
+        <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900">Manage Users</h1>
+            <p className="text-sm text-slate-500 mt-0.5">Manage platform users, roles, and access status.</p>
           </div>
-          <nav className="px-3 py-4 space-y-0.5">
-            {navItems.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                  href === "/admin/manajemen_user"
-                    ? "bg-[#0785BC] text-white"
-                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {label}
-              </Link>
-            ))}
-          </nav>
+          <button className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm">
+            <Plus className="w-4 h-4" />
+            Add New User
+          </button>
         </div>
-        <div className="px-4 py-4 border-t border-slate-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#0785BC]/20 flex items-center justify-center text-[#0785BC] font-bold text-sm shrink-0">A</div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">Admin User</p>
-            <p className="text-[11px] text-slate-400 truncate">System Administrator</p>
-          </div>
-        </div>
-      </aside>
 
-      {/* ── Main ── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center gap-3 sticky top-0 z-10">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search users, departments..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-            />
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-            </button>
-            <button className="p-2 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
-            <div className="w-8 h-8 rounded-full bg-[#0785BC]/20 flex items-center justify-center text-[#0785BC] font-bold text-sm">A</div>
-          </div>
-        </header>
-
-        <div className="p-8 space-y-6 overflow-y-auto">
-          {/* Page header */}
-          <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Manage Users</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Manage platform users, roles, and access status.</p>
-            </div>
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm">
-              <Plus className="w-4 h-4" />
-              Add New User
-            </button>
-          </div>
-
-          {/* ── Stat Cards ── */}
-          <div className="grid grid-cols-3 gap-4">
-            {stats.map((s, i) => (
-              <div
-                key={s.label}
-                style={{ animationDelay: `${i * 75}ms` }}
-                className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${mounted ? "animate-fade-up" : "opacity-0"}`}
-              >
-                <div>
-                  <p className="text-sm text-slate-500 font-medium mb-1">{s.label}</p>
-                  <p className={`text-3xl font-bold tabular-nums ${mounted ? "animate-count-up" : ""} ${
-                    i === 0 ? "text-blue-600" : i === 1 ? "text-teal-600" : "text-red-500"
-                  }`}>
-                    {s.value}
-                  </p>
-                </div>
-                <div className={`w-12 h-12 rounded-full ${s.iconBg} flex items-center justify-center`}>
-                  {s.icon}
-                </div>
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              style={{ animationDelay: `${i * 75}ms` }}
+              className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${mounted ? "animate-fade-up" : "opacity-0"}`}
+            >
+              <div>
+                <p className="text-sm text-slate-500 font-medium mb-1">{s.label}</p>
+                <p className={`text-3xl font-bold tabular-nums ${mounted ? "animate-count-up" : ""} ${
+                  i === 0 ? "text-blue-600" : i === 1 ? "text-teal-600" : "text-red-500"
+                }`}>
+                  {s.value}
+                </p>
               </div>
-            ))}
-          </div>
+              <div className={`w-12 h-12 rounded-full ${s.iconBg} flex items-center justify-center`}>
+                {s.icon}
+              </div>
+            </div>
+          ))}
+        </div>
 
-          {/* ── User Directory ── */}
-          <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-base font-bold text-slate-900">User Directory</h2>
+        {/* ── User Directory ── */}
+        <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
+            <h2 className="text-base font-bold text-slate-900">User Directory</h2>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="text-sm border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                className="text-sm border border-slate-200 rounded-lg px-3 py-2 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
               >
                 <option>All Roles</option>
                 <option>Admin</option>
                 <option>User</option>
               </select>
             </div>
+          </div>
 
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left">
@@ -332,44 +275,44 @@ export default function ManajemenUserPage() {
                     ))}
               </tbody>
             </table>
+          </div>
 
-            {/* Pagination */}
-            <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-              <p className="text-sm text-slate-500">
-                Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total} entries
-              </p>
-              <div className="flex items-center gap-1">
+          {/* Pagination */}
+          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-sm text-slate-500">
+              Showing {(page - 1) * PAGE_SIZE + 1} to {Math.min(page * PAGE_SIZE, total)} of {total} entries
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((n) => (
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-all active:scale-95 ${
+                    page === n ? "bg-[#0785BC] text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  {n}
                 </button>
-                {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => i + 1).map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => setPage(n)}
-                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-all active:scale-95 ${
-                      page === n ? "bg-[#0785BC] text-white" : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-                {totalPages > 3 && <span className="px-1 text-slate-400 text-sm">...</span>}
-                <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 transition-colors"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
+              ))}
+              {totalPages > 3 && <span className="px-1 text-slate-400 text-sm">...</span>}
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
