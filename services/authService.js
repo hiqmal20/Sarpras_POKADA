@@ -1,5 +1,18 @@
+const { createClient } = require('@supabase/supabase-js');
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+
+// Helper untuk auth tanpa mengubah state session singleton admin client
+const createAuthClient = () => {
+  const supabaseUrl = process.env.SUPABASE_URL.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+  const supabaseKey = process.env.SUPABASE_KEY;
+  return createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false
+    }
+  });
+};
 
 exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Mahasiswa', no_hp = '', foto = null }) => {
   const cleanNomorInduk = (nomor_induk || '').trim();
@@ -76,7 +89,8 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
   }
 
   // Login otomatis agar mendapatkan session token
-  const { data: loginData } = await supabase.auth.signInWithPassword({
+  const authClient = createAuthClient();
+  const { data: loginData } = await authClient.auth.signInWithPassword({
     email: cleanEmail,
     password
   });
@@ -121,15 +135,29 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     throw new AppError('Email/Nama Pengguna, Nomor Induk, dan Password wajib diisi', 400);
   }
 
-  // 1. Verifikasi kecocokan Email atau Name dengan Nomor Induk di tabel users (case-insensitive)
-  const { data: userProfile, error: profileErr } = await supabase
-    .from('users')
-    .select('*')
-    .or(`email.ilike."${cleanIdentifier}",name.ilike."${cleanIdentifier}"`)
-    .ilike('nomor_induk', cleanNomorInduk)
-    .maybeSingle();
+  // 1. Verifikasi kecocokan Email atau Name dengan Nomor Induk di tabel users
+  const isEmail = cleanIdentifier.includes('@');
+  
+  let userProfile = null;
+  if (isEmail) {
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('email', cleanIdentifier)
+      .ilike('nomor_induk', cleanNomorInduk)
+      .maybeSingle();
+    userProfile = data;
+  } else {
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('name', cleanIdentifier)
+      .ilike('nomor_induk', cleanNomorInduk)
+      .maybeSingle();
+    userProfile = data;
+  }
 
-  if (profileErr || !userProfile) {
+  if (!userProfile) {
     throw new AppError('Kombinasi Email/Nama, Nomor Induk, atau password salah', 401);
   }
 
@@ -140,7 +168,8 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
   }
 
   // 2. Autentikasi dengan Supabase Auth via email terdaftar & password
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+  const authClient = createAuthClient();
+  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
     email: userProfile.email,
     password
   });
