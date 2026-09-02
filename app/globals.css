@@ -26,6 +26,7 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 /* ── Admin Page Animations ── */

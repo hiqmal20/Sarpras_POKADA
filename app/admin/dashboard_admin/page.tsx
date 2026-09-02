@@ -1,16 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  LayoutDashboard,
-  BookOpen,
-  RotateCcw,
-  Users,
-  AlertTriangle,
-  Tag,
-  Bell,
-  Settings,
   Download,
   TrendingUp,
   Package,
@@ -18,8 +10,12 @@ import {
   Search,
   CheckCircle2,
   ChevronRight,
+  BookOpen,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import api from "@/lib/api";
+import { AdminLayout } from "@/components/admin";
 
 // --- Types ---
 interface StatCard {
@@ -45,16 +41,6 @@ interface ActivityLog {
   time: string;
   type: "approved" | "user" | "damage" | "return";
 }
-
-// --- Sidebar nav items ---
-const navItems = [
-  { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/manajemen_peminjaman", label: "Peminjaman", icon: BookOpen, active: false },
-  { href: "/admin/pengembalian", label: "Pengembalian", icon: RotateCcw },
-  { href: "/admin/manajemen_user", label: "Manage User", icon: Users },
-  { href: "/admin/rekap_laporan", label: "Laporan Kerusakan", icon: AlertTriangle },
-  { href: "/admin/kategori_barang", label: "Kategori Barang", icon: Tag },
-];
 
 // --- Category badge color map ---
 const categoryColor: Record<string, string> = {
@@ -206,7 +192,6 @@ export default function DashboardAdminPage() {
   const [pendingList, setPendingList] = useState<PendingItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [activeNav, setActiveNav] = useState("/admin/dashboard_admin");
   const mounted = useMount();
 
   // Mock activity log (from real app would come from notifications / activity endpoint)
@@ -299,72 +284,8 @@ export default function DashboardAdminPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] text-slate-800">
-      {/* ── Sidebar ── */}
-      <aside className="w-56 shrink-0 bg-white border-r border-slate-100 flex flex-col justify-between sticky top-0 h-screen">
-        {/* Logo */}
-        <div>
-          <div className="px-6 py-6 border-b border-slate-100">
-            <span className="text-lg font-extrabold text-[#0785BC] tracking-tight">
-              SARPRAS POKADA
-            </span>
-            <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-              Internal Lending Platform
-            </p>
-          </div>
-
-          {/* Nav */}
-          <nav className="px-3 py-4 space-y-0.5">
-            {navItems.map(({ href, label, icon: Icon }) => {
-              const isActive = activeNav === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setActiveNav(href)}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-[#0785BC] text-white"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Admin profile */}
-        <div className="px-4 py-4 border-t border-slate-100 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-[#0785BC]/20 flex items-center justify-center text-[#0785BC] font-bold text-sm shrink-0">
-            A
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-800 truncate">Admin User</p>
-            <p className="text-[11px] text-slate-400 truncate">System Administrator</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main Content ── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar */}
-        <header className="bg-white border-b border-slate-100 px-8 py-4 flex items-center justify-end gap-3 sticky top-0 z-10">
-          <button className="relative p-2 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
-          </button>
-          <button className="p-2 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors">
-            <Settings className="w-5 h-5" />
-          </button>
-          <div className="w-8 h-8 rounded-full bg-[#0785BC]/20 flex items-center justify-center text-[#0785BC] font-bold text-sm">
-            A
-          </div>
-        </header>
-
-        <div className="p-8 space-y-8 overflow-y-auto">
+    <AdminLayout>
+      <div className="space-y-8">
           {/* Page header */}
           <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
             <div>
@@ -379,8 +300,8 @@ export default function DashboardAdminPage() {
             </button>
           </div>
 
-          {/* ── Stat Cards ── */}
-          <div className="grid grid-cols-4 gap-4">
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {statCards.map((card, i) => (
               <div
                 key={card.label}
@@ -418,12 +339,12 @@ export default function DashboardAdminPage() {
                 </p>
               </div>
             ))}
-          </div>
+        </div>
 
-          {/* ── Trend Chart + Activity ── */}
-          <div className="grid grid-cols-3 gap-6">
-            {/* Chart */}
-            <div className={`col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
+        {/* ── Trend Chart + Activity ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Chart */}
+          <div className={`lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-bold text-slate-900">Tren Peminjaman</h2>
                 <span className="text-xs font-medium px-3 py-1.5 border border-slate-200 rounded-lg text-slate-500">
@@ -444,10 +365,10 @@ export default function DashboardAdminPage() {
               <div className="h-48">
                 <TrendChart newData={trendNew} doneData={trendDone} />
               </div>
-            </div>
+          </div>
 
-            {/* Activity */}
-            <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${mounted ? "animate-fade-up delay-300" : "opacity-0"}`}>
+          {/* Activity */}
+          <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${mounted ? "animate-fade-up delay-300" : "opacity-0"}`}>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-bold text-slate-900">Aktivitas Terbaru</h2>
                 <button className="text-xs font-semibold text-[#0785BC] hover:underline">
@@ -470,12 +391,12 @@ export default function DashboardAdminPage() {
                     </div>
                   </li>
                 ))}
-              </ul>
-            </div>
+            </ul>
           </div>
+        </div>
 
-          {/* ── Pending Approvals Table ── */}
-          <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-350" : "opacity-0"}`}>
+        {/* ── Pending Approvals Table ── */}
+        <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-350" : "opacity-0"}`}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Persetujuan Tertunda</h2>
               <div className="relative">
@@ -556,12 +477,11 @@ export default function DashboardAdminPage() {
                 >
                   Lihat semua peminjaman <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </AdminLayout>
   );
 }
 

@@ -46,7 +46,13 @@ export default function RegisterPage() {
         if (res.data.user) {
           setCurrentUser(res.data.user);
         }
-        router.push("/dashboard");
+
+        const userRole = (res.data.user?.role || formData.role || "").toLowerCase();
+        if (userRole === "admin" || userRole === "petugas") {
+          router.push("/admin/dashboard_admin");
+        } else {
+          router.push("/user/dashboard");
+        }
       } else {
         setErrorMessage(res.message || "Gagal melakukan pendaftaran akun.");
       }
@@ -95,7 +101,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Nomor Induk ({formData.role === "Mahasiswa" ? "NIM" : "NIP / ID Staff"})
+              Nomor Induk 
             </label>
             <input
               type="text"
@@ -103,7 +109,7 @@ export default function RegisterPage() {
               required
               value={formData.nomor_induk}
               onChange={handleChange}
-              placeholder={formData.role === "Mahasiswa" ? "Contoh: 21101234" : "Contoh: 198501012010121001"}
+              placeholder="Masukkan nomor induk Anda"
               className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
@@ -125,15 +131,15 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Email Kampus / Pribadi
-            </label>
+              Email
+            </label>    
             <input
               type="email"
               name="email"
               required
               value={formData.email}
               onChange={handleChange}
-              placeholder="nama@kampus.ac.id"
+              placeholder="Masukkan email Anda"
               className="w-full px-3.5 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-600"
             />
           </div>
