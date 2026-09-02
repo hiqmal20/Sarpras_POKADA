@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import {
   User,
   Mail,
-  Building2,
   Lock,
   IdCard,
   Phone,
@@ -74,8 +73,12 @@ export default function RegisterPage() {
           router.push("/user/dashboard");
         }
       } else {
+        const errorDetail =
+          res.errors && res.errors.length > 0
+            ? res.errors.map((e) => e.message).join(", ")
+            : res.message;
         setErrorMessage(
-          res.message || "Gagal melakukan pendaftaran akun."
+          errorDetail || "Gagal melakukan pendaftaran akun."
         );
       }
     } catch (err: unknown) {
@@ -83,16 +86,11 @@ export default function RegisterPage() {
         err instanceof Error
           ? err.message
           : "Terjadi kesalahan koneksi server.";
-
       setErrorMessage(errorMsg);
     } finally {
       setLoading(false);
     }
   };
-
-  // =========================
-  // STYLE
-  // =========================
 
   const inputClass = `
     h-9
@@ -101,7 +99,7 @@ export default function RegisterPage() {
     border border-white/50
     bg-white/50
     pl-9
-    pr-3
+    pr-9
     text-xs
     text-slate-800
     placeholder:text-slate-400
@@ -116,6 +114,7 @@ export default function RegisterPage() {
   `;
 
   const iconClass = `
+    pointer-events-none
     absolute
     left-3
     top-1/2
@@ -124,7 +123,6 @@ export default function RegisterPage() {
   `;
 
   const labelClass = `
-    mb-1.5
     block
     text-[11px]
     font-semibold
@@ -133,9 +131,6 @@ export default function RegisterPage() {
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden">
-      {/* =====================================================
-          BACKGROUND
-      ====================================================== */}
       <div className="absolute inset-0">
         <img
           src="/images/background.png"
@@ -144,14 +139,8 @@ export default function RegisterPage() {
         />
       </div>
 
-      {/* =====================================================
-          OVERLAY
-          Dibuat sedikit lebih gelap agar background tidak
-          terlalu terang, sama seperti nuansa halaman login.
-      ====================================================== */}
       <div className="absolute inset-0 bg-slate-950/35" />
 
-      {/* Soft vignette supaya bagian tengah tetap fokus */}
       <div
         className="
           pointer-events-none
@@ -161,32 +150,22 @@ export default function RegisterPage() {
         "
       />
 
-      {/* =====================================================
-          REGISTER CONTENT
-      ====================================================== */}
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
-        <div className="w-full max-w-[430px]">
-
-          {/* =================================================
-              REGISTER CARD
-          ================================================= */}
+        <div className="w-full max-w-[365px]">
           <div
             className="
               relative
               overflow-hidden
-              rounded-[20px]
+              rounded-[19px]
               border
               border-white/45
               bg-white/45
-              px-7
-              py-6
+              px-8
+              py-7
               shadow-[0_20px_60px_rgba(0,0,0,0.32)]
               backdrop-blur-xl
-              sm:px-8
-              sm:py-7
             "
           >
-            {/* Glass Highlight */}
             <div
               className="
                 pointer-events-none
@@ -198,7 +177,6 @@ export default function RegisterPage() {
               "
             />
 
-            {/* Subtle top shine */}
             <div
               className="
                 pointer-events-none
@@ -213,64 +191,62 @@ export default function RegisterPage() {
               "
             />
 
-            {/* =================================================
-                LOGO
-            ================================================= */}
             <div className="relative flex flex-col items-center">
               <div
                 className="
                   flex
-                  h-[52px]
-                  w-[52px]
+                  h-[64px]
+                  w-[64px]
                   items-center
                   justify-center
                   overflow-hidden
-                  rounded-[13px]
+                  rounded-2xl
                   border
                   border-white/70
                   bg-white/80
-                  shadow-[0_4px_15px_rgba(0,0,0,0.08)]
+                  shadow-[0_4px_20px_rgba(0,0,0,0.08)]
                 "
               >
                 <img
                   src="/images/pokada.jpg"
                   alt="Logo Sarpras"
-                  className="h-[43px] w-[43px] object-contain"
+                  className="h-[54px] w-[54px] object-contain"
                 />
               </div>
 
-              <span className="mt-2 text-xs font-semibold text-blue-600">
-                Sarpras
+              <span className="mt-2.5 text-base font-bold text-blue-600 tracking-wide">
+                SARPRAS POKADA
               </span>
             </div>
 
-            {/* =================================================
-                TITLE
-            ================================================= */}
-            <div className="relative mt-5 text-center">
-              <h1 className="text-sm font-bold text-slate-900">
-                Create Account
+            <div className="relative mt-6 text-center">
+              <h1
+                className="
+                  text-[22px]
+                  font-bold
+                  tracking-tight
+                  text-slate-900
+                "
+              >
+                Buat Akun
               </h1>
 
-              <p className="mx-auto mt-1.5 max-w-[280px] text-[11px] leading-4 text-slate-600">
-                Request access to the facility management system.
+              <p className="mt-1.5 text-[12px] text-slate-600">
+                Daftarkan akun untuk mengakses sistem peminjaman sarpras
               </p>
             </div>
 
-            {/* =================================================
-                ERROR MESSAGE
-            ================================================= */}
             {errorMessage && (
               <div
                 className="
                   relative
-                  mt-4
+                  mt-5
                   rounded-lg
                   border
                   border-red-300/50
                   bg-red-100/60
                   px-3
-                  py-2
+                  py-2.5
                   text-[11px]
                   text-red-700
                   backdrop-blur-sm
@@ -280,23 +256,18 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* =================================================
-                FORM
-            ================================================= */}
             <form
               onSubmit={handleRegister}
-              className="relative mt-5 space-y-3"
+              className="relative mt-6 space-y-3.5"
             >
-
-              {/* FULL NAME */}
               <div>
-                <label className={labelClass}>
-                  Full Name
+                <label className={`${labelClass} mb-1.5`}>
+                  Nama Lengkap
                 </label>
 
                 <div className="relative">
                   <User
-                    size={14}
+                    size={15}
                     strokeWidth={2}
                     className={iconClass}
                   />
@@ -307,21 +278,20 @@ export default function RegisterPage() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Nama Lengkap"
+                    placeholder="Masukkan nama lengkap"
                     className={inputClass}
                   />
                 </div>
               </div>
 
-              {/* EMAIL */}
               <div>
-                <label className={labelClass}>
-                  Email Address
+                <label className={`${labelClass} mb-1.5`}>
+                  Email
                 </label>
 
                 <div className="relative">
                   <Mail
-                    size={14}
+                    size={15}
                     strokeWidth={2}
                     className={iconClass}
                   />
@@ -332,72 +302,20 @@ export default function RegisterPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="admin@example.com"
+                    placeholder="pokada@example.com"
                     className={inputClass}
                   />
                 </div>
               </div>
 
-              {/* DEPARTMENT */}
               <div>
-                <label className={labelClass}>
-                  Department
-                </label>
-
-                <div className="relative">
-                  <Building2
-                    size={14}
-                    strokeWidth={2}
-                    className={iconClass}
-                  />
-
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className={`
-                      ${inputClass}
-                      appearance-none
-                      cursor-pointer
-                      pr-9
-                    `}
-                  >
-                    <option value="Mahasiswa">
-                      Mahasiswa
-                    </option>
-
-                    <option value="Dosen">
-                      Dosen
-                    </option>
-
-                    <option value="Staff">
-                      Staff
-                    </option>
-                  </select>
-
-                  <ChevronDown
-                    size={14}
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-slate-400
-                    "
-                  />
-                </div>
-              </div>
-
-              {/* NOMOR INDUK */}
-              <div>
-                <label className={labelClass}>
+                <label className={`${labelClass} mb-1.5`}>
                   Nomor Induk
                 </label>
 
                 <div className="relative">
                   <IdCard
-                    size={14}
+                    size={15}
                     strokeWidth={2}
                     className={iconClass}
                   />
@@ -408,21 +326,51 @@ export default function RegisterPage() {
                     required
                     value={formData.nomor_induk}
                     onChange={handleChange}
-                    placeholder="Nomor Induk"
+                    placeholder="Masukkan Nomor Induk"
                     className={inputClass}
                   />
                 </div>
               </div>
 
-              {/* NO HP */}
               <div>
-                <label className={labelClass}>
+                <label className={`${labelClass} mb-1.5`}>
+                  Role / Jabatan
+                </label>
+
+                <div className="relative">
+                  <ChevronDown
+                    size={15}
+                    className="
+                      pointer-events-none
+                      absolute
+                      right-3
+                      top-1/2
+                      -translate-y-1/2
+                      text-slate-400
+                    "
+                  />
+
+                  <select
+                    name="role"
+                    value={formData.role}
+                    onChange={handleChange}
+                    className={`${inputClass} appearance-none cursor-pointer pl-3`}
+                  >
+                    <option value="Mahasiswa">Mahasiswa</option>
+                    <option value="Dosen">Dosen</option>
+                    <option value="Staff">Staff</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className={`${labelClass} mb-1.5`}>
                   No. WhatsApp / HP
                 </label>
 
                 <div className="relative">
                   <Phone
-                    size={14}
+                    size={15}
                     strokeWidth={2}
                     className={iconClass}
                   />
@@ -438,15 +386,14 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* PASSWORD */}
               <div>
-                <label className={labelClass}>
+                <label className={`${labelClass} mb-1.5`}>
                   Password
                 </label>
 
                 <div className="relative">
                   <Lock
-                    size={14}
+                    size={15}
                     strokeWidth={2}
                     className={iconClass}
                   />
@@ -463,18 +410,17 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {/* SUBMIT */}
               <button
                 type="submit"
                 disabled={loading}
                 className="
                   mt-2
-                  h-9
+                  h-10
                   w-full
                   rounded-lg
                   bg-blue-600
                   text-xs
-                  font-medium
+                  font-semibold
                   text-white
                   shadow-md
                   shadow-blue-600/20
@@ -493,23 +439,19 @@ export default function RegisterPage() {
               </button>
             </form>
 
-            {/* =================================================
-                LOGIN LINK
-            ================================================= */}
-            <div className="relative mt-4 text-center">
-              <p className="text-[10px] text-slate-600">
-                Already have an account?{" "}
-
+            <div className="relative mt-5 text-center">
+              <p className="text-[11px] text-slate-600">
+                Sudah punya akun?{" "}
                 <Link
                   href="/auth/login"
                   className="
-                    font-medium
+                    font-semibold
                     text-blue-600
                     transition-colors
                     hover:text-blue-700
                   "
                 >
-                  Sign in here
+                  Masuk di sini
                 </Link>
               </p>
             </div>
