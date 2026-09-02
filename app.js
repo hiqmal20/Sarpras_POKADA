@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
@@ -10,13 +12,37 @@ const apiRoutes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { startOverdueChecker } = require('./services/cronService');
+const setupSocketHandlers = require('./socket/socketHandler');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : [];
+
+// Setup Socket.IO dengan CORS
+const io = new Server(server, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST']
+  },
+  transports: ['websocket', 'polling']
+});
+
+// Setup Socket.IO handlers
+setupSocketHandlers(io);
+
+// Make io accessible in other files
+app.set('io', io);
 
 app.use(helmet());
 app.use(cors({
@@ -38,7 +64,12 @@ app.use('/api', apiLimiter);
 app.get('/', (req, res) => {
   res.json({
     status: 'success',
-    message: 'Backend SARPRAS POKADA API is running'
+    message: 'Backend SARPRAS POKADA API is running',
+    features: {
+      rest_api: true,
+      websocket: true,
+      real_time_chat: true
+    }
   });
 });
 
@@ -55,7 +86,11 @@ app.get('/api/health', async (req, res) => {
 
     res.json({
       status: 'success',
-      message: 'Server dan database terhubung'
+      message: 'Server dan database terhubung',
+      websocket: {
+        enabled: true,
+        connections: io.engine.clientsCount
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -76,8 +111,10 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`🌐 HTTP API: http://localhost:${PORT}`);
+  console.log(`⚡ WebSocket: ws://localhost:${PORT}`);
   // Aktifkan cron job pendeteksi peminjaman terlambat
   startOverdueChecker();
 });

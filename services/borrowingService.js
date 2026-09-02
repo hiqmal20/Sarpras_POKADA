@@ -13,8 +13,15 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
   let query = supabase
     .from('borrowings')
     .select(`
-      *,
-      users (id, name, email, no_hp, role)
+      id,
+      borrow_code,
+      borrow_date,
+      actual_return_date,
+      purpose,
+      status,
+      admin_note,
+      created_at,
+      users (id, name, nomor_induk, email, no_hp, role, foto)
     `, { count: 'exact' })
     .order('created_at', { ascending: false });
 

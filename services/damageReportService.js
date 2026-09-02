@@ -8,9 +8,9 @@ exports.findAllReports = async ({ user_id, item_id, status, report_type, page = 
     .from('damage_reports')
     .select(`
       *,
-      users (id, name, email, no_hp, role),
-      items (id, name, code, image_url, condition),
-      borrowings (id, borrow_code)
+      users (id, name, nomor_induk, email, no_hp, role, foto),
+      items (id, name, code, image_url, condition, status),
+      borrowings (id, borrow_code, purpose, borrow_date, status)
     `, { count: 'exact' })
     .order('created_at', { ascending: false });
 
@@ -38,9 +38,9 @@ exports.findReportById = async (id) => {
     .from('damage_reports')
     .select(`
       *,
-      users (id, name, email, no_hp, role),
-      items (*),
-      borrowings (*)
+      users (id, name, nomor_induk, email, no_hp, role, foto),
+      items (id, name, code, image_url, condition, status, stock, available_stock),
+      borrowings (id, borrow_code, purpose, borrow_date, status)
     `)
     .eq('id', id)
     .single();
@@ -52,8 +52,51 @@ exports.findReportById = async (id) => {
   return data;
 };
 
-exports.createNewReport = async ({ user_id, item_id, borrowing_id, title, description = '', image_url = null, report_type = 'Kerusakan' }) => {
+/**
+ * Admin membuat laporan kerusakan/kehilangan secara manual.
+ * Admin juga bisa langsung memasukkan nominal denda.
+ */
+exports.createNewReport = async ({
+  user_id,
+  item_id,
+  borrowing_id,
+  title,
+  description = '',
+  image_url = null,
+  report_type = 'Kerusakan',
+  // Field denda — diisi manual oleh admin
+  fine_amount = 0,
+  fine_reason = '',
+  // Kondisi item baru setelah kejadian
+  item_condition = null
+}) => {
   const now = new Date().toISOString();
+
+  // Validasi: item harus ada jika item_id diberikan
+  if (item_id) {
+    const { data: itemCheck } = await supabase
+      .from('items')
+      .select('id, name, condition, status')
+      .eq('id', item_id)
+      .single();
+
+    if (!itemCheck) {
+      throw new AppError('Barang tidak ditemukan', 404);
+    }
+  }
+
+  // Validasi: peminjaman harus ada jika borrowing_id diberikan
+  if (borrowing_id) {
+    const { data: borrowingCheck } = await supabase
+      .from('borrowings')
+      .select('id, borrow_code')
+      .eq('id', borrowing_id)
+      .single();
+
+    if (!borrowingCheck) {
+      throw new AppError('Data peminjaman tidak ditemukan', 404);
+    }
+  }
 
   const { data, error } = await supabase
     .from('damage_reports')
@@ -64,8 +107,11 @@ exports.createNewReport = async ({ user_id, item_id, borrowing_id, title, descri
       title,
       description,
       image_url,
-      report_type,
+      report_type,         // 'Kerusakan' | 'Kehilangan' | 'Cacat Fungsi'
       status: 'Menunggu Review',
+      fine_amount: Number(fine_amount) || 0,   // nominal denda (Rp)
+      fine_reason: fine_reason || '',           // alasan pengenaan denda
+      fine_status: fine_amount > 0 ? 'Belum Dibayar' : 'Tidak Ada Denda',
       created_at: now,
       update_at: now
     }])
@@ -74,47 +120,138 @@ exports.createNewReport = async ({ user_id, item_id, borrowing_id, title, descri
 
   if (error) throw error;
 
-  // Jika menyertakan item_id, ubah kondisi item
+  // Update kondisi item jika ada
   if (item_id) {
+    const newCondition = item_condition ||
+      (report_type === 'Kehilangan' ? 'Hilang' :
+       report_type === 'Kerusakan' ? 'Rusak Ringan' : 'Rusak Berat');
+
     await supabase
       .from('items')
       .update({
-        condition: 'Rusak Ringan',
+        condition: newCondition,
+        // Jika hilang, kurangi stok tersedia
+        ...(report_type === 'Kehilangan' && {
+          available_stock: supabase.rpc ? undefined : undefined
+        }),
         update_at: now
       })
       .eq('id', item_id);
+
+    // Jika kehilangan, kurangi available_stock
+    if (report_type === 'Kehilangan') {
+      const { data: currentItem } = await supabase
+        .from('items')
+        .select('available_stock')
+        .eq('id', item_id)
+        .single();
+
+      if (currentItem && currentItem.available_stock > 0) {
+        await supabase
+          .from('items')
+          .update({ available_stock: currentItem.available_stock - 1 })
+          .eq('id', item_id);
+      }
+    }
   }
 
-  return data;
+  // Kirim notifikasi ke user yang bersangkutan
+  if (user_id) {
+    const fineMsg = fine_amount > 0
+      ? ` Denda yang dikenakan: Rp ${Number(fine_amount).toLocaleString('id-ID')}. Alasan: ${fine_reason}`
+      : '';
+
+    await supabase.from('notifications').insert([{
+      user_id,
+      title: `Laporan ${report_type}: ${title}`,
+      message: `Admin telah mencatat laporan ${report_type.toLowerCase()} untuk Anda.${fineMsg} Silakan hubungi admin untuk informasi lebih lanjut.`,
+      type: 'laporan',
+      is_read: false,
+      created_at: now
+    }]);
+  }
+
+  return exports.findReportById(data.id);
 };
 
-exports.updateStatus = async (id, { status, admin_note }) => {
+/**
+ * Update status laporan dan/atau denda (oleh Admin/Petugas).
+ * Admin bisa ubah nominal denda kapan saja.
+ */
+exports.updateReport = async (id, {
+  status,
+  admin_note,
+  fine_amount,
+  fine_reason,
+  fine_status,
+  item_condition
+}) => {
   const now = new Date().toISOString();
+
+  // Ambil data laporan saat ini
+  const { data: current, error: fetchError } = await supabase
+    .from('damage_reports')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (fetchError || !current) {
+    throw new AppError('Laporan tidak ditemukan', 404);
+  }
+
+  const updatePayload = { update_at: now };
+
+  if (status !== undefined) updatePayload.status = status;
+  if (admin_note !== undefined) updatePayload.admin_note = admin_note;
+  if (fine_amount !== undefined) {
+    updatePayload.fine_amount = Number(fine_amount);
+    // Jika denda diubah, auto-set fine_status jika belum ada
+    if (fine_status === undefined) {
+      updatePayload.fine_status = Number(fine_amount) > 0 ? 'Belum Dibayar' : 'Tidak Ada Denda';
+    }
+  }
+  if (fine_reason !== undefined) updatePayload.fine_reason = fine_reason;
+  if (fine_status !== undefined) updatePayload.fine_status = fine_status;
 
   const { data, error } = await supabase
     .from('damage_reports')
-    .update({
-      ...(status !== undefined && { status }),
-      ...(admin_note !== undefined && { admin_note }),
-      update_at: now
-    })
+    .update(updatePayload)
     .eq('id', id)
     .select()
     .single();
 
-  if (error || !data) {
-    throw new AppError('Gagal memperbarui status laporan', 404);
+  if (error) throw error;
+
+  // Update kondisi item jika diminta
+  if (item_condition && current.item_id) {
+    await supabase
+      .from('items')
+      .update({ condition: item_condition, update_at: now })
+      .eq('id', current.item_id);
   }
 
-  // Kirim notifikasi ke pelapor
-  await supabase.from('notifications').insert([{
-    user_id: data.user_id,
-    title: `Status Laporan: ${data.title}`,
-    message: `Laporan Anda telah diperbarui menjadi "${status}". ${admin_note ? `Catatan: ${admin_note}` : ''}`,
-    type: 'laporan',
-    is_read: false,
-    created_at: now
-  }]);
+  // Notifikasi ke user
+  if (current.user_id) {
+    let msg = `Status laporan "${current.title}" diperbarui menjadi "${status || current.status}".`;
+    if (fine_amount !== undefined) {
+      msg += ` Denda: Rp ${Number(fine_amount).toLocaleString('id-ID')}.`;
+    }
+    if (fine_status) {
+      msg += ` Status denda: ${fine_status}.`;
+    }
+    if (admin_note) {
+      msg += ` Catatan: ${admin_note}`;
+    }
 
-  return data;
+    await supabase.from('notifications').insert([{
+      user_id: current.user_id,
+      title: `Update Laporan: ${current.title}`,
+      message: msg,
+      type: 'laporan',
+      is_read: false,
+      created_at: now
+    }]);
+  }
+
+  return exports.findReportById(id);
 };
