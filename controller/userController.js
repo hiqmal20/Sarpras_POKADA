@@ -59,6 +59,34 @@ exports.importUsers = async (req, res, next) => {
   }
 };
 
+// Upload profile photo (untuk user sendiri atau admin)
+exports.uploadPhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError('File foto wajib diunggah', 400));
+    }
+
+    // User hanya bisa upload foto sendiri, kecuali Admin
+    const targetUserId = req.params.id;
+    const isAdmin = req.user.role === 'Admin';
+    const isSelf = req.user.id === targetUserId;
+
+    if (!isAdmin && !isSelf) {
+      return next(new AppError('Anda tidak memiliki izin untuk mengunggah foto user lain', 403));
+    }
+
+    const updatedUser = await userService.uploadProfilePhoto(
+      targetUserId,
+      req.file.buffer,
+      req.file.mimetype
+    );
+
+    return sendSuccess(res, 'Foto profil berhasil diunggah', updatedUser, 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Update user profile
 exports.updateUser = async (req, res, next) => {
   try {

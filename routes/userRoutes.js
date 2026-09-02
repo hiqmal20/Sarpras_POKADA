@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controller/userController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const { uploadCSV, uploadImage } = require('../middleware/uploadMiddleware');
 
 // Semua route users butuh login
 router.use(requireAuth);
@@ -12,7 +12,10 @@ router.get('/', userController.getAllUsers);
 router.post('/', requireRole('Admin'), userController.createUser);
 
 // Import CSV — harus SEBELUM /:id agar tidak dianggap sebagai id
-router.post('/import', requireRole('Admin'), upload.single('file'), userController.importUsers);
+router.post('/import', requireRole('Admin'), uploadCSV.single('file'), userController.importUsers);
+
+// Upload foto profil — user bisa upload foto sendiri, admin bisa upload untuk siapa saja
+router.post('/:id/photo', uploadImage.single('photo'), userController.uploadPhoto);
 
 // Route dengan parameter
 router.get('/:id', userController.getUserById);

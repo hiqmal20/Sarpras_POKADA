@@ -24,7 +24,7 @@ const errorHandler = (err, req, res, next) => {
 
   // Multer file size exceeded
   if (err.name === 'MulterError' && err.code === 'LIMIT_FILE_SIZE') {
-    return sendError(res, 'Ukuran file terlalu besar. Maksimal 2MB', 400);
+    return sendError(res, 'Ukuran file terlalu besar. Maksimal 2MB untuk CSV dan 5MB untuk gambar', 400);
   }
 
   // Multer error lainnya
@@ -34,6 +34,11 @@ const errorHandler = (err, req, res, next) => {
 
   // Error filter file bukan CSV
   if (err.message && err.message.includes('Hanya file CSV')) {
+    return sendError(res, err.message, 400);
+  }
+
+  // Error filter file bukan gambar
+  if (err.message && err.message.includes('Hanya file gambar')) {
     return sendError(res, err.message, 400);
   }
 

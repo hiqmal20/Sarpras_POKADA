@@ -172,6 +172,48 @@ exports.deleteUser = async (id) => {
 };
 
 
+exports.uploadProfilePhoto = async (userId, fileBuffer, mimetype) => {
+  const supabase = require('../config/supabaseClient');
+  
+  // Generate unique filename
+  const fileExt = mimetype.split('/')[1]; // jpeg, png, etc
+  const fileName = `${userId}-${Date.now()}.${fileExt}`;
+  const filePath = `profile-photos/${fileName}`;
+
+  // Upload ke Supabase Storage
+  const { data: uploadData, error: uploadError } = await supabase.storage
+    .from('sarpras-assets') // nama bucket di Supabase Storage
+    .upload(filePath, fileBuffer, {
+      contentType: mimetype,
+      upsert: true // replace jika sudah ada
+    });
+
+  if (uploadError) {
+    throw new AppError('Gagal mengunggah foto: ' + uploadError.message, 500);
+  }
+
+  // Dapatkan public URL
+  const { data: urlData } = supabase.storage
+    .from('sarpras-assets')
+    .getPublicUrl(filePath);
+
+  const photoUrl = urlData.publicUrl;
+
+  // Update kolom foto di tabel users
+  const { data: updatedUser, error: updateError } = await supabase
+    .from('users')
+    .update({ foto: photoUrl })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (updateError) {
+    throw new AppError('Gagal memperbarui foto profil', 500);
+  }
+
+  return updatedUser;
+};
+
 exports.importUsersFromCSV = async (csvBuffer) => {
   const { parse } = require('csv-parse/sync');
 
