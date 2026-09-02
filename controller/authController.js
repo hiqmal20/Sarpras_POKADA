@@ -45,6 +45,24 @@ exports.getMe = async (req, res, next) => {
   }
 };
 
+// Update profile user sendiri (termasuk foto)
+exports.updateProfile = async (req, res, next) => {
+  try {
+    const userService = require('../services/userService');
+    // Batasi field agar user biasa tidak bisa self-elevate role / status
+    const { name, no_hp, foto, nomor_induk } = req.body;
+    const updated = await userService.updateUserProfile(req.user.id, {
+      name,
+      no_hp,
+      foto,
+      nomor_induk
+    });
+    return sendSuccess(res, 'Profil berhasil diperbarui', { user: updated }, 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Logout
 exports.logout = async (req, res, next) => {
   try {
