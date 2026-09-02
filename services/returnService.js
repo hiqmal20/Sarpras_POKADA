@@ -13,7 +13,6 @@ exports.findAllReturns = async ({ page = 1, limit = 20 }) => {
         borrow_code,
         purpose,
         borrow_date,
-        planned_return_date,
         users (id, name, email, no_hp)
       ),
       receiver:users!returns_received_by_fkey (id, name, role)

@@ -2,17 +2,24 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controller/userController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
-const validateRequest = require('../middleware/validateRequest');
-const { createUserSchema, updateUserSchema } = require('../validations/userValidation');
-const { ROLES } = require('../constants/roles');
+const { uploadCSV, uploadImage } = require('../middleware/uploadMiddleware');
 
+// Semua route users butuh login
 router.use(requireAuth);
 
-router.get('/', requireRole(ROLES.ADMIN, ROLES.PETUGAS), userController.getAllUsers);
-router.get('/:id', requireRole(ROLES.ADMIN, ROLES.PETUGAS), userController.getUserById);
-router.post('/', requireRole(ROLES.ADMIN), validateRequest(createUserSchema), userController.createUser);
-router.put('/:id', requireRole(ROLES.ADMIN), validateRequest(updateUserSchema), userController.updateUser);
-router.delete('/:id', requireRole(ROLES.ADMIN), userController.deleteUser);
+// Route spesifik harus di atas route dengan parameter (:id)
+router.get('/', userController.getAllUsers);
+router.post('/', requireRole('Admin'), userController.createUser);
+
+// Import CSV — harus SEBELUM /:id agar tidak dianggap sebagai id
+router.post('/import', requireRole('Admin'), uploadCSV.single('file'), userController.importUsers);
+
+// Upload foto profil — user bisa upload foto sendiri, admin bisa upload untuk siapa saja
+router.post('/:id/photo', uploadImage.single('photo'), userController.uploadPhoto);
+
+// Route dengan parameter
+router.get('/:id', userController.getUserById);
+router.put('/:id', requireRole('Admin'), userController.updateUser);
+router.delete('/:id', requireRole('Admin'), userController.deleteUser);
 
 module.exports = router;
-

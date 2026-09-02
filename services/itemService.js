@@ -39,7 +39,54 @@ exports.findItemById = async (id) => {
     throw new AppError('Barang / Aset tidak ditemukan', 404);
   }
 
-  return data;
+  // Ambil riwayat peminjaman barang ini (5 terakhir)
+  const { data: borrowingHistory } = await supabase
+    .from('borrowings_items')
+    .select(`
+      id, quantity, condition_before, condition_after, note,
+      borrowings (id, borrow_code, borrow_date, status, users (id, name, email))
+    `)
+    .eq('item_id', id)
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  // Hitung total peminjaman
+  const { count: totalBorrowings } = await supabase
+    .from('borrowings_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('item_id', id);
+
+  // Cek barang ini ada di package apa saja
+  const { data: inPackages } = await supabase
+    .from('packages_items')
+    .select(`
+      id, quantity,
+      packages (id, name, status, image_url)
+    `)
+    .eq('item_id', id);
+
+  // Hitung peminjaman aktif (status Dipinjam)
+  const { count: activeBorrowings } = await supabase
+    .from('borrowings_items')
+    .select('borrowings!inner(id, status)', { count: 'exact', head: true })
+    .eq('item_id', id)
+    .eq('borrowings.status', 'Dipinjam');
+
+  return {
+    ...data,
+    statistics: {
+      total_borrowings: totalBorrowings || 0,
+      active_borrowings: activeBorrowings || 0,
+      usage_percentage: data.stock > 0 ? Math.round(((data.stock - data.available_stock) / data.stock) * 100) : 0
+    },
+    recent_borrowings: borrowingHistory || [],
+    in_packages: (inPackages || []).map(p => ({
+      package_id: p.packages?.id,
+      package_name: p.packages?.name,
+      package_status: p.packages?.status,
+      quantity_in_package: p.quantity
+    }))
+  };
 };
 
 exports.createNewItem = async (payload) => {

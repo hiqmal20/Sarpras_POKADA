@@ -1,5 +1,6 @@
 const userService = require('../services/userService');
 const { sendSuccess } = require('../utils/responseHandler');
+const AppError = require('../utils/appError');
 
 // Get all users
 exports.getAllUsers = async (req, res, next) => {
@@ -37,6 +38,50 @@ exports.createUser = async (req, res, next) => {
   try {
     const data = await userService.createUserProfile(req.body);
     return sendSuccess(res, 'Profil pengguna berhasil disimpan', data, 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Import users from CSV
+exports.importUsers = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError('File CSV wajib diunggah', 400));
+    }
+
+    const result = await userService.importUsersFromCSV(req.file.buffer);
+
+    const message = `Import selesai: ${result.success.length} berhasil, ${result.failed.length} gagal`;
+    return sendSuccess(res, message, result, result.failed.length > 0 ? 207 : 201);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Upload profile photo (untuk user sendiri atau admin)
+exports.uploadPhoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new AppError('File foto wajib diunggah', 400));
+    }
+
+    // User hanya bisa upload foto sendiri, kecuali Admin
+    const targetUserId = req.params.id;
+    const isAdmin = req.user.role === 'Admin';
+    const isSelf = req.user.id === targetUserId;
+
+    if (!isAdmin && !isSelf) {
+      return next(new AppError('Anda tidak memiliki izin untuk mengunggah foto user lain', 403));
+    }
+
+    const updatedUser = await userService.uploadProfilePhoto(
+      targetUserId,
+      req.file.buffer,
+      req.file.mimetype
+    );
+
+    return sendSuccess(res, 'Foto profil berhasil diunggah', updatedUser, 200);
   } catch (err) {
     next(err);
   }
