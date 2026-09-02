@@ -20,10 +20,45 @@ ADD COLUMN IF NOT EXISTS fine_status TEXT DEFAULT 'Tidak Ada Denda'
 ALTER TABLE damage_reports
 ADD COLUMN IF NOT EXISTS admin_note TEXT DEFAULT '';
 
--- Update existing rows agar fine_status tidak NULL
+-- ============================================================
+-- NEW: Tambah kolom report_code (ITM- atau PKG-)
+-- ============================================================
+
+-- Tambah kolom report_code (unique code untuk laporan)
+ALTER TABLE damage_reports
+ADD COLUMN IF NOT EXISTS report_code TEXT UNIQUE;
+
+-- Tambah kolom damage_type (per_item atau per_package)
+ALTER TABLE damage_reports
+ADD COLUMN IF NOT EXISTS damage_type TEXT DEFAULT 'per_item'
+  CHECK (damage_type IN ('per_item', 'per_package'));
+
+-- Tambah kolom package_id (jika kerusakan pada package)
+ALTER TABLE damage_reports
+ADD COLUMN IF NOT EXISTS package_id UUID REFERENCES packages(id) ON DELETE SET NULL;
+
+-- Create index untuk performance
+CREATE INDEX IF NOT EXISTS idx_damage_reports_damage_type ON damage_reports(damage_type);
+CREATE INDEX IF NOT EXISTS idx_damage_reports_report_code ON damage_reports(report_code);
+
+-- ============================================================
+-- Update existing rows
+-- ============================================================
+
+-- Set fine_status default untuk existing rows
 UPDATE damage_reports
 SET fine_status = 'Tidak Ada Denda'
 WHERE fine_status IS NULL;
+
+-- Set damage_type default untuk existing rows
+UPDATE damage_reports
+SET damage_type = 'per_item'
+WHERE damage_type IS NULL;
+
+-- Generate report_code untuk existing rows (optional - bisa skip jika tidak ada data lama)
+-- UPDATE damage_reports
+-- SET report_code = CONCAT('ITM-', TO_CHAR(created_at, 'YYYYMMDD'), '-', UPPER(SUBSTRING(MD5(RANDOM()::TEXT), 1, 4)))
+-- WHERE report_code IS NULL AND damage_type = 'per_item';
 
 -- ============================================================
 -- Verifikasi: lihat struktur tabel setelah migration

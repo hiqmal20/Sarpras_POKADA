@@ -7,6 +7,7 @@ const createDamageReportSchema = Joi.object({
     'any.required': 'user_id wajib diisi'
   }),
   item_id: Joi.string().uuid().allow(null, ''),
+  package_id: Joi.string().uuid().allow(null, ''),
   borrowing_id: Joi.string().uuid().allow(null, ''),
 
   title: Joi.string().trim().min(3).max(150).required().messages({
@@ -21,6 +22,12 @@ const createDamageReportSchema = Joi.object({
     .default('Kerusakan')
     .messages({
       'any.only': 'Tipe laporan harus salah satu dari: Kerusakan, Kehilangan, Cacat Fungsi'
+    }),
+
+  damage_type: Joi.string()
+    .valid('per_item', 'per_package')
+    .messages({
+      'any.only': 'Tipe kerusakan harus: per_item atau per_package'
     }),
 
   item_condition: Joi.string()
