@@ -22,8 +22,29 @@ exports.findAllReturns = async ({ page = 1, limit = 20 }) => {
 
   if (error) throw error;
 
+  const borrowingIds = (returns || []).map((r) => r.borrowing_id).filter(Boolean);
+  let itemsMap = {};
+  if (borrowingIds.length > 0) {
+    const { data: bItems } = await supabase
+      .from('borrowings_items')
+      .select('*, items(id, name, code, image_url)')
+      .in('borrowing_id', borrowingIds);
+
+    if (bItems) {
+      bItems.forEach((item) => {
+        if (!itemsMap[item.borrowing_id]) itemsMap[item.borrowing_id] = [];
+        itemsMap[item.borrowing_id].push(item);
+      });
+    }
+  }
+
+  const enrichedReturns = (returns || []).map((r) => ({
+    ...r,
+    borrowing_items: itemsMap[r.borrowing_id] || []
+  }));
+
   return {
-    returns,
+    returns: enrichedReturns,
     total: count,
     page: Number(page),
     limit: Number(limit),
