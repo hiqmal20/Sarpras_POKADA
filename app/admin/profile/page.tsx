@@ -17,12 +17,13 @@ import {
   Activity
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
-import { getCurrentUser } from "@/lib/api";
+import api, { getCurrentUser } from "@/lib/api";
 
 export default function ProfilePage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   
   // Editable fields
   const [fullName, setFullName] = useState("");
@@ -31,35 +32,124 @@ export default function ProfilePage() {
   const [department, setDepartment] = useState("");
   const [bio, setBio] = useState("");
   const [address, setAddress] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string>("");
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-      setFullName(user.full_name || "");
-      setEmail(user.email || "");
-      setPhone(user.phone || "");
-      setDepartment(user.department || "");
-      setBio(user.bio || "");
-      setAddress(user.address || "");
+    async function loadProfile() {
+      const cached = getCurrentUser();
+      if (cached) {
+        setCurrentUser(cached);
+        setFullName(cached.name || cached.full_name || "");
+        setEmail(cached.email || "");
+        setPhone(cached.no_hp || cached.phone || "");
+        setDepartment(cached.role || cached.department || "");
+        setBio(cached.bio || "");
+        setAddress(cached.address || "");
+        setPhotoUrl(cached.foto || "");
+      }
+
+      try {
+        const res = await api.auth.getProfile();
+        if (res.status === "success" && res.data?.user) {
+          const u = res.data.user;
+          setCurrentUser(u);
+          setFullName(u.name || u.full_name || "");
+          setEmail(u.email || "");
+          setPhone(u.no_hp || u.phone || "");
+          setDepartment(u.role || u.department || "");
+          setPhotoUrl(u.foto || "");
+          localStorage.setItem("user", JSON.stringify(u));
+        }
+      } catch {
+        // silent fallback
+      }
     }
+    loadProfile();
   }, []);
 
-  const handleSave = () => {
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser?.id) return;
+
+    setUploadingPhoto(true);
+    try {
+      const res = await api.users.uploadPhoto(currentUser.id, file);
+      if (res.status === "success" && res.data?.foto) {
+        const newUrl = res.data.foto;
+        setPhotoUrl(newUrl);
+        const updated = { ...currentUser, foto: newUrl };
+        setCurrentUser(updated);
+        localStorage.setItem("user", JSON.stringify(updated));
+        window.dispatchEvent(new Event("user-updated"));
+        alert("Foto profil berhasil diperbarui!");
+      } else {
+        // Simpan via DataURL base64 langsung ke users table jika bucket storage tidak aktif
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64Data = reader.result as string;
+          setPhotoUrl(base64Data);
+          const updated = { ...currentUser, foto: base64Data };
+          setCurrentUser(updated);
+          localStorage.setItem("user", JSON.stringify(updated));
+          window.dispatchEvent(new Event("user-updated"));
+          try {
+            await api.users.update(currentUser.id, { foto: base64Data });
+          } catch {}
+          alert("Foto profil berhasil disimpan!");
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      console.warn("Upload storage gagal, menyimpan sebagai data URL:", err);
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result as string;
+        setPhotoUrl(base64Data);
+        const updated = { ...currentUser, foto: base64Data };
+        setCurrentUser(updated);
+        localStorage.setItem("user", JSON.stringify(updated));
+        window.dispatchEvent(new Event("user-updated"));
+        try {
+          await api.users.update(currentUser.id, { foto: base64Data });
+        } catch {}
+        alert("Foto profil berhasil disimpan!");
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleSave = async () => {
     const updatedUser = {
       ...currentUser,
+      name: fullName,
       full_name: fullName,
       email: email,
+      no_hp: phone,
       phone: phone,
       department: department,
       bio: bio,
       address: address,
+      foto: photoUrl,
     };
-    
+
+    if (currentUser?.id) {
+      try {
+        await api.users.update(currentUser.id, {
+          name: fullName,
+          no_hp: phone,
+          foto: photoUrl,
+        });
+      } catch (e) {
+        console.warn("Gagal simpan ke backend:", e);
+      }
+    }
+
     localStorage.setItem("user", JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);
+    window.dispatchEvent(new Event("user-updated"));
     setIsEditing(false);
-    
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -147,23 +237,37 @@ export default function ProfilePage() {
           <div className="px-8 pb-8">
             {/* Avatar */}
             <div className="flex items-end justify-between -mt-16 mb-6">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full bg-white p-2 shadow-lg">
-                  <div className="w-full h-full rounded-full bg-[#0785BC] flex items-center justify-center text-white text-4xl font-bold">
-                    {fullName.charAt(0) || "A"}
-                  </div>
+              <div className="relative group">
+                <div className="w-32 h-32 rounded-full bg-white p-2 shadow-lg overflow-hidden flex items-center justify-center">
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={fullName}
+                      className="w-full h-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-[#0785BC] flex items-center justify-center text-white text-4xl font-bold">
+                      {fullName.charAt(0) || "A"}
+                    </div>
+                  )}
                 </div>
-                {isEditing && (
-                  <button className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-[#0785BC] text-white flex items-center justify-center shadow-lg hover:bg-[#0672a0] transition-colors">
-                    <Camera className="w-5 h-5" />
-                  </button>
-                )}
+
+                <label className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-[#0785BC] text-white flex items-center justify-center shadow-lg hover:bg-[#0672a0] transition-colors cursor-pointer active:scale-95">
+                  <Camera className="w-4 h-4" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                  />
+                </label>
               </div>
               
               <div className="flex items-center gap-2 mb-4">
-                <div className="px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-semibold rounded-full flex items-center gap-2">
-                  <Shield className="w-4 h-4" />
-                  {currentUser?.role === "admin" ? "Administrator" : "User"}
+                <div className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full flex items-center gap-2 border border-blue-100">
+                  <Shield className="w-3.5 h-3.5" />
+                  {currentUser?.role === "Admin" ? "Administrator" : "Petugas Sarpras"}
                 </div>
               </div>
             </div>

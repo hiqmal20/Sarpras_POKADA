@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react";
 import {
   AlertTriangle,
-  Filter,
   Download,
   Clock,
   CheckCircle2,
   Package,
   ChevronLeft,
   ChevronRight,
+  Check,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 
@@ -64,8 +65,17 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ── Avatar initials ──
-function Avatar({ name, color }: { name: string; color: string }) {
-  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+function Avatar({ name, color }: { name?: string; color: string }) {
+  const safeName = (name || "").trim();
+  const initials = safeName
+    ? safeName
+        .split(" ")
+        .filter(Boolean)
+        .map((w) => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "P";
   return (
     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${color}`}>
       {initials}
@@ -86,61 +96,182 @@ const PAGE_SIZE = 10;
 
 export default function ManajemenPeminjamanPage() {
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
+  const [realStats, setRealStats] = useState({
+    pending: 0,
+    active: 0,
+    overdue: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("semua");
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(45);
+  const [total, setTotal] = useState(0);
   const mounted = useMount();
 
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      const statusMap: Record<StatusFilter, string | undefined> = {
-        semua: undefined, pending: "pending", active: "active", overdue: "overdue",
-      };
-      const res = await api.borrowings.getAll({
-        status: statusMap[activeFilter],
-        page,
-        limit: PAGE_SIZE,
-      });
-      if (res.status === "success" && res.data && (res.data as any[]).length > 0) {
-        setBorrowings(res.data as Borrowing[]);
-        if (res.total) setTotal(res.total);
-      } else {
-        setBorrowings(mockData);
-        setTotal(45);
+  const fetchData = async () => {
+    setLoading(true);
+    const statusMap: Record<StatusFilter, string | undefined> = {
+      semua: undefined,
+      pending: "Pending",
+      active: "Dipinjam",
+      overdue: "Terlambat",
+    };
+
+    try {
+      const [res, dashRes] = await Promise.all([
+        api.borrowings.getAll({
+          status: statusMap[activeFilter],
+          page,
+          limit: PAGE_SIZE,
+        }),
+        api.dashboard.getStats(),
+      ]);
+
+      if (dashRes.status === "success" && dashRes.data?.borrowings) {
+        setRealStats({
+          pending: dashRes.data.borrowings.pending || 0,
+          active: dashRes.data.borrowings.aktif || 0,
+          overdue: dashRes.data.borrowings.terlambat || 0,
+        });
       }
+
+      if (res.status === "success" && Array.isArray(res.data)) {
+        const mapped: Borrowing[] = (res.data as any[]).map((raw: any) => {
+          const user = raw.users || {};
+          const firstItem = raw.borrowings_items?.[0]?.items || {};
+          return {
+            id: raw.id,
+            item_name: raw.item_name || firstItem.name || raw.purpose || "Barang Peminjaman",
+            item_code: raw.item_code || firstItem.code || raw.borrow_code || "-",
+            borrower_name: raw.borrower_name || user.name || "Peminjam",
+            borrower_email: raw.borrower_email || user.email || "-",
+            borrow_date: raw.borrow_date ? new Date(raw.borrow_date).toLocaleDateString("id-ID") : "-",
+            return_date: raw.actual_return_date ? new Date(raw.actual_return_date).toLocaleDateString("id-ID") : "-",
+            status: (raw.status || "pending").toLowerCase() === "dipinjam" ? "active" : (raw.status || "pending").toLowerCase(),
+          };
+        });
+        setBorrowings(mapped);
+        setTotal(res.total || mapped.length);
+      } else {
+        setBorrowings([]);
+        setTotal(0);
+      }
+    } catch (err) {
+      console.warn("Gagal memuat peminjaman:", err);
+    } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [activeFilter, page]);
 
-  // Stats derived from mock when loading is done
+  // Real stats from API
   const stats = [
-    { label: "Perlu Divalidasi", value: 12, badge: "Menunggu",  badgeColor: "bg-emerald-100 text-emerald-700", icon: <Clock className="w-6 h-6 text-emerald-500" />, iconBg: "bg-emerald-50" },
-    { label: "Sedang Dipinjam",  value: 45, badge: "Aktif",     badgeColor: "bg-blue-100 text-blue-700",       icon: <CheckCircle2 className="w-6 h-6 text-blue-500" />, iconBg: "bg-blue-50" },
-    { label: "Melewati Batas Waktu", value: 3,  badge: "Terlambat", badgeColor: "bg-red-100 text-red-600",     icon: <AlertTriangle className="w-6 h-6 text-red-500" />, iconBg: "bg-red-50" },
+    {
+      label: "Perlu Divalidasi",
+      value: realStats.pending,
+      badge: "Menunggu",
+      badgeColor: "bg-amber-100 text-amber-700",
+      icon: <Clock className="w-6 h-6 text-amber-500" />,
+      iconBg: "bg-amber-50",
+    },
+    {
+      label: "Sedang Dipinjam",
+      value: realStats.active,
+      badge: "Aktif",
+      badgeColor: "bg-blue-100 text-blue-700",
+      icon: <CheckCircle2 className="w-6 h-6 text-blue-500" />,
+      iconBg: "bg-blue-50",
+    },
+    {
+      label: "Melewati Batas Waktu",
+      value: realStats.overdue,
+      badge: "Terlambat",
+      badgeColor: "bg-red-100 text-red-600",
+      icon: <AlertTriangle className="w-6 h-6 text-red-500" />,
+      iconBg: "bg-red-50",
+    },
   ];
 
   const filterTabs: { key: StatusFilter; label: string }[] = [
-    { key: "semua",   label: "Semua" },
+    { key: "semua", label: "Semua" },
     { key: "pending", label: "Menunggu Validasi" },
-    { key: "active",  label: "Aktif" },
+    { key: "active", label: "Aktif" },
     { key: "overdue", label: "Terlambat" },
   ];
 
-  const filtered = borrowings.filter((b) =>
-    !search ||
-    b.item_name?.toLowerCase().includes(search.toLowerCase()) ||
-    b.borrower_name?.toLowerCase().includes(search.toLowerCase())
+  const filtered = borrowings.filter(
+    (b) =>
+      !search ||
+      b.item_name?.toLowerCase().includes(search.toLowerCase()) ||
+      b.item_code?.toLowerCase().includes(search.toLowerCase()) ||
+      b.borrower_name?.toLowerCase().includes(search.toLowerCase()) ||
+      b.borrower_email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalPages = Math.ceil(total / PAGE_SIZE);
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   async function handleApprove(id: string) {
-    await api.borrowings.updateStatus(id, { status: "active" });
-    setBorrowings((prev) => prev.map((b) => b.id === id ? { ...b, status: "active" } : b));
+    try {
+      await api.borrowings.updateStatus(id, { status: "Dipinjam" });
+      setBorrowings((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, status: "active" } : b))
+      );
+      setRealStats((prev) => ({
+        ...prev,
+        pending: Math.max(0, prev.pending - 1),
+        active: prev.active + 1,
+      }));
+    } catch (err: any) {
+      alert("Gagal menyetujui: " + err.message);
+    }
+  }
+
+  // Bulk approve or quick filter to pending
+  async function handleHeaderAction() {
+    if (activeFilter !== "pending") {
+      setActiveFilter("pending");
+      setPage(1);
+      return;
+    }
+
+    const pendingItems = borrowings.filter((b) => b.status === "pending");
+    if (pendingItems.length === 0) {
+      alert("Tidak ada peminjaman berstatus pending yang perlu divalidasi.");
+      return;
+    }
+
+    if (confirm(`Setujui sekaligus ${pendingItems.length} peminjaman yang menunggu validasi?`)) {
+      for (const item of pendingItems) {
+        await api.borrowings.updateStatus(item.id, { status: "Dipinjam" });
+      }
+      await fetchData();
+    }
+  }
+
+  // Functional Export to Excel
+  function handleExport() {
+    if (borrowings.length === 0) {
+      alert("Tidak ada data peminjaman untuk diekspor.");
+      return;
+    }
+
+    const exportRows = borrowings.map((b) => ({
+      "Kode Barang": b.item_code,
+      "Nama Barang": b.item_name,
+      "Nama Peminjam": b.borrower_name,
+      Email: b.borrower_email,
+      "Tanggal Pinjam": b.borrow_date,
+      "Estimasi Kembali": b.return_date,
+      Status: b.status.toUpperCase(),
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportRows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Peminjaman");
+    XLSX.writeFile(wb, `Peminjaman-${activeFilter}-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   return (
@@ -157,9 +288,12 @@ export default function ManajemenPeminjamanPage() {
               <h1 className="text-2xl font-bold text-slate-900">Manajemen Peminjaman</h1>
               <p className="text-sm text-slate-500 mt-0.5">Kelola dan pantau seluruh transaksi peminjaman barang.</p>
             </div>
-            <button className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm">
+            <button
+              onClick={handleHeaderAction}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
+            >
               <CheckCircle2 className="w-4 h-4" />
-              Validasi Peminjaman Baru
+              {activeFilter === "pending" ? "Validasi Semua Pending" : "Filter Menunggu Validasi"}
             </button>
           </div>
 
@@ -207,11 +341,11 @@ export default function ManajemenPeminjamanPage() {
                 ))}
               </div>
               <div className="flex items-center gap-2">
-                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Filter className="w-3.5 h-3.5" /> Filter
-                </button>
-                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">
-                  <Download className="w-3.5 h-3.5" /> Export
+                <button
+                  onClick={handleExport}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs active:scale-95"
+                >
+                  <Download className="w-3.5 h-3.5" /> Export Excel
                 </button>
               </div>
             </div>

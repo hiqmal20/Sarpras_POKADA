@@ -1,10 +1,23 @@
 "use client";
 
-import { Bell, Settings, User, LogOut, Shield, HelpCircle, X } from "lucide-react";
+import {
+  Bell,
+  Settings,
+  User,
+  LogOut,
+  Shield,
+  HelpCircle,
+  X,
+  Search,
+  Package,
+  CheckCircle2,
+  AlertTriangle,
+  RotateCcw,
+} from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getCurrentUser, removeAuthToken } from "@/lib/api";
+import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
 
 interface NavbarProps {
   showSearch?: boolean;
@@ -13,61 +26,72 @@ interface NavbarProps {
   onSearchChange?: (value: string) => void;
 }
 
-// Mock notifications
-const mockNotifications = [
-  {
-    id: "1",
-    title: "Peminjaman Baru",
-    message: "Ahmad Subarjo mengajukan peminjaman Projector Epson",
-    time: "5 menit lalu",
-    read: false,
-    type: "borrowing"
-  },
-  {
-    id: "2",
-    title: "Pengembalian",
-    message: "Budi Waseso mengembalikan Kamera Canon 90D",
-    time: "1 jam lalu",
-    read: false,
-    type: "return"
-  },
-  {
-    id: "3",
-    title: "Laporan Kerusakan",
-    message: "Kerusakan dilaporkan pada Laptop Thinkpad T14",
-    time: "3 jam lalu",
-    read: true,
-    type: "damage"
-  },
-  {
-    id: "4",
-    title: "User Baru",
-    message: "Sarah Jenkins mendaftar sebagai user baru",
-    time: "5 jam lalu",
-    read: true,
-    type: "user"
-  }
-];
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  time?: string;
+  created_at?: string;
+  is_read?: boolean;
+  read?: boolean;
+  type: string;
+}
 
-export default function Navbar({ 
-  showSearch = false, 
-  searchValue = "", 
-  searchPlaceholder = "Search...",
-  onSearchChange 
+export default function Navbar({
+  showSearch = false,
+  searchValue = "",
+  searchPlaceholder = "Cari data...",
+  onSearchChange,
 }: NavbarProps) {
   const router = useRouter();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
-  
+
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const user = getCurrentUser();
-    setCurrentUser(user);
+    const syncUser = () => {
+      const user = getCurrentUser();
+      if (user) setCurrentUser(user);
+    };
+
+    syncUser();
+    window.addEventListener("user-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+
+    async function loadNotifications() {
+      try {
+        const res = await api.notifications.getAll();
+        if (res.status === "success" && Array.isArray(res.data)) {
+          setNotifications(
+            res.data.map((n: any) => ({
+              id: n.id,
+              title: n.title,
+              message: n.message,
+              type: n.type || "sistem",
+              is_read: n.is_read,
+              read: n.is_read,
+              created_at: n.created_at,
+              time: n.created_at
+                ? new Date(n.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB"
+                : "Baru saja",
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn("Gagal memuat notifikasi:", err);
+      }
+    }
+    loadNotifications();
+
+    return () => {
+      window.removeEventListener("user-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
   }, []);
 
   // Detect scroll untuk shadow & transisi
@@ -92,20 +116,37 @@ export default function Navbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n) => !n.read && !n.is_read).length;
 
-  const handleMarkAsRead = (id: string) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await api.notifications.markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true, is_read: true } : n))
+      );
+    } catch {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true, is_read: true } : n))
+      );
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const handleMarkAllAsRead = async () => {
+    try {
+      await api.notifications.markAllAsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true, is_read: true })));
+    } catch {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true, is_read: true })));
+    }
   };
 
-  const handleClearNotification = (id: string) => {
-    setNotifications(notifications.filter(n => n.id !== id));
+  const handleClearNotification = async (id: string) => {
+    try {
+      await api.notifications.delete(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch {
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    }
   };
 
   const handleLogout = () => {
@@ -116,39 +157,63 @@ export default function Navbar({
   };
 
   const getNotifIcon = (type: string) => {
-    const iconClass = "w-8 h-8 rounded-full flex items-center justify-center";
+    const iconClass = "w-8 h-8 rounded-xl flex items-center justify-center shrink-0";
     switch (type) {
+      case "peminjaman":
       case "borrowing":
-        return <div className={`${iconClass} bg-blue-100 text-blue-600`}>📦</div>;
+        return (
+          <div className={`${iconClass} bg-blue-50 text-[#0785BC]`}>
+            <Package className="w-4 h-4" />
+          </div>
+        );
+      case "pengembalian":
       case "return":
-        return <div className={`${iconClass} bg-green-100 text-green-600`}>✓</div>;
+        return (
+          <div className={`${iconClass} bg-emerald-50 text-emerald-600`}>
+            <RotateCcw className="w-4 h-4" />
+          </div>
+        );
+      case "kerusakan":
       case "damage":
-        return <div className={`${iconClass} bg-red-100 text-red-600`}>⚠️</div>;
-      case "user":
-        return <div className={`${iconClass} bg-purple-100 text-purple-600`}>👤</div>;
+        return (
+          <div className={`${iconClass} bg-rose-50 text-rose-600`}>
+            <AlertTriangle className="w-4 h-4" />
+          </div>
+        );
       default:
-        return <div className={`${iconClass} bg-gray-100 text-gray-600`}>🔔</div>;
+        return (
+          <div className={`${iconClass} bg-slate-50 text-slate-500`}>
+            <Bell className="w-4 h-4" />
+          </div>
+        );
     }
   };
 
+  const displayName = currentUser?.name || currentUser?.full_name || "Admin User";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "A";
+
   return (
     <header
-      className={`h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 gap-4 sticky top-0 z-20 transition-all duration-300 ease-in-out ${
-        scrolled ? "shadow-md" : "shadow-none"
+      className={`h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 gap-4 sticky top-0 z-20 transition-all duration-200 ${
+        scrolled ? "shadow-sm" : "shadow-none"
       }`}
     >
-      {/* Left Section: Search Bar (if enabled) */}
+      {/* Left Section: Search Bar */}
       {showSearch ? (
         <div className="relative flex-1 max-w-md">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400">
-            🔍
-          </div>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder={searchPlaceholder}
             value={searchValue}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0785BC] focus:border-transparent transition-all"
+            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
           />
         </div>
       ) : (
@@ -156,78 +221,76 @@ export default function Navbar({
       )}
 
       {/* Right Section: Notifications, Settings & User */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
-          <button 
+          <button
             onClick={() => {
               setShowNotifDropdown(!showNotifDropdown);
               setShowProfileDropdown(false);
             }}
-            className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
           </button>
 
-          {/* Notifications Dropdown */}
+          {/* Notifications Dropdown Box */}
           {showNotifDropdown && (
-            <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 py-2 max-h-[500px] overflow-y-auto">
-              {/* Header */}
-              <div className="px-4 py-2 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900">Notifikasi</h3>
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 max-h-[480px] overflow-y-auto animate-fade-in">
+              <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-bold text-xs text-slate-900">Notifikasi Sistem</h3>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="text-xs text-[#0785BC] hover:underline"
+                    className="text-xs text-[#0785BC] hover:underline font-medium"
                   >
-                    Tandai semua dibaca
+                    Tandai dibaca
                   </button>
                 )}
               </div>
 
-              {/* Notifications List */}
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-slate-50">
                 {notifications.length === 0 ? (
-                  <div className="px-4 py-8 text-center text-gray-500">
-                    <Bell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                    <p>Tidak ada notifikasi</p>
+                  <div className="px-4 py-8 text-center text-slate-400 text-xs">
+                    <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-slate-200" />
+                    <p>Tidak ada notifikasi baru</p>
                   </div>
                 ) : (
                   notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`px-4 py-3 hover:bg-gray-50 transition-colors ${
-                        !notif.read ? "bg-blue-50/50" : ""
+                      className={`px-4 py-3 hover:bg-slate-50/70 transition-colors ${
+                        !notif.read && !notif.is_read ? "bg-blue-50/30" : ""
                       }`}
                     >
                       <div className="flex gap-3">
                         {getNotifIcon(notif.type)}
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="font-medium text-sm text-gray-900">
+                          <div className="flex items-start justify-between gap-1">
+                            <p className="font-semibold text-xs text-slate-900 leading-snug">
                               {notif.title}
                             </p>
                             <button
                               onClick={() => handleClearNotification(notif.id)}
-                              className="text-gray-400 hover:text-gray-600"
+                              className="text-slate-300 hover:text-slate-500"
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <p className="text-sm text-gray-600 mt-0.5">
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                             {notif.message}
                           </p>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-500">{notif.time}</span>
-                            {!notif.read && (
+                          <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
+                            <span>{notif.time}</span>
+                            {!notif.read && !notif.is_read && (
                               <button
                                 onClick={() => handleMarkAsRead(notif.id)}
-                                className="text-xs text-[#0785BC] hover:underline"
+                                className="text-[#0785BC] font-semibold hover:underline"
                               >
                                 Tandai dibaca
                               </button>
@@ -239,18 +302,6 @@ export default function Navbar({
                   ))
                 )}
               </div>
-
-              {/* Footer */}
-              {notifications.length > 0 && (
-                <div className="px-4 py-2 border-t border-gray-200">
-                  <Link
-                    href="/admin/notifications"
-                    className="text-sm text-[#0785BC] hover:underline font-medium block text-center"
-                  >
-                    Lihat semua notifikasi
-                  </Link>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -258,7 +309,7 @@ export default function Navbar({
         {/* Settings Button */}
         <Link
           href="/admin/settings"
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
         >
           <Settings className="w-5 h-5" />
         </Link>
@@ -270,74 +321,66 @@ export default function Navbar({
               setShowProfileDropdown(!showProfileDropdown);
               setShowNotifDropdown(false);
             }}
-            className="flex items-center gap-3 pl-3 border-l border-gray-200 hover:bg-gray-50 rounded-r-lg transition-colors"
+            className="flex items-center gap-2.5 pl-2 hover:bg-slate-50 rounded-xl transition-colors py-1 pr-1"
           >
-            <div className="w-9 h-9 rounded-full bg-[#0785BC] flex items-center justify-center text-white font-bold text-sm">
-              {currentUser?.full_name?.charAt(0) || "A"}
-            </div>
-            <div className="text-left pr-3 hidden md:block">
-              <p className="text-sm font-semibold text-gray-800">
-                {currentUser?.full_name || "Admin User"}
-              </p>
-              <p className="text-xs text-gray-500">
-                {currentUser?.role === "admin" ? "Administrator" : "User"}
+            {currentUser?.foto ? (
+              <img
+                src={currentUser.foto}
+                alt={displayName}
+                className="w-8 h-8 rounded-full object-cover border border-slate-200"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-[#0785BC] text-white font-bold text-xs flex items-center justify-center">
+                {initials}
+              </div>
+            )}
+            <div className="text-left hidden md:block">
+              <p className="text-xs font-bold text-slate-800 leading-none">{displayName}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                {currentUser?.role === "Admin" ? "Administrator" : "Petugas"}
               </p>
             </div>
           </button>
 
-          {/* Profile Dropdown */}
           {showProfileDropdown && (
-            <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2">
-              {/* User Info */}
-              <div className="px-4 py-3 border-b border-gray-200">
-                <p className="font-semibold text-gray-900">
-                  {currentUser?.full_name || "Admin User"}
-                </p>
-                <p className="text-sm text-gray-500">{currentUser?.email || "admin@pokada.com"}</p>
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 animate-fade-in">
+              <div className="px-4 py-2.5 border-b border-slate-100">
+                <p className="font-bold text-xs text-slate-900">{displayName}</p>
+                <p className="text-[11px] text-slate-400 truncate">{currentUser?.email || "admin@pokada.com"}</p>
               </div>
 
-              {/* Menu Items */}
-              <div className="py-2">
+              <div className="py-1 text-xs">
                 <Link
                   href="/admin/profile"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  <User className="w-4 h-4" />
+                  <User className="w-3.5 h-3.5 text-slate-400" />
                   Profil Saya
                 </Link>
 
                 <Link
                   href="/admin/settings"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  <Settings className="w-4 h-4" />
+                  <Settings className="w-3.5 h-3.5 text-slate-400" />
                   Pengaturan
                 </Link>
 
                 <Link
                   href="/admin/settings?tab=security"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
-                  <Shield className="w-4 h-4" />
-                  Keamanan
-                </Link>
-
-                <Link
-                  href="/help"
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <HelpCircle className="w-4 h-4" />
-                  Bantuan
+                  <Shield className="w-3.5 h-3.5 text-slate-400" />
+                  Keamanan Akun
                 </Link>
               </div>
 
-              {/* Logout */}
-              <div className="border-t border-gray-200 pt-2">
+              <div className="border-t border-slate-100 pt-1">
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full"
+                  className="flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors w-full font-semibold"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-3.5 h-3.5" />
                   Logout
                 </button>
               </div>

@@ -52,8 +52,17 @@ function StatusBadge({ status }: { status: ReturnItem["status"] }) {
 }
 
 // ── Avatar initials ──
-function Avatar({ name, color }: { name: string; color: string }) {
-  const initials = name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+function Avatar({ name, color }: { name?: string; color: string }) {
+  const safeName = (name || "").trim();
+  const initials = safeName
+    ? safeName
+        .split(" ")
+        .filter(Boolean)
+        .map((w) => w[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
+    : "P";
   return (
     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${color}`}>
       {initials}
@@ -75,6 +84,7 @@ export default function PengembalianPage() {
   const [returns, setReturns]   = useState<ReturnItem[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage]         = useState(1);
   const [total, setTotal]       = useState(24);
   const mounted = useMount();
@@ -82,25 +92,73 @@ export default function PengembalianPage() {
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      const res = await api.returns.getAll();
-      if (res.status === "success" && res.data && (res.data as any[]).length > 0) {
-        setReturns(res.data as ReturnItem[]);
-        if (res.total) setTotal(res.total);
-      } else {
+      try {
+        // Ambil peminjaman yang sedang dipinjam atau data returns
+        const borrowRes = await api.borrowings.getAll({ status: "Dipinjam", page, limit: PAGE_SIZE });
+        let rawList: any[] = [];
+        let totalCount = 0;
+
+        if (borrowRes.status === "success" && Array.isArray(borrowRes.data) && borrowRes.data.length > 0) {
+          rawList = borrowRes.data;
+          totalCount = borrowRes.total || borrowRes.data.length;
+        } else {
+          const retRes = await api.returns.getAll();
+          if (retRes.status === "success" && Array.isArray(retRes.data) && retRes.data.length > 0) {
+            rawList = retRes.data;
+            totalCount = retRes.total || retRes.data.length;
+          }
+        }
+
+        if (rawList.length > 0) {
+          const mapped: ReturnItem[] = rawList.map((raw: any) => {
+            const borrowing = raw.borrowings || raw;
+            const user = raw.borrowings?.users || raw.users || {};
+            const firstItem = raw.borrowing_items?.[0]?.items || raw.borrowings_items?.[0]?.items || {};
+
+            return {
+              id: raw.borrowing_id || raw.id || "",
+              item_name: raw.item_name || firstItem.name || raw.purpose || "Barang Peminjaman",
+              item_code: raw.item_code || firstItem.code || borrowing.borrow_code || "-",
+              borrower_name: raw.borrower_name || user.name || "Peminjam",
+              due_date:
+                raw.due_date ||
+                (raw.return_date
+                  ? new Date(raw.return_date).toLocaleDateString("id-ID")
+                  : borrowing.borrow_date
+                  ? new Date(borrowing.borrow_date).toLocaleDateString("id-ID")
+                  : "-"),
+              status: raw.status === "overdue" || raw.status === "due_today" ? raw.status : "active",
+              fine: raw.fine || undefined,
+              overdue_days: raw.overdue_days || undefined,
+            };
+          });
+          setReturns(mapped);
+          setTotal(totalCount);
+        } else {
+          setReturns(mockData);
+          setTotal(mockData.length);
+        }
+      } catch (err) {
+        console.warn("Gagal mengambil data pengembalian, fallback ke mock:", err);
         setReturns(mockData);
-        setTotal(24);
+        setTotal(mockData.length);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
     fetchData();
   }, [page]);
 
-  const filtered = returns.filter(
-    (r) =>
+  const filtered = returns.filter((r) => {
+    const matchSearch =
       !search ||
-      r.item_name.toLowerCase().includes(search.toLowerCase()) ||
-      r.borrower_name.toLowerCase().includes(search.toLowerCase())
-  );
+      (r.item_name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (r.item_code || "").toLowerCase().includes(search.toLowerCase()) ||
+      (r.borrower_name || "").toLowerCase().includes(search.toLowerCase());
+    const matchStatus =
+      statusFilter === "all" || r.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -158,10 +216,20 @@ export default function PengembalianPage() {
           {/* ── Daftar Aktif Table ── */}
           <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
-              <h2 className="text-base font-bold text-slate-900">Daftar Aktif</h2>
-              <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors">
-                <Filter className="w-3.5 h-3.5" /> Filter
-              </button>
+              <h2 className="text-base font-bold text-slate-900">Daftar Aktif Pengembalian</h2>
+              <div className="flex items-center gap-2">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="overdue">Overdue (Terlambat)</option>
+                  <option value="due_today">Due Today (Hari Ini)</option>
+                  <option value="active">Active (Aktif)</option>
+                </select>
+              </div>
             </div>
 
             <div className="overflow-x-auto">

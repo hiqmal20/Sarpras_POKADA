@@ -184,25 +184,35 @@ export default function KategoriBarangPage() {
   const [modal, setModal] = useState<{ open: boolean; item?: Category }>({ open: false });
   const mounted = useMount();
 
-  // Fallback data jika API kosong
-  const fallback: Category[] = [
-    { id: "1", name: "Elektronik",   description: "Laptop, Monitor, Proyektor, dan perangkat komputasi lainnya.", item_count: 142 },
-    { id: "2", name: "Alat Kerja",   description: "Perkakas, alat ukur, dan perlengkapan teknis lapangan.",       item_count: 85  },
-    { id: "3", name: "Fotografi",    description: "Kamera DSLR, lensa, tripod, dan perlengkapan studio lighting.",item_count: 34  },
-  ];
-
   useEffect(() => {
-    async function fetch() {
+    async function fetchCategories() {
       setLoading(true);
-      const res = await api.categories.getAll();
-      if (res.status === "success" && res.data && res.data.length > 0) {
-        setCategories(res.data as Category[]);
-      } else {
-        setCategories(fallback);
+      try {
+        const [catRes, itemsRes] = await Promise.all([
+          api.categories.getAll(),
+          api.items.getAll({ limit: 200 }),
+        ]);
+
+        const allItems = itemsRes.status === "success" && Array.isArray(itemsRes.data) ? itemsRes.data : [];
+
+        if (catRes.status === "success" && Array.isArray(catRes.data)) {
+          const enriched: Category[] = (catRes.data as any[]).map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description || "",
+            item_count: allItems.filter((i: any) => i.category_id === c.id).length,
+          }));
+          setCategories(enriched);
+        } else {
+          setCategories([]);
+        }
+      } catch (err) {
+        console.warn("Gagal memuat kategori:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetch();
+    fetchCategories();
   }, []);
 
   const filtered = categories.filter((c) =>

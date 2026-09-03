@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,7 +14,10 @@ import {
   MessageSquare,
   Box,
   Package,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
+import api, { getCurrentUser } from "@/lib/api";
 
 const navItems = [
   { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
@@ -28,41 +32,109 @@ const navItems = [
   { href: "/admin/settings", label: "Pengaturan", icon: Settings },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}
+
+export default function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [unreadMsgCount, setUnreadMsgCount] = useState<number>(1);
+
+  useEffect(() => {
+    const syncUser = () => {
+      const user = getCurrentUser();
+      if (user) setCurrentUser(user);
+    };
+
+    syncUser();
+    window.addEventListener("user-updated", syncUser);
+    window.addEventListener("storage", syncUser);
+
+    async function loadChatCount() {
+      try {
+        const res = await api.chats.getAll();
+        if (res.status === "success" && Array.isArray(res.data)) {
+          // Hitung chat yang belum selesai / unread
+          const count = res.data.filter((c: any) => c.unread_count > 0 || c.status === "Open").length;
+          setUnreadMsgCount(count > 0 ? count : (res.data.length > 0 ? 1 : 0));
+        }
+      } catch {
+        setUnreadMsgCount(1);
+      }
+    }
+    loadChatCount();
+
+    return () => {
+      window.removeEventListener("user-updated", syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
+
+  const displayName = currentUser?.name || currentUser?.full_name || "Admin User";
+  const initials = displayName
+    .split(" ")
+    .filter(Boolean)
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "A";
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
+    <aside
+      className={`bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0 transition-all duration-300 z-30 shrink-0 ${
+        collapsed ? "w-20" : "w-64"
+      }`}
+    >
       {/* Header / Logo */}
-      <div className="px-6 py-6 border-b border-gray-100">
-        <h1 className="text-lg font-bold text-[#0785BC]">SARPRAS POKADA</h1>
-        <p className="text-xs text-gray-400 mt-0.5">Internal Lending Platform</p>
+      <div className="px-4 py-5 border-b border-slate-100 flex items-center justify-between">
+        {!collapsed && (
+          <div className="min-w-0 pr-2">
+            <h1 className="text-base font-bold text-[#0785BC] truncate tracking-tight">SARPRAS POKADA</h1>
+            <p className="text-[10px] text-slate-400 truncate">Internal Lending Platform</p>
+          </div>
+        )}
+        <button
+          onClick={onToggleCollapse}
+          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors mx-auto"
+          title={collapsed ? "Perluas Sidebar" : "Kecilkan Sidebar"}
+        >
+          {collapsed ? <PanelLeft className="w-5 h-5 text-[#0785BC]" /> : <PanelLeftClose className="w-5 h-5" />}
+        </button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-3 overflow-y-auto">
-        <ul className="space-y-1">
+        <ul className="space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             const isMessages = item.href === "/admin/messages";
-            const unreadCount = isMessages ? 3 : 0; // Mock unread count
-            
+            const badgeCount = isMessages ? unreadMsgCount : 0;
+
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 relative ${
+                  title={collapsed ? item.label : undefined}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 relative ${
+                    collapsed ? "justify-center" : ""
+                  } ${
                     isActive
-                      ? "bg-[#0785BC] text-white shadow-sm"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-[#0785BC] text-white shadow-xs"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  <span>{item.label}</span>
-                  {unreadCount > 0 && (
-                    <span className="ml-auto w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
-                      {unreadCount}
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                  {badgeCount > 0 && (
+                    <span
+                      className={`w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 ${
+                        collapsed ? "absolute -top-1 -right-1" : "ml-auto"
+                      }`}
+                    >
+                      {badgeCount}
                     </span>
                   )}
                 </Link>
@@ -73,15 +145,27 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer / User Info */}
-      <div className="px-4 py-4 border-t border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold text-sm flex-shrink-0">
-            A
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900 truncate">Admin User</p>
-            <p className="text-xs text-gray-500 truncate">System Administrator</p>
-          </div>
+      <div className="p-3 border-t border-slate-100">
+        <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
+          {currentUser?.foto ? (
+            <img
+              src={currentUser.foto}
+              alt={displayName}
+              className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shrink-0">
+              {initials}
+            </div>
+          )}
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-slate-800 truncate">{displayName}</p>
+              <p className="text-[10px] text-slate-400 truncate">
+                {currentUser?.role === "Admin" ? "Administrator" : "Petugas"}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </aside>
