@@ -42,7 +42,7 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
       .from('borrowings_items')
       .select(`
         *,
-        items (id, name, code, image_url, condition, status)
+        items:items!borrowings_items_item_id_fkey (id, name, code, image_url, condition, status)
       `)
       .in('borrowing_id', borrowingIds);
 
@@ -86,7 +86,7 @@ exports.findBorrowingById = async (id) => {
     .from('borrowings_items')
     .select(`
       *,
-      items (id, name, code, image_url, condition, status)
+      items:items!borrowings_items_item_id_fkey (id, name, code, image_url, condition, status)
     `)
     .eq('borrowing_id', id);
 
@@ -179,7 +179,7 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
 
   if (insertItemsError) throw insertItemsError;
 
-  // Notifikasi
+  // Notifikasi ke User peminjam
   await supabase.from('notifications').insert([{
     user_id,
     title: 'Pengajuan Peminjaman Diterima',
@@ -188,6 +188,20 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
     is_read: false,
     created_at: now
   }]);
+
+  // Notifikasi ke seluruh Admin / Petugas
+  try {
+    const notifService = require('./notificationService');
+    const { data: borrowerUser } = await supabase.from('users').select('name').eq('id', user_id).single();
+    const borrowerName = borrowerUser?.name || 'User';
+    await notifService.notifyAdmins({
+      title: 'Pengajuan Peminjaman Baru',
+      message: `${borrowerName} mengajukan peminjaman baru (${borrowCode}) untuk "${purpose || 'keperluan kampus'}".`,
+      type: 'peminjaman'
+    });
+  } catch (err) {
+    console.error('Gagal broadcast notif peminjaman ke admin:', err);
+  }
 
   return exports.findBorrowingById(newBorrowing.id);
 };

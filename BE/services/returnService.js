@@ -27,7 +27,7 @@ exports.findAllReturns = async ({ page = 1, limit = 20 }) => {
   if (borrowingIds.length > 0) {
     const { data: bItems } = await supabase
       .from('borrowings_items')
-      .select('*, items(id, name, code, image_url)')
+      .select('*, items:items!borrowings_items_item_id_fkey(id, name, code, image_url)')
       .in('borrowing_id', borrowingIds);
 
     if (bItems) {
@@ -74,7 +74,7 @@ exports.findReturnById = async (id) => {
   if (returnData.borrowing_id) {
     const { data: bItems } = await supabase
       .from('borrowings_items')
-      .select('*, items(*)')
+      .select('*, items:items!borrowings_items_item_id_fkey(*)')
       .eq('borrowing_id', returnData.borrowing_id);
 
     returnData.borrowing_items = bItems || [];
@@ -164,7 +164,7 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
     }
   }
 
-  // 5. Notifikasi
+  // 5. Notifikasi ke user peminjam
   await supabase.from('notifications').insert([{
     user_id: borrowing.user_id,
     title: 'Pengembalian Berhasil',
@@ -173,6 +173,20 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
     is_read: false,
     created_at: now
   }]);
+
+  // Notifikasi ke seluruh Admin / Petugas
+  try {
+    const notifService = require('./notificationService');
+    const { data: borrowerUser } = await supabase.from('users').select('name').eq('id', borrowing.user_id).single();
+    const borrowerName = borrowerUser?.name || 'User';
+    await notifService.notifyAdmins({
+      title: 'Barang Telah Dikembalikan',
+      message: `${borrowerName} telah mengembalikan barang untuk peminjaman ${borrowing.borrow_code}. Kondisi: ${condition}.${note ? ` Catatan: ${note}` : ''}`,
+      type: 'pengembalian'
+    });
+  } catch (err) {
+    console.error('Gagal broadcast notif pengembalian ke admin:', err);
+  }
 
   return returnData;
 };

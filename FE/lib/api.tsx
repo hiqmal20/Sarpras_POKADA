@@ -455,7 +455,7 @@ export const api = {
         const bIds = bList.map((b: any) => b.id);
         let bItemsMap: Record<string, any[]> = {};
         if (bIds.length > 0) {
-          const { data: bItems } = await supabase.from("borrowings_items").select("*, items(*)").in("borrowing_id", bIds);
+          const { data: bItems } = await supabase.from("borrowings_items").select("*, items:items!borrowings_items_item_id_fkey(*)").in("borrowing_id", bIds);
           if (bItems) {
             bItems.forEach((bi: any) => {
               if (!bItemsMap[bi.borrowing_id]) bItemsMap[bi.borrowing_id] = [];
@@ -502,8 +502,48 @@ export const api = {
       const res = await apiFetch<any[]>("/returns", { method: "GET" });
       if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) return res;
 
-      const { data, error } = await supabase.from("returns").select("*, borrowings(*, users(*))").order("created_at", { ascending: false });
-      if (!error && data) return { status: "success", message: "Data pengembalian dari Supabase", data, total: data.length };
+      const { data, count, error } = await supabase
+        .from("returns")
+        .select(`
+          *,
+          borrowings (
+            id,
+            borrow_code,
+            purpose,
+            borrow_date,
+            planned_return_date,
+            actual_return_date,
+            status,
+            users (id, name, email, no_hp)
+          ),
+          receiver:users!returns_received_by_fkey (id, name, role)
+        `, { count: "exact" })
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        const borrowingIds = data.map((r: any) => r.borrowing_id).filter(Boolean);
+        let itemsMap: Record<string, any[]> = {};
+        if (borrowingIds.length > 0) {
+          const { data: bItems } = await supabase
+            .from("borrowings_items")
+            .select("*, items:items!borrowings_items_item_id_fkey(*)")
+            .in("borrowing_id", borrowingIds);
+
+          if (bItems) {
+            bItems.forEach((bi: any) => {
+              if (!itemsMap[bi.borrowing_id]) itemsMap[bi.borrowing_id] = [];
+              itemsMap[bi.borrowing_id].push(bi);
+            });
+          }
+        }
+
+        const enriched = data.map((r: any) => ({
+          ...r,
+          borrowing_items: itemsMap[r.borrowing_id] || [],
+        }));
+
+        return { status: "success", message: "Data pengembalian dari Supabase", data: enriched, total: count || enriched.length };
+      }
       return res;
     },
 
@@ -513,6 +553,7 @@ export const api = {
     create: async (payload: {
       borrowing_id: string;
       notes?: string;
+      condition?: string;
     }) => {
       const res = await apiFetch<any>("/returns", { method: "POST", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
@@ -521,6 +562,7 @@ export const api = {
         borrowing_id: payload.borrowing_id,
         return_date: new Date().toISOString(),
         note: payload.notes || "",
+        condition: payload.condition || "Baik",
         created_at: new Date().toISOString(),
       }]).select().single();
 

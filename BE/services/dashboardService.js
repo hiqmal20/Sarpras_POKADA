@@ -106,7 +106,7 @@ exports.getStats = async () => {
     const borrowIds = recentBorrowings.map(b => b.id);
     const { data: bItems } = await supabase
       .from('borrowings_items')
-      .select('borrowing_id, quantity, items(name, code)')
+      .select('borrowing_id, quantity, items:items!borrowings_items_item_id_fkey(name, code)')
       .in('borrowing_id', borrowIds);
 
     if (bItems) {

@@ -47,6 +47,7 @@ export default function Navbar({
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [showBadge, setShowBadge] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [scrolled, setScrolled] = useState(false);
 
@@ -67,6 +68,24 @@ export default function Navbar({
       try {
         const res = await api.notifications.getAll();
         if (res.status === "success" && Array.isArray(res.data)) {
+          // Ambil preferensi notifikasi dari Settings yang tersimpan
+          let appSettings: any = null;
+          try {
+            const rawSettings = localStorage.getItem("appSettings");
+            if (rawSettings) appSettings = JSON.parse(rawSettings);
+          } catch {}
+
+          const notifConfig = appSettings?.notifications;
+
+          // Cek toggle push/badge notifikasi di settings
+          // Jika push/badge di-off kan, sembunyikan angka badge
+          if (notifConfig && notifConfig.push === false) {
+            setShowBadge(false);
+          } else {
+            setShowBadge(true);
+          }
+
+          // Notifikasi tetap masuk ke daftar list agar admin bisa baca riwayatnya
           setNotifications(
             res.data.map((n: any) => ({
               id: n.id,
@@ -88,7 +107,10 @@ export default function Navbar({
     }
     loadNotifications();
 
+    const interval = setInterval(loadNotifications, 8000);
+
     return () => {
+      clearInterval(interval);
       window.removeEventListener("user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
     };
@@ -232,7 +254,7 @@ export default function Navbar({
             className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
           >
             <Bell className="w-5 h-5" />
-            {unreadCount > 0 && (
+            {showBadge && unreadCount > 0 && (
               <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                 {unreadCount}
               </span>

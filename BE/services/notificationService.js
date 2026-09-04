@@ -33,6 +33,30 @@ exports.findAllNotifications = async ({ user_id, is_read, limit = 50 }) => {
   };
 };
 
+exports.notifyAdmins = async ({ title, message, type = 'sistem' }) => {
+  try {
+    const { data: admins } = await supabase
+      .from('users')
+      .select('id')
+      .in('role', ['Admin', 'Petugas']);
+
+    if (admins && admins.length > 0) {
+      const now = new Date().toISOString();
+      const payload = admins.map(a => ({
+        user_id: a.id,
+        title,
+        message,
+        type,
+        is_read: false,
+        created_at: now
+      }));
+      await supabase.from('notifications').insert(payload);
+    }
+  } catch (err) {
+    console.error('Gagal mengirim notifikasi ke admin:', err);
+  }
+};
+
 exports.createNotification = async ({ user_id, title, message, type = 'sistem' }) => {
   const { data, error } = await supabase
     .from('notifications')

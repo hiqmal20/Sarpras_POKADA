@@ -53,6 +53,10 @@ PROMPT.md
 SKILLS.md
 DESIGN.md
 agents-lock.json
+FEATURES_IMPLEMENTED.md 
+LOGIN_GUIDE.md
+MESSAGES_FEATURE.md
+MOCK_DATA_MODE.md
 
 #lib
 db.js

@@ -10,22 +10,54 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  X,
+  Eye,
+  Calendar,
+  User,
+  FileText,
+  Tag,
+  Hash,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 
-type StatusFilter = "semua" | "pending" | "active" | "overdue";
+type StatusFilter = "semua" | "pending" | "active" | "overdue" | "completed";
+
+interface BorrowingItemDetail {
+  id: string;
+  item_id: string;
+  quantity: number;
+  condition_before?: string;
+  note?: string;
+  items?: {
+    id: string;
+    name: string;
+    code: string;
+    image_url?: string;
+    condition?: string;
+    status?: string;
+  };
+}
 
 interface Borrowing {
   id: string;
+  borrow_code: string;
   item_name: string;
   item_code: string;
   borrower_name: string;
   borrower_email: string;
+  borrower_phone?: string;
+  borrower_role?: string;
   borrow_date: string;
+  planned_return_date?: string;
   return_date: string;
-  status: string; // "pending" | "active" | "overdue" | "returned"
+  status: string; // "pending" | "active" | "overdue" | "completed"
+  raw_status: string;
+  purpose?: string;
+  admin_note?: string;
+  created_at?: string;
+  items: BorrowingItemDetail[];
 }
 
 function useMount() {
@@ -36,25 +68,33 @@ function useMount() {
 
 // ── Status Badge ──
 function StatusBadge({ status }: { status: string }) {
-  if (status === "pending")
+  const s = status?.toLowerCase();
+  if (s === "pending")
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        Menunggu Validasi
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+        Perlu Divalidasi
       </span>
     );
-  if (status === "active")
+  if (s === "active" || s === "dipinjam")
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-        Aktif (Dipinjam)
+        Sedang Dipinjam
       </span>
     );
-  if (status === "overdue")
+  if (s === "overdue" || s === "terlambat")
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">
         <AlertTriangle className="w-3 h-3" />
-        Terlambat 6 Hari
+        Melewati Batas Waktu
+      </span>
+    );
+  if (s === "completed" || s === "selesai" || s === "dikembalikan")
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+        <Check className="w-3 h-3 text-emerald-600" />
+        Selesai
       </span>
     );
   return (
@@ -86,11 +126,7 @@ function Avatar({ name, color }: { name?: string; color: string }) {
 const avatarColors = ["bg-teal-500", "bg-blue-500", "bg-purple-500", "bg-amber-500", "bg-rose-500"];
 
 // ── Fallback mock data ──
-const mockData: Borrowing[] = [
-  { id: "1", item_name: "MacBook Pro M2",     item_code: "INV-2023-001", borrower_name: "Ahmad Santoso", borrower_email: "ahmad@company.com",  borrow_date: "24 Okt 2023", return_date: "31 Okt 2023", status: "pending"  },
-  { id: "2", item_name: "Proyektor Epson G500",item_code: "PRJ-2022-045", borrower_name: "Budi Wijaya",   borrower_email: "budi.w@company.com",  borrow_date: "20 Okt 2023", return_date: "25 Okt 2023", status: "active"   },
-  { id: "3", item_name: "Lensa Canon 50mm",   item_code: "CAM-2021-012", borrower_name: "Citra Kirana",  borrower_email: "citra@company.com",   borrow_date: "15 Okt 2023", return_date: "18 Okt 2023", status: "overdue"  },
-];
+const mockData: Borrowing[] = [];
 
 const PAGE_SIZE = 10;
 
@@ -100,12 +136,15 @@ export default function ManajemenPeminjamanPage() {
     pending: 0,
     active: 0,
     overdue: 0,
+    completed: 0,
   });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<StatusFilter>("semua");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+  const [selectedBorrowing, setSelectedBorrowing] = useState<Borrowing | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const mounted = useMount();
 
   const fetchData = async () => {
@@ -115,6 +154,7 @@ export default function ManajemenPeminjamanPage() {
       pending: "Pending",
       active: "Dipinjam",
       overdue: "Terlambat",
+      completed: "Selesai",
     };
 
     try {
@@ -132,22 +172,55 @@ export default function ManajemenPeminjamanPage() {
           pending: dashRes.data.borrowings.pending || 0,
           active: dashRes.data.borrowings.aktif || 0,
           overdue: dashRes.data.borrowings.terlambat || 0,
+          completed: dashRes.data.borrowings.dikembalikan || 0,
         });
       }
 
       if (res.status === "success" && Array.isArray(res.data)) {
         const mapped: Borrowing[] = (res.data as any[]).map((raw: any) => {
           const user = raw.users || {};
-          const firstItem = raw.borrowings_items?.[0]?.items || {};
+          const itemsList: BorrowingItemDetail[] = Array.isArray(raw.borrowings_items)
+            ? raw.borrowings_items.map((bi: any) => ({
+                id: bi.id,
+                item_id: bi.item_id,
+                quantity: bi.quantity,
+                condition_before: bi.condition_before,
+                note: bi.note,
+                items: bi.items || null,
+              }))
+            : [];
+
+          const firstItem = itemsList[0]?.items as { name?: string; code?: string } | undefined;
+          const rawStatus = raw.status || "Pending";
+          let normalizedStatus = "pending";
+          const lower = rawStatus.toLowerCase();
+          if (lower === "dipinjam") normalizedStatus = "active";
+          else if (lower === "terlambat") normalizedStatus = "overdue";
+          else if (lower === "selesai" || lower === "dikembalikan") normalizedStatus = "completed";
+          else if (lower === "pending" || lower === "menunggu") normalizedStatus = "pending";
+
           return {
             id: raw.id,
-            item_name: raw.item_name || firstItem.name || raw.purpose || "Barang Peminjaman",
-            item_code: raw.item_code || firstItem.code || raw.borrow_code || "-",
-            borrower_name: raw.borrower_name || user.name || "Peminjam",
-            borrower_email: raw.borrower_email || user.email || "-",
+            borrow_code: raw.borrow_code || "-",
+            item_name: firstItem?.name || raw.purpose || "Barang Peminjaman",
+            item_code: firstItem?.code || raw.borrow_code || "-",
+            borrower_name: user.name || "Peminjam",
+            borrower_email: user.email || "-",
+            borrower_phone: user.no_hp || "-",
+            borrower_role: user.role || "-",
             borrow_date: raw.borrow_date ? new Date(raw.borrow_date).toLocaleDateString("id-ID") : "-",
-            return_date: raw.actual_return_date ? new Date(raw.actual_return_date).toLocaleDateString("id-ID") : "-",
-            status: (raw.status || "pending").toLowerCase() === "dipinjam" ? "active" : (raw.status || "pending").toLowerCase(),
+            planned_return_date: raw.planned_return_date ? new Date(raw.planned_return_date).toLocaleDateString("id-ID") : "-",
+            return_date: raw.actual_return_date
+              ? new Date(raw.actual_return_date).toLocaleDateString("id-ID")
+              : raw.planned_return_date
+              ? new Date(raw.planned_return_date).toLocaleDateString("id-ID")
+              : "-",
+            status: normalizedStatus,
+            raw_status: rawStatus,
+            purpose: raw.purpose || "-",
+            admin_note: raw.admin_note || "",
+            created_at: raw.created_at ? new Date(raw.created_at).toLocaleString("id-ID") : "-",
+            items: itemsList,
           };
         });
         setBorrowings(mapped);
@@ -176,6 +249,7 @@ export default function ManajemenPeminjamanPage() {
       badgeColor: "bg-amber-100 text-amber-700",
       icon: <Clock className="w-6 h-6 text-amber-500" />,
       iconBg: "bg-amber-50",
+      filterKey: "pending" as StatusFilter,
     },
     {
       label: "Sedang Dipinjam",
@@ -184,6 +258,7 @@ export default function ManajemenPeminjamanPage() {
       badgeColor: "bg-blue-100 text-blue-700",
       icon: <CheckCircle2 className="w-6 h-6 text-blue-500" />,
       iconBg: "bg-blue-50",
+      filterKey: "active" as StatusFilter,
     },
     {
       label: "Melewati Batas Waktu",
@@ -192,14 +267,25 @@ export default function ManajemenPeminjamanPage() {
       badgeColor: "bg-red-100 text-red-600",
       icon: <AlertTriangle className="w-6 h-6 text-red-500" />,
       iconBg: "bg-red-50",
+      filterKey: "overdue" as StatusFilter,
+    },
+    {
+      label: "Selesai",
+      value: realStats.completed,
+      badge: "Selesai",
+      badgeColor: "bg-emerald-100 text-emerald-700",
+      icon: <Check className="w-6 h-6 text-emerald-500" />,
+      iconBg: "bg-emerald-50",
+      filterKey: "completed" as StatusFilter,
     },
   ];
 
   const filterTabs: { key: StatusFilter; label: string }[] = [
     { key: "semua", label: "Semua" },
-    { key: "pending", label: "Menunggu Validasi" },
-    { key: "active", label: "Aktif" },
-    { key: "overdue", label: "Terlambat" },
+    { key: "pending", label: "Perlu Divalidasi" },
+    { key: "active", label: "Sedang Dipinjam" },
+    { key: "overdue", label: "Melewati Batas Waktu" },
+    { key: "completed", label: "Selesai" },
   ];
 
   const filtered = borrowings.filter(
@@ -207,25 +293,42 @@ export default function ManajemenPeminjamanPage() {
       !search ||
       b.item_name?.toLowerCase().includes(search.toLowerCase()) ||
       b.item_code?.toLowerCase().includes(search.toLowerCase()) ||
+      b.borrow_code?.toLowerCase().includes(search.toLowerCase()) ||
       b.borrower_name?.toLowerCase().includes(search.toLowerCase()) ||
       b.borrower_email?.toLowerCase().includes(search.toLowerCase())
   );
 
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
-  async function handleApprove(id: string) {
+  async function handleApprove(id: string, note?: string) {
     try {
-      await api.borrowings.updateStatus(id, { status: "Dipinjam" });
-      setBorrowings((prev) =>
-        prev.map((b) => (b.id === id ? { ...b, status: "active" } : b))
-      );
-      setRealStats((prev) => ({
-        ...prev,
-        pending: Math.max(0, prev.pending - 1),
-        active: prev.active + 1,
-      }));
+      setActionLoading(true);
+      await api.borrowings.updateStatus(id, { status: "Dipinjam", admin_notes: note || "Disetujui admin" });
+      await fetchData();
+      if (selectedBorrowing?.id === id) {
+        setSelectedBorrowing((prev) => prev ? { ...prev, status: "active", raw_status: "Dipinjam", admin_note: note || prev.admin_note } : null);
+      }
     } catch (err: any) {
       alert("Gagal menyetujui: " + err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function handleReject(id: string) {
+    const reason = prompt("Masukkan alasan penolakan peminjaman:");
+    if (reason === null) return;
+    try {
+      setActionLoading(true);
+      await api.borrowings.updateStatus(id, { status: "Ditolak", admin_notes: reason });
+      await fetchData();
+      if (selectedBorrowing?.id === id) {
+        setSelectedBorrowing((prev) => prev ? { ...prev, status: "rejected", raw_status: "Ditolak", admin_note: reason } : null);
+      }
+    } catch (err: any) {
+      alert("Gagal menolak: " + err.message);
+    } finally {
+      setActionLoading(false);
     }
   }
 
@@ -298,12 +401,20 @@ export default function ManajemenPeminjamanPage() {
           </div>
 
           {/* ── Stat Cards ── */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((s, i) => (
               <div
                 key={s.label}
+                onClick={() => {
+                  setActiveFilter(activeFilter === s.filterKey ? "semua" : s.filterKey);
+                  setPage(1);
+                }}
                 style={{ animationDelay: `${i * 75}ms` }}
-                className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${mounted ? "animate-fade-up" : "opacity-0"}`}
+                className={`bg-white rounded-2xl border cursor-pointer p-5 transition-all duration-200 ${
+                  activeFilter === s.filterKey
+                    ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md"
+                    : "border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                } ${mounted ? "animate-fade-up" : "opacity-0"}`}
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className={`w-11 h-11 rounded-xl ${s.iconBg} flex items-center justify-center`}>
@@ -419,22 +530,48 @@ export default function ManajemenPeminjamanPage() {
 
                         {/* Aksi */}
                         <td className="px-6 py-4 text-right">
-                          {row.status === "pending" && (
+                          <div className="flex items-center justify-end gap-2">
                             <button
-                              onClick={() => handleApprove(row.id)}
-                              className="text-sm font-semibold text-[#0785BC] hover:text-[#0672a0] active:scale-95 transition-all"
+                              onClick={() => setSelectedBorrowing(row)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all"
+                              title="Lihat Detail Peminjaman"
                             >
-                              Validasi
+                              <Eye className="w-3.5 h-3.5" />
+                              Detail
                             </button>
-                          )}
-                          {row.status === "active" && (
-                            <span className="text-xs text-slate-400">Dipinjam</span>
-                          )}
-                          {row.status === "overdue" && (
-                            <button className="text-sm font-semibold text-red-500 hover:text-red-600 active:scale-95 transition-all">
-                              Ingatkan
-                            </button>
-                          )}
+
+                            {row.status === "pending" && (
+                              <>
+                                <button
+                                  onClick={() => handleApprove(row.id)}
+                                  disabled={actionLoading}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 transition-all disabled:opacity-50 shadow-2xs"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  Validasi
+                                </button>
+                                <button
+                                  onClick={() => handleReject(row.id)}
+                                  disabled={actionLoading}
+                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50"
+                                  title="Tolak Pengajuan"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                            {row.status === "active" && (
+                              <span className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">Dipinjam</span>
+                            )}
+                            {row.status === "overdue" && (
+                              <button className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all">
+                                Ingatkan
+                              </button>
+                            )}
+                            {row.status === "completed" && (
+                              <span className="text-xs px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-medium">Selesai</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -478,6 +615,183 @@ export default function ManajemenPeminjamanPage() {
             </div>
           </div>
         </div>
+
+      {/* ── Modal Detail Peminjaman (Sebelum/Sesudah Validasi) ── */}
+      {selectedBorrowing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-base">Detail Peminjaman</h3>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">{selectedBorrowing.borrow_code}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedBorrowing(null)}
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6">
+              {/* Status Banner */}
+              <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100">
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Status Pengajuan</p>
+                  <div className="mt-1">
+                    <StatusBadge status={selectedBorrowing.status} />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 font-medium">Dibuat Pada</p>
+                  <p className="text-xs font-semibold text-slate-700 mt-1">{selectedBorrowing.created_at}</p>
+                </div>
+              </div>
+
+              {/* Data Peminjam */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                  <User className="w-4 h-4 text-slate-500" /> Informasi Peminjam
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
+                  <div>
+                    <p className="text-xs text-slate-400">Nama Lengkap</p>
+                    <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Email</p>
+                    <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_email}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">No. Telepon</p>
+                    <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Peran</p>
+                    <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_role}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Jadwal & Keperluan */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-slate-500" /> Jadwal & Keperluan
+                </h4>
+                <div className="space-y-3 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Tanggal Pinjam</p>
+                      <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrow_date}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Estimasi Kembali</p>
+                      <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.return_date}</p>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-slate-100">
+                    <p className="text-xs text-slate-400">Tujuan / Keperluan</p>
+                    <p className="text-sm text-slate-700 mt-0.5 whitespace-pre-wrap">{selectedBorrowing.purpose || "-"}</p>
+                  </div>
+                  {selectedBorrowing.admin_note && (
+                    <div className="pt-2 border-t border-slate-100">
+                      <p className="text-xs text-slate-400">Catatan Admin</p>
+                      <p className="text-sm text-slate-700 mt-0.5">{selectedBorrowing.admin_note}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Daftar Barang yang Dipinjam */}
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                  <Package className="w-4 h-4 text-slate-500" /> Barang yang Dipinjam ({selectedBorrowing.items.length})
+                </h4>
+                <div className="space-y-2 max-h-56 overflow-y-auto">
+                  {selectedBorrowing.items.length > 0 ? (
+                    selectedBorrowing.items.map((it, idx) => (
+                      <div
+                        key={it.id || idx}
+                        className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50/50 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                            <Package className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">{it.items?.name || "Barang"}</p>
+                            <p className="text-xs text-slate-400 font-mono">{it.items?.code || it.item_id}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-xs font-bold text-slate-700">
+                            {it.quantity} Unit
+                          </span>
+                          {it.condition_before && (
+                            <p className="text-[11px] text-slate-400 mt-0.5">Kondisi: {it.condition_before}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="p-4 rounded-xl border border-slate-100 text-center text-xs text-slate-400">
+                      Tidak ada rincian barang individual
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer (Action Buttons) */}
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+              <button
+                onClick={() => setSelectedBorrowing(null)}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200/70 rounded-xl transition-all"
+              >
+                Tutup
+              </button>
+
+              <div className="flex items-center gap-2">
+                {selectedBorrowing.status === "pending" && (
+                  <>
+                    <button
+                      onClick={() => handleReject(selectedBorrowing.id)}
+                      disabled={actionLoading}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      <X className="w-4 h-4" /> Tolak
+                    </button>
+                    <button
+                      onClick={() => handleApprove(selectedBorrowing.id)}
+                      disabled={actionLoading}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                    >
+                      <Check className="w-4 h-4" /> Validasi & Setujui
+                    </button>
+                  </>
+                )}
+                {selectedBorrowing.status === "active" && (
+                  <span className="text-xs text-slate-500 font-medium px-3 py-1.5 rounded-lg bg-slate-100">
+                    Peminjaman sudah divalidasi dan sedang berlangsung
+                  </span>
+                )}
+                {selectedBorrowing.status === "completed" && (
+                  <span className="text-xs text-emerald-700 font-medium px-3 py-1.5 rounded-lg bg-emerald-50">
+                    Peminjaman telah selesai dikembalikan
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

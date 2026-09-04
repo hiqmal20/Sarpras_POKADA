@@ -68,6 +68,30 @@ export default function SettingsPage() {
       setAddress(user.address || "");
       setPhotoUrl(user.foto || "");
     }
+
+    // Load saved settings dari localStorage agar tetap persisten saat refresh
+    try {
+      const rawSettings = localStorage.getItem("appSettings");
+      if (rawSettings) {
+        const parsed = JSON.parse(rawSettings);
+        if (parsed.notifications) {
+          if (parsed.notifications.email !== undefined) setEmailNotif(parsed.notifications.email);
+          if (parsed.notifications.push !== undefined) setPushNotif(parsed.notifications.push);
+          if (parsed.notifications.borrowing !== undefined) setBorrowingNotif(parsed.notifications.borrowing);
+          if (parsed.notifications.return !== undefined) setReturnNotif(parsed.notifications.return);
+          if (parsed.notifications.damage !== undefined) setDamageNotif(parsed.notifications.damage);
+          if (parsed.notifications.weeklyReport !== undefined) setWeeklyReport(parsed.notifications.weeklyReport);
+        }
+        if (parsed.security) {
+          if (parsed.security.twoFactor !== undefined) setTwoFactorEnabled(parsed.security.twoFactor);
+          if (parsed.security.sessionTimeout !== undefined) setSessionTimeout(parsed.security.sessionTimeout);
+          if (parsed.security.loginAlerts !== undefined) setLoginAlerts(parsed.security.loginAlerts);
+          if (parsed.security.activityLog !== undefined) setActivityLog(parsed.security.activityLog);
+        }
+      }
+    } catch (e) {
+      console.warn("Gagal memuat setting tersimpan:", e);
+    }
   }, []);
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,6 +145,29 @@ export default function SettingsPage() {
     }
   };
 
+  const saveSettingsImmediate = (overrideSettings?: any) => {
+    const settings = overrideSettings || {
+      notifications: {
+        email: emailNotif,
+        push: pushNotif,
+        borrowing: borrowingNotif,
+        return: returnNotif,
+        damage: damageNotif,
+        weeklyReport: weeklyReport,
+      },
+      security: {
+        twoFactor: twoFactorEnabled,
+        sessionTimeout: sessionTimeout,
+        loginAlerts: loginAlerts,
+        activityLog: activityLog,
+      }
+    };
+    localStorage.setItem("appSettings", JSON.stringify(settings));
+    window.dispatchEvent(new Event("storage"));
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
   const handleSave = async () => {
     const updatedUser = {
       ...currentUser,
@@ -149,29 +196,7 @@ export default function SettingsPage() {
     
     localStorage.setItem("user", JSON.stringify(updatedUser));
     window.dispatchEvent(new Event("user-updated"));
-    
-    // Save settings to localStorage
-    const settings = {
-      notifications: {
-        email: emailNotif,
-        push: pushNotif,
-        borrowing: borrowingNotif,
-        return: returnNotif,
-        damage: damageNotif,
-        weeklyReport: weeklyReport,
-      },
-      security: {
-        twoFactor: twoFactorEnabled,
-        sessionTimeout: sessionTimeout,
-        loginAlerts: loginAlerts,
-        activityLog: activityLog,
-      }
-    };
-    
-    localStorage.setItem("appSettings", JSON.stringify(settings));
-    
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    saveSettingsImmediate();
   };
 
   const handleChangePassword = () => {
@@ -461,8 +486,24 @@ export default function SettingsPage() {
                       </div>
                       <button
                         onClick={() => {
-                          setEmailNotif(!emailNotif);
-                          setTimeout(handleSave, 100);
+                          const nextVal = !emailNotif;
+                          setEmailNotif(nextVal);
+                          saveSettingsImmediate({
+                            notifications: {
+                              email: nextVal,
+                              push: pushNotif,
+                              borrowing: borrowingNotif,
+                              return: returnNotif,
+                              damage: damageNotif,
+                              weeklyReport: weeklyReport,
+                            },
+                            security: {
+                              twoFactor: twoFactorEnabled,
+                              sessionTimeout: sessionTimeout,
+                              loginAlerts: loginAlerts,
+                              activityLog: activityLog,
+                            }
+                          });
                         }}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                           emailNotif ? "bg-[#0785BC]" : "bg-slate-300"
@@ -486,8 +527,24 @@ export default function SettingsPage() {
                       </div>
                       <button
                         onClick={() => {
-                          setPushNotif(!pushNotif);
-                          setTimeout(handleSave, 100);
+                          const nextVal = !pushNotif;
+                          setPushNotif(nextVal);
+                          saveSettingsImmediate({
+                            notifications: {
+                              email: emailNotif,
+                              push: nextVal,
+                              borrowing: borrowingNotif,
+                              return: returnNotif,
+                              damage: damageNotif,
+                              weeklyReport: weeklyReport,
+                            },
+                            security: {
+                              twoFactor: twoFactorEnabled,
+                              sessionTimeout: sessionTimeout,
+                              loginAlerts: loginAlerts,
+                              activityLog: activityLog,
+                            }
+                          });
                         }}
                         className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                           pushNotif ? "bg-[#0785BC]" : "bg-slate-300"
@@ -510,8 +567,24 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={borrowingNotif}
                         onChange={(e) => {
-                          setBorrowingNotif(e.target.checked);
-                          setTimeout(handleSave, 100);
+                          const nextVal = e.target.checked;
+                          setBorrowingNotif(nextVal);
+                          saveSettingsImmediate({
+                            notifications: {
+                              email: emailNotif,
+                              push: pushNotif,
+                              borrowing: nextVal,
+                              return: returnNotif,
+                              damage: damageNotif,
+                              weeklyReport: weeklyReport,
+                            },
+                            security: {
+                              twoFactor: twoFactorEnabled,
+                              sessionTimeout: sessionTimeout,
+                              loginAlerts: loginAlerts,
+                              activityLog: activityLog,
+                            }
+                          });
                         }}
                         className="w-4 h-4 text-[#0785BC] rounded"
                       />
@@ -526,8 +599,24 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={returnNotif}
                         onChange={(e) => {
-                          setReturnNotif(e.target.checked);
-                          setTimeout(handleSave, 100);
+                          const nextVal = e.target.checked;
+                          setReturnNotif(nextVal);
+                          saveSettingsImmediate({
+                            notifications: {
+                              email: emailNotif,
+                              push: pushNotif,
+                              borrowing: borrowingNotif,
+                              return: nextVal,
+                              damage: damageNotif,
+                              weeklyReport: weeklyReport,
+                            },
+                            security: {
+                              twoFactor: twoFactorEnabled,
+                              sessionTimeout: sessionTimeout,
+                              loginAlerts: loginAlerts,
+                              activityLog: activityLog,
+                            }
+                          });
                         }}
                         className="w-4 h-4 text-[#0785BC] rounded"
                       />
@@ -542,8 +631,24 @@ export default function SettingsPage() {
                         type="checkbox"
                         checked={damageNotif}
                         onChange={(e) => {
-                          setDamageNotif(e.target.checked);
-                          setTimeout(handleSave, 100);
+                          const nextVal = e.target.checked;
+                          setDamageNotif(nextVal);
+                          saveSettingsImmediate({
+                            notifications: {
+                              email: emailNotif,
+                              push: pushNotif,
+                              borrowing: borrowingNotif,
+                              return: returnNotif,
+                              damage: nextVal,
+                              weeklyReport: weeklyReport,
+                            },
+                            security: {
+                              twoFactor: twoFactorEnabled,
+                              sessionTimeout: sessionTimeout,
+                              loginAlerts: loginAlerts,
+                              activityLog: activityLog,
+                            }
+                          });
                         }}
                         className="w-4 h-4 text-[#0785BC] rounded"
                       />

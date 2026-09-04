@@ -269,6 +269,20 @@ exports.createNewReport = async ({
     }]);
   }
 
+  // Notifikasi ke seluruh Admin / Petugas
+  try {
+    const notifService = require('./notificationService');
+    const { data: reporterUser } = await supabase.from('users').select('name').eq('id', user_id).single();
+    const reporterName = reporterUser?.name || 'User';
+    await notifService.notifyAdmins({
+      title: 'Laporan Kerusakan Baru',
+      message: `${reporterName} melaporkan kerusakan barang: "${title}" (Kode: ${reportCode}).`,
+      type: 'laporan'
+    });
+  } catch (err) {
+    console.error('Gagal broadcast notif kerusakan ke admin:', err);
+  }
+
   return exports.findReportById(data.id);
 };
 
