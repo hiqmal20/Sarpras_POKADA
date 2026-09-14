@@ -22,33 +22,63 @@ const requireAuth = async (req, res, next) => {
     }
 
     // 1. Verifikasi token via Supabase Auth
+    let authUser = null;
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
 
-    if (authError || !authData?.user) {
+    if (authData?.user) {
+      authUser = authData.user;
+    } else {
+      // Fallback: decode JWT jika token expired atau auth API Supabase timeout
+      try {
+        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+        const userId = payload?.sub || payload?.id;
+
+        if (userId) {
+          const { data: dbUser } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (dbUser) {
+            const userStatus = dbUser.status || 'Aktif';
+            if (userStatus === 'Nonaktif') {
+              return res.status(403).json({
+                status: 'fail',
+                message: 'Akun Anda sedang dinonaktifkan. Silakan hubungi Administrator SARPRAS.'
+              });
+            }
+            req.user = {
+              ...dbUser,
+              status: userStatus
+            };
+            return next();
+          }
+        }
+      } catch (_) {}
+
       return res.status(401).json({
         status: 'fail',
         message: 'Token tidak valid atau telah kadaluarsa. Silakan login kembali.'
       });
     }
 
-    // 2. Cek session timeout 2 jam — berdasarkan waktu token dibuat (iat)
+    // 2. Cek session timeout (24 jam)
     try {
       const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
       const issuedAt = payload.iat * 1000; // konversi ke ms
-      const twoHours = 2 * 60 * 60 * 1000;
-      if (Date.now() - issuedAt > twoHours) {
+      const sessionLimit = 24 * 60 * 60 * 1000;
+      if (Date.now() - issuedAt > sessionLimit) {
         return res.status(401).json({
           status: 'fail',
           message: 'Sesi Anda telah berakhir. Silakan login kembali.'
         });
       }
     } catch (_) {
-      // Jika decode gagal, lanjutkan — Supabase sudah verifikasi di atas
+      // Jika decode gagal, lanjutkan
     }
 
-    const authUser = authData.user;
-
-    // 2. Ambil data profil & role dari tabel public.users
+    // 3. Ambil data profil & role dari tabel public.users
     const { data: userProfile, error: profileError } = await supabase
       .from('users')
       .select('*')

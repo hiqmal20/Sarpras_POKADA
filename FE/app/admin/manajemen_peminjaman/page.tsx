@@ -17,10 +17,12 @@ import {
   FileText,
   Tag,
   Hash,
+  FileSpreadsheet,
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
+import ExportModal from "@/components/ExportModal";
 
 type StatusFilter = "semua" | "pending" | "active" | "overdue" | "completed";
 
@@ -49,6 +51,7 @@ interface Borrowing {
   borrower_email: string;
   borrower_phone?: string;
   borrower_role?: string;
+  borrower_foto?: string | null;
   borrow_date: string;
   planned_return_date?: string;
   return_date: string;
@@ -105,7 +108,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ── Avatar initials ──
-function Avatar({ name, color }: { name?: string; color: string }) {
+function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
   const safeName = (name || "").trim();
   const initials = safeName
     ? safeName
@@ -116,14 +119,23 @@ function Avatar({ name, color }: { name?: string; color: string }) {
         .join("")
         .toUpperCase()
     : "P";
+
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt={safeName}
+        className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+      />
+    );
+  }
+
   return (
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${color}`}>
+    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-[#0785BC]">
       {initials}
     </div>
   );
 }
-
-const avatarColors = ["bg-teal-500", "bg-blue-500", "bg-purple-500", "bg-amber-500", "bg-rose-500"];
 
 // ── Fallback mock data ──
 const mockData: Borrowing[] = [];
@@ -145,6 +157,7 @@ export default function ManajemenPeminjamanPage() {
   const [total, setTotal] = useState(0);
   const [selectedBorrowing, setSelectedBorrowing] = useState<Borrowing | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const mounted = useMount();
 
   const fetchData = async () => {
@@ -208,6 +221,8 @@ export default function ManajemenPeminjamanPage() {
             borrower_email: user.email || "-",
             borrower_phone: user.no_hp || "-",
             borrower_role: user.role || "-",
+            borrower_foto: user.foto || null,
+            raw_borrow_date: raw.borrow_date || raw.created_at || null,
             borrow_date: raw.borrow_date ? new Date(raw.borrow_date).toLocaleDateString("id-ID") : "-",
             planned_return_date: raw.planned_return_date ? new Date(raw.planned_return_date).toLocaleDateString("id-ID") : "-",
             return_date: raw.actual_return_date
@@ -225,6 +240,23 @@ export default function ManajemenPeminjamanPage() {
         });
         setBorrowings(mapped);
         setTotal(res.total || mapped.length);
+
+        // Auto-select borrowing jika diarahkan dari shortcut notifikasi
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const targetCode = params.get("code") || params.get("search");
+          const targetId = params.get("id");
+          if (targetCode || targetId) {
+            const found = mapped.find(
+              (b) =>
+                (targetId && b.id === targetId) ||
+                (targetCode && b.borrow_code.toLowerCase() === targetCode.toLowerCase())
+            );
+            if (found) {
+              setSelectedBorrowing(found);
+            }
+          }
+        }
       } else {
         setBorrowings([]);
         setTotal(0);
@@ -235,6 +267,17 @@ export default function ManajemenPeminjamanPage() {
       setLoading(false);
     }
   };
+
+  // Inisialisasi filter / search dari URL query parameter (shortcut notifikasi)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const targetSearch = params.get("search") || params.get("code");
+    if (targetSearch) {
+      setSearch(targetSearch);
+      setActiveFilter("semua");
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -400,8 +443,8 @@ export default function ManajemenPeminjamanPage() {
             </button>
           </div>
 
-          {/* ── Stat Cards ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* ── Stat Cards (Modern Design) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5">
             {stats.map((s, i) => (
               <div
                 key={s.label}
@@ -410,24 +453,44 @@ export default function ManajemenPeminjamanPage() {
                   setPage(1);
                 }}
                 style={{ animationDelay: `${i * 75}ms` }}
-                className={`bg-white rounded-2xl border cursor-pointer p-5 transition-all duration-200 ${
+                className={`group bg-white rounded-2xl border p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                   activeFilter === s.filterKey
-                    ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md"
-                    : "border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                    ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md bg-gradient-to-br from-white via-blue-50/20 to-white"
+                    : "border-slate-100 shadow-sm hover:border-slate-200"
                 } ${mounted ? "animate-fade-up" : "opacity-0"}`}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-11 h-11 rounded-xl ${s.iconBg} flex items-center justify-center`}>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${s.badgeColor}`}>
+                      {s.badge}
+                    </span>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{s.label}</p>
+                  </div>
+                  <div className={`w-11 h-11 rounded-2xl ${s.iconBg} border border-slate-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
                     {s.icon}
                   </div>
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${s.badgeColor}`}>
-                    {s.badge}
-                  </span>
                 </div>
-                <p className={`text-3xl font-bold text-slate-900 tabular-nums ${mounted ? "animate-count-up" : ""}`}>
-                  {s.value}
-                </p>
-                <p className="text-sm text-slate-500 mt-1">{s.label}</p>
+                <div className="mt-3">
+                  <p className={`text-3xl font-extrabold text-slate-900 tabular-nums ${mounted ? "animate-count-up" : ""}`}>
+                    {s.value}
+                  </p>
+                  <div className="pt-3 mt-2 border-t border-slate-50 flex items-center justify-between text-xs">
+                    <span className="text-[11px] text-slate-400">
+                      {s.filterKey === "pending"
+                        ? "Perlu verifikasi admin"
+                        : s.filterKey === "active"
+                        ? "Peminjaman berjalan"
+                        : s.filterKey === "overdue"
+                        ? "Lewat estimasi kembali"
+                        : "Aset telah kembali"}
+                    </span>
+                    <span className={`text-[11px] font-semibold transition-colors ${
+                      activeFilter === s.filterKey ? "text-[#0785BC]" : "text-slate-400 group-hover:text-[#0785BC]"
+                    }`}>
+                      {activeFilter === s.filterKey ? "• Aktif" : "Filter"}
+                    </span>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -453,10 +516,10 @@ export default function ManajemenPeminjamanPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={handleExport}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs active:scale-95"
+                  onClick={() => setShowExportModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs active:scale-95 bg-white"
                 >
-                  <Download className="w-3.5 h-3.5" /> Export Excel
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" /> Ekspor Peminjaman (CSV / XLSX)
                 </button>
               </div>
             </div>
@@ -507,7 +570,7 @@ export default function ManajemenPeminjamanPage() {
                         {/* Peminjam */}
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2.5">
-                            <Avatar name={row.borrower_name} color={avatarColors[i % avatarColors.length]} />
+                            <Avatar name={row.borrower_name} foto={row.borrower_foto} />
                             <div>
                               <p className="font-medium text-slate-800 text-sm">{row.borrower_name}</p>
                               <p className="text-xs text-slate-400">{row.borrower_email}</p>
@@ -661,6 +724,13 @@ export default function ManajemenPeminjamanPage() {
                   <User className="w-4 h-4 text-slate-500" /> Informasi Peminjam
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
+                  <div className="sm:col-span-2 flex items-center gap-3 pb-2 border-b border-slate-100">
+                    <Avatar name={selectedBorrowing.borrower_name} foto={selectedBorrowing.borrower_foto} />
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{selectedBorrowing.borrower_name}</p>
+                      <p className="text-xs text-slate-400">{selectedBorrowing.borrower_email}</p>
+                    </div>
+                  </div>
                   <div>
                     <p className="text-xs text-slate-400">Nama Lengkap</p>
                     <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_name}</p>
@@ -792,6 +862,30 @@ export default function ManajemenPeminjamanPage() {
           </div>
         </div>
       )}
+
+      {/* ── Modal Export Peminjaman dengan Filter Tanggal ── */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Ekspor Data Peminjaman"
+        description="Unduh data riil transaksi peminjaman berdasarkan rentang waktu."
+        moduleName="Peminjaman"
+        filenamePrefix="SARPRAS_Peminjaman"
+        data={borrowings}
+        dateFieldGetter={(b) => (b as any).raw_borrow_date || b.borrow_date || b.created_at}
+        dataRowMapper={(b) => ({
+          "Kode Peminjaman": b.borrow_code,
+          "Kode Barang": b.item_code,
+          "Nama Barang": b.item_name,
+          "Nama Peminjam": b.borrower_name,
+          Email: b.borrower_email,
+          "Tanggal Pinjam": b.borrow_date,
+          "Estimasi Kembali": b.return_date,
+          Status: b.status.toUpperCase(),
+          Keperluan: b.purpose || "-",
+          Catatan: b.admin_note || "-",
+        })}
+      />
     </AdminLayout>
   );
 }

@@ -13,19 +13,26 @@ import {
   ClipboardList,
   ArrowRight,
   AlertTriangle,
+  Package,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  TrendingUp,
+  ArrowUpRight,
 } from "lucide-react";
-import api from "@/lib/api";
+import api, { getCurrentUser } from "@/lib/api";
 import UserSidebar from "@/components/user/Sidebar";
 import UserNavbar from "@/components/user/Navbar";
 
 // ── Types ──
-interface BorrowingStatus {
+interface BorrowingItem {
   id: string;
+  borrow_code: string;
   item_name: string;
-  requester: string;
-  department: string;
-  status: "approved" | "pending" | "active" | "rejected";
-  icon: React.ElementType;
+  purpose: string;
+  borrow_date: string;
+  status: "approved" | "pending" | "active" | "rejected" | "returned";
+  raw_status: string;
 }
 
 function useMount() {
@@ -34,83 +41,168 @@ function useMount() {
   return m;
 }
 
-// ── Status pill ──
-function StatusPill({ status }: { status: BorrowingStatus["status"] }) {
-  const map: Record<string, string> = {
-    approved: "bg-emerald-50 text-emerald-700 border border-emerald-200",
-    pending:  "bg-red-50   text-red-500   border border-red-200",
-    active:   "bg-blue-50  text-blue-600  border border-blue-200",
-    rejected: "bg-slate-100 text-slate-500 border border-slate-200",
-  };
-  const label: Record<string, string> = {
-    approved: "Approved", pending: "Pending", active: "Active", rejected: "Rejected",
-  };
+// ── Modern Status pill ──
+function StatusPill({ status }: { status: BorrowingItem["status"] }) {
+  if (status === "approved" || status === "active") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        Dipinjam
+      </span>
+    );
+  }
+  if (status === "pending") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+        Menunggu
+      </span>
+    );
+  }
+  if (status === "returned") {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+        <CheckCircle2 className="w-3 h-3 text-slate-500" />
+        Selesai
+      </span>
+    );
+  }
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${map[status]}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${
-        status === "approved" ? "bg-emerald-500" :
-        status === "pending"  ? "bg-red-400" :
-        status === "active"   ? "bg-blue-500" : "bg-slate-400"
-      }`} />
-      {label[status]}
+    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
+      <XCircle className="w-3 h-3" />
+      Ditolak
     </span>
   );
 }
 
-// ── Recent item card ──
-function RecentCard({ src, label }: { src: string; label: string }) {
+// ── Catalog Preview Card ──
+function RecentCard({ src, label, code }: { src: string; label: string; code?: string }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden flex-1 aspect-[3/4] bg-slate-200 group cursor-pointer">
+    <Link href="/user/item_catalog" className="relative rounded-2xl overflow-hidden flex-1 aspect-[4/3] bg-slate-200 group cursor-pointer shadow-2xs hover:shadow-md transition-all">
       <Image src={src} alt={label} fill className="object-cover group-hover:scale-105 transition-transform duration-300" sizes="50vw" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-      <p className="absolute bottom-3 left-3 text-white text-xs font-semibold leading-tight">{label}</p>
-    </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent" />
+      <div className="absolute bottom-3 left-3 right-3 text-white">
+        {code && <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 bg-white/20 backdrop-blur-xs rounded mb-1 inline-block">{code}</span>}
+        <p className="text-xs font-bold leading-snug line-clamp-1">{label}</p>
+      </div>
+    </Link>
   );
 }
 
-// ── Mock data ──
-const mockBorrowings: BorrowingStatus[] = [
-  { id: "1", item_name: "MacBook Pro M2",    requester: "Sarah J.", department: "IT Dept",  status: "approved", icon: Laptop },
-  { id: "2", item_name: "Sony A7IV Camera",  requester: "Mark D.",  department: "Media",    status: "pending",  icon: Camera },
-  { id: "3", item_name: "Epson L3150 Printer",requester: "Budi S.", department: "HR Dept",  status: "active",   icon: Printer },
-];
-
-const recentItems = [
-  { src: "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?auto=format&fit=crop&w=400&q=80", label: "Ergo Chair V2" },
-  { src: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=400&q=80", label: "4K Projector"  },
+const catalogHighlights = [
+  { src: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=400&q=80", label: "Proyektor LCD Epson", code: "BRG-PRJ-001" },
+  { src: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=400&q=80", label: "Kamera DSLR Canon", code: "BRG-CAM-002" },
 ];
 
 export default function UserDashboardPage() {
-  const [borrowings, setBorrowings] = useState<BorrowingStatus[]>([]);
-  const [stats, setStats]           = useState({ total: 34, pending: 34, rejected: 34 });
-  const [loading, setLoading]       = useState(true);
+  const [borrowings, setBorrowings] = useState<BorrowingItem[]>([]);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    pending: 0,
+    damage: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const mounted = useMount();
 
   // Get current hour for greeting
   const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = hour < 11 ? "Selamat Pagi" : hour < 15 ? "Selamat Siang" : hour < 18 ? "Selamat Sore" : "Selamat Malam";
 
   useEffect(() => {
+    const user = getCurrentUser();
+    if (user) setCurrentUser(user);
+
     async function fetchData() {
       setLoading(true);
       try {
-        const res = await api.borrowings.getAll({ limit: 10 });
-        if (res.status === "success" && res.data && (res.data as any[]).length > 0) {
-          setBorrowings(res.data as any);
-          return;
+        const [borrowRes, damageRes] = await Promise.all([
+          api.borrowings.getAll({ limit: 50 }),
+          api.damageReports.getAll({ limit: 50 }),
+        ]);
+
+        if (borrowRes.status === "success" && Array.isArray(borrowRes.data)) {
+          const list: BorrowingItem[] = borrowRes.data.map((b: any) => {
+            const rawStatus = (b.status || "").toLowerCase();
+            let st: BorrowingItem["status"] = "pending";
+            if (rawStatus.includes("dipinjam") || rawStatus === "active" || rawStatus.includes("setuju")) {
+              st = "active";
+            } else if (rawStatus.includes("kembali") || rawStatus.includes("selesai") || rawStatus === "returned") {
+              st = "returned";
+            } else if (rawStatus.includes("tolak") || rawStatus === "rejected") {
+              st = "rejected";
+            }
+
+            const firstItem = b.borrowings_items?.[0]?.items || {};
+
+            return {
+              id: b.id,
+              borrow_code: b.borrow_code || `PJ-${String(b.id).substring(0, 6)}`,
+              item_name: firstItem.name || b.purpose || "Peminjaman Inventaris",
+              purpose: b.purpose || "Keperluan operasional kampus",
+              borrow_date: b.borrow_date
+                ? new Date(b.borrow_date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })
+                : "-",
+              status: st,
+              raw_status: b.status || "Pending",
+            };
+          });
+
+          setBorrowings(list.slice(0, 5));
+
+          const activeCount = list.filter((b) => b.status === "active").length;
+          const pendingCount = list.filter((b) => b.status === "pending").length;
+          const damageCount = damageRes.status === "success" && Array.isArray(damageRes.data) ? damageRes.data.length : 0;
+
+          setStats({
+            total: list.length,
+            active: activeCount,
+            pending: pendingCount,
+            damage: damageCount,
+          });
         }
-      } catch { /* silent */ }
-      setBorrowings(mockBorrowings);
-      setLoading(false);
+      } catch (err) {
+        console.warn("Gagal memuat dashboard user:", err);
+      } finally {
+        setLoading(false);
+      }
     }
+
     fetchData();
-    setLoading(false);
   }, []);
 
   const statCards = [
-    { label: "Total Peminjaman",       value: stats.total,    color: "text-slate-900" },
-    { label: "Menunggu Persetujuan",   value: stats.pending,  color: "text-slate-900" },
-    { label: "Ditolak",                value: stats.rejected, color: "text-slate-900" },
+    {
+      label: "Total Peminjaman",
+      badge: "Riwayat Anda",
+      badgeColor: "bg-blue-50 text-blue-700 border-blue-100",
+      value: stats.total,
+      sub: "Total permohonan diajukan",
+      link: "/user/riwayat_peminjaman",
+      icon: <ClipboardList className="w-5 h-5 text-[#0785BC]" />,
+      bg: "bg-blue-500/10 border-blue-500/20 text-[#0785BC]",
+    },
+    {
+      label: "Sedang Dipinjam",
+      badge: "Aset Aktif",
+      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-100",
+      value: stats.active,
+      sub: "Barang siap digunakan",
+      link: "/user/riwayat_peminjaman",
+      icon: <CheckCircle2 className="w-5 h-5 text-emerald-600" />,
+      bg: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600",
+    },
+    {
+      label: "Menunggu Persetujuan",
+      badge: "Dalam Review",
+      badgeColor: "bg-amber-50 text-amber-700 border-amber-100",
+      value: stats.pending,
+      sub: "Menunggu approval admin",
+      link: "/user/riwayat_peminjaman",
+      icon: <Clock className="w-5 h-5 text-amber-600" />,
+      bg: "bg-amber-500/10 border-amber-500/20 text-amber-600",
+    },
   ];
 
   return (
@@ -124,122 +216,192 @@ export default function UserDashboardPage() {
         <UserNavbar />
 
         <div className="flex-1 overflow-y-auto">
-          <div className="p-8 space-y-6 max-w-5xl">
-            {/* ── Hero greeting ── */}
+          <div className="p-8 space-y-6 max-w-6xl mx-auto">
+            {/* ── Modern Hero greeting ── */}
             <div
-              className={`rounded-2xl bg-gradient-to-br from-[#dbeeff] via-[#e8f4ff] to-[#f0f8ff] px-8 py-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}
+              className={`rounded-3xl bg-gradient-to-r from-[#0785BC] via-[#056f9e] to-[#045c82] px-8 py-7 text-white shadow-md relative overflow-hidden ${
+                mounted ? "animate-fade-up" : "opacity-0"
+              }`}
             >
-              <h1 className="text-3xl font-bold text-slate-900">
-                {greeting}, <span className="text-[#0785BC]">POKADA.</span>
-              </h1>
-              <p className="text-slate-500 mt-1.5 text-sm">What assets do you need today?</p>
+              <div className="relative z-10">
+                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-white/20 backdrop-blur-xs border border-white/20 inline-block mb-2">
+                  Portal Mahasiswa & Civitas POKADA
+                </span>
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+                  {greeting}, {currentUser?.name || "Civitas Kampus"}!
+                </h1>
+                <p className="text-blue-100 text-xs md:text-sm mt-1 max-w-xl">
+                  Akses inventaris sarana dan prasarana kampus dengan cepat, transparan, dan terintegrasi secara real-time.
+                </p>
+
+                <div className="flex items-center gap-3 mt-4">
+                  <Link
+                    href="/user/item_catalog"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#0785BC] text-xs font-bold rounded-xl shadow-xs hover:bg-blue-50 active:scale-95 transition-all"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Cari & Pinjam Barang
+                  </Link>
+                  <Link
+                    href="/user/riwayat_peminjaman"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl border border-white/20 backdrop-blur-xs transition-all"
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    Cek Status Peminjaman
+                  </Link>
+                </div>
+              </div>
+
+              {/* Decorative circle glow */}
+              <div className="absolute right-0 top-0 w-80 h-80 bg-cyan-400/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
             </div>
 
             {/* ── Stat Cards ── */}
-            <div className="grid grid-cols-3 gap-4">
-              {statCards.map((s, i) => (
-                <div
-                  key={s.label}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4.5">
+              {statCards.map((card, i) => (
+                <Link
+                  href={card.link}
+                  key={card.label}
                   style={{ animationDelay: `${i * 75}ms` }}
-                  className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${mounted ? "animate-fade-up" : "opacity-0"}`}
+                  className={`group bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between ${
+                    mounted ? "animate-fade-up" : "opacity-0"
+                  }`}
                 >
-                  <div>
-                    <p className="text-sm text-slate-500 font-medium mb-1">{s.label}</p>
-                    <p className={`text-3xl font-bold tabular-nums ${s.color} ${mounted ? "animate-count-up" : ""}`}>
-                      {s.value}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${card.badgeColor}`}>
+                        {card.badge}
+                      </span>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{card.label}</p>
+                    </div>
+                    <div className={`w-11 h-11 rounded-2xl ${card.bg} border flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                      {card.icon}
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <p className="text-3xl font-extrabold text-slate-900 tabular-nums">
+                      {loading ? (
+                        <span className="inline-block w-16 h-8 bg-slate-100 rounded animate-pulse" />
+                      ) : (
+                        card.value
+                      )}
                     </p>
+                    <div className="pt-3 mt-2 border-t border-slate-50 flex items-center justify-between text-xs">
+                      <span className="text-[11px] text-slate-400">{card.sub}</span>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#0785BC] transition-colors" />
+                    </div>
                   </div>
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                    <ClipboardList className="w-5 h-5 text-orange-400" />
-                  </div>
-                </div>
+                </Link>
               ))}
             </div>
 
-            {/* ── Status + Right Column ── */}
-            <div className={`grid grid-cols-3 gap-5 items-stretch ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
-              {/* Status Peminjaman */}
-              <div className="col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-                  <h2 className="text-base font-bold text-slate-900">Status Peminjaman</h2>
-                  <Link href="/user/riwayat_peminjaman" className="text-xs font-semibold text-[#0785BC] hover:underline">
-                    View All
+            {/* ── Content Grid: Status Peminjaman & Quick Actions ── */}
+            <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
+              {/* Status Peminjaman Aktif */}
+              <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between overflow-hidden">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900">Status Peminjaman Anda</h2>
+                    <p className="text-xs text-slate-400 mt-0.5">Daftar pengajuan terkini dari akun Anda</p>
+                  </div>
+                  <Link href="/user/riwayat_peminjaman" className="text-xs font-semibold text-[#0785BC] hover:underline flex items-center gap-1">
+                    Lihat Semua <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
 
-                <ul className="divide-y divide-slate-50 flex-1">
-                  {loading
-                    ? Array.from({ length: 3 }).map((_, i) => (
-                        <li key={i} className="flex items-center gap-4 px-5 py-4">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 animate-pulse" />
-                          <div className="flex-1 space-y-2">
-                            <div className="h-3 bg-slate-100 rounded animate-pulse w-1/3" />
-                            <div className="h-2.5 bg-slate-100 rounded animate-pulse w-1/4" />
+                <div className="flex-1 divide-y divide-slate-50">
+                  {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 px-6 py-4">
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 animate-pulse" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-3.5 bg-slate-100 rounded animate-pulse w-1/3" />
+                          <div className="h-2.5 bg-slate-100 rounded animate-pulse w-1/4" />
+                        </div>
+                      </div>
+                    ))
+                  ) : borrowings.length === 0 ? (
+                    <div className="p-10 text-center text-slate-400 text-xs">
+                      <Package className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                      <p className="font-semibold text-slate-600">Belum ada peminjaman aktif.</p>
+                      <Link href="/user/item_catalog" className="text-[#0785BC] underline mt-1 inline-block">
+                        Jelajahi katalog barang & mulai pinjam
+                      </Link>
+                    </div>
+                  ) : (
+                    borrowings.map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex items-center justify-between gap-4 px-6 py-3.5 hover:bg-slate-50/70 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0785BC] flex items-center justify-center shrink-0 border border-blue-100">
+                            <Package className="w-4 h-4" />
                           </div>
-                        </li>
-                      ))
-                    : borrowings.map((b, i) => {
-                        const Icon = b.icon ?? Laptop;
-                        return (
-                          <li
-                            key={b.id}
-                            style={{ animationDelay: `${300 + i * 60}ms` }}
-                            className={`flex items-center gap-4 px-5 py-4 hover:bg-slate-50/60 transition-colors group ${mounted ? "animate-fade-up" : "opacity-0"}`}
-                          >
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-[#0785BC]/10 transition-colors">
-                              <Icon className="w-4 h-4 text-slate-400 group-hover:text-[#0785BC] transition-colors" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-800 truncate">{b.item_name}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">
-                                Req. by {b.requester} • {b.department}
-                              </p>
-                            </div>
-                            <StatusPill status={b.status} />
-                            <button className="p-1 rounded-lg text-slate-300 hover:bg-slate-100 hover:text-slate-500 transition-colors">
-                              <MoreVertical className="w-4 h-4" />
-                            </button>
-                          </li>
-                        );
-                      })}
-                </ul>
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-900 text-xs truncate">{b.item_name}</p>
+                            <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                              {b.borrow_code} • {b.purpose}
+                            </p>
+                          </div>
+                        </div>
 
-                {/* filler agar card kiri memenuhi tinggi kolom kanan */}
-                <div className="flex-1" />
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-[11px] text-slate-400 hidden sm:inline-block">
+                            {b.borrow_date}
+                          </span>
+                          <StatusPill status={b.status} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="px-6 py-3 bg-slate-50/50 border-t border-slate-50 text-right">
+                  <span className="text-[11px] text-slate-400">Pastikan menjaga kondisi fisik barang selama peminjaman.</span>
+                </div>
               </div>
 
-              {/* Right column: Recent Additions + Quick Actions */}
-              <div className="flex flex-col gap-4">
-                {/* Recent Additions */}
+              {/* Right column: Rekomendasi + Quick Actions */}
+              <div className="flex flex-col gap-5">
+                {/* Highlight Katalog */}
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-                  <h2 className="text-base font-bold text-slate-900 mb-4">Recent Additions</h2>
-                  <div className="flex gap-3 h-44">
-                    {recentItems.map((item) => (
-                      <RecentCard key={item.label} src={item.src} label={item.label} />
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-base font-bold text-slate-900">Aset Kampus Populer</h2>
+                    <Link href="/user/item_catalog" className="text-xs text-[#0785BC] font-semibold hover:underline">
+                      Katalog
+                    </Link>
+                  </div>
+                  <div className="flex gap-3">
+                    {catalogHighlights.map((item) => (
+                      <RecentCard key={item.label} src={item.src} label={item.label} code={item.code} />
                     ))}
                   </div>
                 </div>
 
-                {/* Quick Actions — flex-1 agar mengisi sisa tinggi */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex-1">
-                  <h2 className="text-base font-bold text-slate-900 mb-3">Aksi Cepat</h2>
-                  <div className="space-y-1">
+                {/* Quick Actions */}
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex-1 flex flex-col justify-between">
+                  <h2 className="text-base font-bold text-slate-900 mb-2">Aksi Cepat</h2>
+                  <div className="space-y-1.5">
                     {[
-                      { href: "/user/item_catalog",       label: "Browse Catalog",     icon: BookOpen,      color: "bg-blue-50 text-[#0785BC]"     },
-                      { href: "/user/riwayat_peminjaman",  label: "Riwayat Saya",       icon: ClipboardList, color: "bg-emerald-50 text-emerald-600" },
-                      { href: "/user/messages",            label: "Hubungi Support",    icon: MessageSquare, color: "bg-purple-50 text-purple-600"   },
-                      { href: "/user/rekap_laporan",       label: "Laporkan Kerusakan", icon: AlertTriangle, color: "bg-orange-50 text-orange-500"   },
+                      { href: "/user/item_catalog", label: "Cari Barang di Katalog", icon: BookOpen, color: "bg-blue-50 text-[#0785BC]" },
+                      { href: "/user/riwayat_peminjaman", label: "Riwayat & Pengembalian", icon: ClipboardList, color: "bg-emerald-50 text-emerald-600" },
+                      { href: "/user/messages", label: "Hubungi Petugas (Chat)", icon: MessageSquare, color: "bg-purple-50 text-purple-600" },
+                      { href: "/user/riwayat_peminjaman", label: "Laporan Kerusakan & Denda", icon: AlertTriangle, color: "bg-rose-50 text-rose-500" },
                     ].map(({ href, label, icon: Icon, color }) => (
                       <Link
-                        key={href}
+                        key={label}
                         href={href}
-                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors group"
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors group border border-transparent hover:border-slate-100"
                       >
-                        <div className={`w-7 h-7 rounded-lg ${color} flex items-center justify-center shrink-0`}>
-                          <Icon className="w-3.5 h-3.5" />
+                        <div className={`w-8 h-8 rounded-xl ${color} flex items-center justify-center shrink-0`}>
+                          <Icon className="w-4 h-4" />
                         </div>
-                        <span className="text-sm font-medium text-slate-700 group-hover:text-slate-900 transition-colors">{label}</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all ml-auto" />
+                        <span className="text-xs font-semibold text-slate-700 group-hover:text-slate-900 transition-colors">
+                          {label}
+                        </span>
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all ml-auto" />
                       </Link>
                     ))}
                   </div>
@@ -248,20 +410,6 @@ export default function UserDashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* ── Footer — di luar scroll area, selalu menetap di bawah ── */}
-        <footer className="bg-[#1a2f5a] text-white px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
-          <div>
-            <p className="text-sm font-extrabold tracking-tight">SARPRAS<br />POKADA</p>
-          </div>
-          <p className="text-xs text-slate-400">© 2024 LendLoop. Circular economy for a better planet.</p>
-          <nav className="flex items-center gap-5 text-xs text-slate-400">
-            <Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="#" className="hover:text-white transition-colors">Terms of Service</Link>
-            <Link href="#" className="hover:text-white transition-colors">Sustainability Report</Link>
-            <Link href="#" className="hover:text-white transition-colors">Contact Us</Link>
-          </nav>
-        </footer>
       </main>
     </div>
   );

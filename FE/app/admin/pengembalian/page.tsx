@@ -16,9 +16,12 @@ import {
   FileText,
   Check,
   RefreshCw,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
+import ExportModal from "@/components/ExportModal";
 
 interface ReturnItemDetail {
   id: string;
@@ -44,6 +47,8 @@ interface ReturnItem {
   borrower_name: string;
   borrower_email: string;
   borrower_phone?: string;
+  borrower_foto?: string | null;
+  raw_date?: string | null;
   borrow_date: string;
   due_date: string;
   return_date?: string;
@@ -94,7 +99,7 @@ function StatusBadge({ status }: { status: ReturnItem["status"] }) {
 }
 
 // ── Avatar initials ──
-function Avatar({ name, color }: { name?: string; color: string }) {
+function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
   const safeName = (name || "").trim();
   const initials = safeName
     ? safeName
@@ -105,14 +110,23 @@ function Avatar({ name, color }: { name?: string; color: string }) {
         .join("")
         .toUpperCase()
     : "P";
+
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt={safeName}
+        className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
+      />
+    );
+  }
+
   return (
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${color}`}>
+    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-[#0785BC]">
       {initials}
     </div>
   );
 }
-
-const avatarColors = ["bg-teal-500", "bg-blue-500", "bg-purple-500", "bg-amber-500", "bg-rose-500"];
 const PAGE_SIZE = 10;
 
 export default function PengembalianPage() {
@@ -127,6 +141,7 @@ export default function PengembalianPage() {
   const [confirmNote, setConfirmNote] = useState("");
   const [confirmCondition, setConfirmCondition] = useState("Baik");
   const [actionLoading, setActionLoading] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Real Stat Counts
   const [realStats, setRealStats] = useState({
@@ -171,6 +186,8 @@ export default function PengembalianPage() {
             borrower_name: u.name || "Peminjam",
             borrower_email: u.email || "-",
             borrower_phone: u.no_hp || "-",
+            borrower_foto: u.foto || null,
+            raw_date: rDateStr || r.created_at || null,
             borrow_date: b.borrow_date ? new Date(b.borrow_date).toLocaleDateString("id-ID") : "-",
             due_date: b.planned_return_date ? new Date(b.planned_return_date).toLocaleDateString("id-ID") : "-",
             return_date: rDate ? rDate.toLocaleDateString("id-ID") : "-",
@@ -227,6 +244,8 @@ export default function PengembalianPage() {
               borrower_name: u.name || "Peminjam",
               borrower_email: u.email || "-",
               borrower_phone: u.no_hp || "-",
+              borrower_foto: u.foto || null,
+              raw_date: b.borrow_date || b.created_at || null,
               borrow_date: b.borrow_date ? new Date(b.borrow_date).toLocaleDateString("id-ID") : "-",
               due_date: b.planned_return_date ? new Date(b.planned_return_date).toLocaleDateString("id-ID") : "-",
               status: currentSt,
@@ -250,6 +269,23 @@ export default function PengembalianPage() {
       setReturns(itemsCombined);
       setTotal(itemsCombined.length);
 
+      // Auto-select pengembalian jika diarahkan dari shortcut notifikasi
+      if (typeof window !== "undefined") {
+        const params = new URLSearchParams(window.location.search);
+        const targetCode = params.get("code") || params.get("search");
+        const targetId = params.get("id");
+        if (targetCode || targetId) {
+          const found = itemsCombined.find(
+            (r) =>
+              (targetId && (r.id === targetId || r.borrowing_id === targetId)) ||
+              (targetCode && r.borrow_code.toLowerCase() === targetCode.toLowerCase())
+          );
+          if (found) {
+            setSelectedItem(found);
+          }
+        }
+      }
+
       // Hitung real stat cards
       const activeCount = itemsCombined.filter((r) => r.status === "active" || r.status === "due_today").length;
       const overdueCount = itemsCombined.filter((r) => r.status === "overdue").length;
@@ -272,6 +308,17 @@ export default function PengembalianPage() {
       setLoading(false);
     }
   };
+
+  // Inisialisasi search dari URL query parameter (shortcut notifikasi)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const targetSearch = params.get("search") || params.get("code");
+    if (targetSearch) {
+      setSearch(targetSearch);
+      setStatusFilter("all");
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
@@ -358,18 +405,27 @@ export default function PengembalianPage() {
               Pantau jadwal jatuh tempo, proses konfirmasi pengembalian barang, dan telusuri riwayat riil.
             </p>
           </div>
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh Data
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-[#0785BC]" />
+              Ekspor Pengembalian
+            </button>
+          </div>
         </div>
 
-        {/* ── Stat Cards Realtime ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* ── Stat Cards Realtime (Modern Design) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
           {stats.map((s, i) => (
             <div
               key={s.label}
@@ -378,23 +434,40 @@ export default function PengembalianPage() {
                 setPage(1);
               }}
               style={{ animationDelay: `${i * 75}ms` }}
-              className={`bg-white rounded-2xl border cursor-pointer p-5 transition-all duration-200 ${
+              className={`group bg-white rounded-2xl border p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
                 statusFilter === s.filterKey
-                  ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md"
-                  : "border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                  ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md bg-gradient-to-br from-white via-blue-50/20 to-white"
+                  : "border-slate-100 shadow-sm hover:border-slate-200"
               } ${mounted ? "animate-fade-up" : "opacity-0"}`}
             >
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider leading-snug">
-                  {s.label}
-                </p>
-                <div className={`w-9 h-9 rounded-xl ${s.iconBg} flex items-center justify-center shrink-0`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/60 mb-2">
+                    {s.filterKey === "active" ? "Aktif" : s.filterKey === "overdue" ? "Peringatan" : "Selesai"}
+                  </span>
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider leading-snug">
+                    {s.label}
+                  </p>
+                </div>
+                <div className={`w-11 h-11 rounded-2xl ${s.iconBg} border border-slate-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
                   {s.icon}
                 </div>
               </div>
-              <p className={`text-3xl font-bold tabular-nums ${s.valueColor} ${mounted ? "animate-count-up" : ""}`}>
-                {s.value}
-              </p>
+              <div className="mt-3">
+                <p className={`text-3xl font-extrabold tabular-nums ${s.valueColor} ${mounted ? "animate-count-up" : ""}`}>
+                  {s.value}
+                </p>
+                <div className="pt-3 mt-2 border-t border-slate-50 flex items-center justify-between text-xs">
+                  <span className="text-[11px] text-slate-400">
+                    {s.filterKey === "active" ? "Barang di tangan peminjam" : s.filterKey === "overdue" ? "Perlu peneguran segera" : "Aset kembali ke gudang"}
+                  </span>
+                  <span className={`text-[11px] font-semibold transition-colors ${
+                    statusFilter === s.filterKey ? "text-[#0785BC]" : "text-slate-400 group-hover:text-[#0785BC]"
+                  }`}>
+                    {statusFilter === s.filterKey ? "• Aktif" : "Filter"}
+                  </span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -472,7 +545,7 @@ export default function PengembalianPage() {
                         {/* Peminjam */}
                         <td className="px-4 py-4">
                           <div className="flex items-center gap-2.5">
-                            <Avatar name={row.borrower_name} color={avatarColors[i % avatarColors.length]} />
+                            <Avatar name={row.borrower_name} foto={row.borrower_foto} />
                             <div>
                               <p className="font-medium text-slate-700">{row.borrower_name}</p>
                               <p className="text-xs text-slate-400">{row.borrower_email}</p>
@@ -815,6 +888,34 @@ export default function PengembalianPage() {
           </div>
         </div>
       )}
+
+      {/* ── Modal Export Pengembalian dengan Filter Tanggal ── */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Ekspor Data Pengembalian"
+        description="Unduh data riil riwayat dan jadwal pengembalian berdasarkan rentang waktu."
+        moduleName="Pengembalian"
+        filenamePrefix="SARPRAS_Pengembalian"
+        data={returns}
+        dateFieldGetter={(r) => (r as any).raw_date || r.return_date || r.due_date || r.borrow_date}
+        dataRowMapper={(r) => ({
+          "Kode Peminjaman": r.borrow_code,
+          "Kode Barang": r.item_code,
+          "Nama Barang": r.item_name,
+          "Nama Peminjam": r.borrower_name,
+          Email: r.borrower_email,
+          "No HP": r.borrower_phone || "-",
+          "Tanggal Pinjam": r.borrow_date,
+          "Batas Waktu": r.due_date,
+          "Tanggal Pengembalian": r.return_date || "-",
+          Status: r.status.toUpperCase(),
+          "Kondisi Fisik": r.condition || "Baik",
+          "Keterlambatan (Hari)": r.overdue_days || 0,
+          "Denda (Rp)": r.fine || "Rp 0",
+          Catatan: r.note || "-",
+        })}
+      />
     </AdminLayout>
   );
 }

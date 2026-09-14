@@ -7,7 +7,7 @@ const generateBorrowCode = () => {
   return `PJ-${dateStr}-${randomStr}`;
 };
 
-exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 20 }) => {
+exports.findAllBorrowings = async ({ user_id, status, search, start_date, end_date, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
 
   let query = supabase
@@ -28,6 +28,8 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
   if (user_id) query = query.eq('user_id', user_id);
   if (status) query = query.eq('status', status);
   if (search) query = query.or(`borrow_code.ilike.%${search}%,purpose.ilike.%${search}%`);
+  if (start_date) query = query.gte('borrow_date', start_date);
+  if (end_date) query = query.lte('borrow_date', end_date);
 
   query = query.range(offset, offset + Number(limit) - 1);
 
@@ -104,11 +106,11 @@ exports.findBorrowingById = async (id) => {
 };
 
 exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
-  // Validasi ketersediaan stok
+  // Validasi ketersediaan stok & status kerusakan
   for (const item of items) {
     const { data: itemData, error: itemError } = await supabase
       .from('items')
-      .select('id, name, available_stock, status')
+      .select('id, name, available_stock, stock, status, condition')
       .eq('id', item.item_id)
       .single();
 
@@ -116,13 +118,41 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
       throw new AppError(`Barang dengan ID ${item.item_id} tidak ditemukan`, 404);
     }
 
-    if (itemData.status !== 'Tersedia') {
-      throw new AppError(`Barang "${itemData.name}" sedang tidak tersedia (status: ${itemData.status})`, 400);
+    // 1. Cek laporan kerusakan aktif untuk item ini
+    const { data: activeDamages } = await supabase
+      .from('damage_reports')
+      .select('title, description, status')
+      .eq('item_id', item.item_id)
+      .in('status', ['Sedang Diperbaiki', 'Menunggu Review'])
+      .order('created_at', { ascending: false });
+
+    const damageCount = (activeDamages || []).length;
+    const damageTitle = activeDamages?.[0]?.title || activeDamages?.[0]?.description || 'dalam proses perbaikan teknisi';
+
+    // Jika seluruh unit habis / item berstatus Dalam Pemeliharaan tanpa stok tersisa
+    if (itemData.available_stock <= 0 || (itemData.status === 'Dalam Pemeliharaan' && itemData.available_stock <= 0)) {
+      const reason = damageCount > 0
+        ? `seluruh unit sedang dalam perbaikan akibat kerusakan: "${damageTitle}"`
+        : `stok barang saat ini tidak tersedia (status: ${itemData.status})`;
+      throw new AppError(
+        `Barang "${itemData.name}" tidak dapat dipinjam karena ${reason}.`,
+        400
+      );
+    }
+
+    if (itemData.status !== 'Tersedia' && itemData.available_stock <= 0) {
+      throw new AppError(`Barang "${itemData.name}" sedang tidak tersedia untuk dipinjam (status: ${itemData.status}).`, 400);
     }
 
     const requestedQty = Number(item.quantity) || 1;
     if (itemData.available_stock < requestedQty) {
-      throw new AppError(`Stok tidak mencukupi untuk "${itemData.name}". Tersedia: ${itemData.available_stock}, Diminta: ${requestedQty}`, 400);
+      const reasonSuffix = damageCount > 0
+        ? ` (${damageCount} unit sedang dalam penanganan perbaikan akibat: "${damageTitle}")`
+        : '';
+      throw new AppError(
+        `Stok tidak mencukupi untuk "${itemData.name}". Tersedia: ${itemData.available_stock} unit, Diminta: ${requestedQty} unit${reasonSuffix}.`,
+        400
+      );
     }
   }
 
@@ -180,24 +210,32 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
   if (insertItemsError) throw insertItemsError;
 
   // Notifikasi ke User peminjam
-  await supabase.from('notifications').insert([{
-    user_id,
-    title: 'Pengajuan Peminjaman Diterima',
-    message: `Pengajuan peminjaman dengan kode ${borrowCode} sedang menunggu persetujuan admin.`,
-    type: 'peminjaman',
-    is_read: false,
-    created_at: now
-  }]);
+  const notifService = require('./notificationService');
+  try {
+    await notifService.createNotification({
+      user_id,
+      title: 'Pengajuan Peminjaman Diterima',
+      message: `Pengajuan peminjaman dengan kode ${borrowCode} sedang menunggu persetujuan admin.`,
+      type: 'peminjaman',
+      action_url: `/user/riwayat_peminjaman?code=${encodeURIComponent(borrowCode)}`,
+      reference_id: newBorrowing.id,
+      reference_type: 'borrowing'
+    });
+  } catch (err) {
+    console.error('Gagal kirim notif ke user:', err);
+  }
 
   // Notifikasi ke seluruh Admin / Petugas
   try {
-    const notifService = require('./notificationService');
     const { data: borrowerUser } = await supabase.from('users').select('name').eq('id', user_id).single();
     const borrowerName = borrowerUser?.name || 'User';
     await notifService.notifyAdmins({
       title: 'Pengajuan Peminjaman Baru',
       message: `${borrowerName} mengajukan peminjaman baru (${borrowCode}) untuk "${purpose || 'keperluan kampus'}".`,
-      type: 'peminjaman'
+      type: 'peminjaman',
+      action_url: `/admin/manajemen_peminjaman?search=${encodeURIComponent(borrowCode)}`,
+      reference_id: newBorrowing.id,
+      reference_type: 'borrowing'
     });
   } catch (err) {
     console.error('Gagal broadcast notif peminjaman ke admin:', err);
@@ -255,15 +293,21 @@ exports.updateStatus = async (id, { status, admin_note }) => {
 
   if (updateError) throw updateError;
 
-  // Notifikasi
-  await supabase.from('notifications').insert([{
-    user_id: currentBorrowing.user_id,
-    title: `Status Peminjaman: ${status}`,
-    message: `Peminjaman ${currentBorrowing.borrow_code} statusnya telah diperbarui menjadi "${status}".${admin_note ? ` Catatan: ${admin_note}` : ''}`,
-    type: 'peminjaman',
-    is_read: false,
-    created_at: new Date().toISOString()
-  }]);
+  // Notifikasi status peminjaman ke user
+  try {
+    const notifService = require('./notificationService');
+    await notifService.createNotification({
+      user_id: currentBorrowing.user_id,
+      title: `Status Peminjaman: ${status}`,
+      message: `Peminjaman ${currentBorrowing.borrow_code} statusnya telah diperbarui menjadi "${status}".${admin_note ? ` Catatan: ${admin_note}` : ''}`,
+      type: 'peminjaman',
+      action_url: `/user/riwayat_peminjaman?code=${encodeURIComponent(currentBorrowing.borrow_code)}`,
+      reference_id: id,
+      reference_type: 'borrowing'
+    });
+  } catch (err) {
+    console.error('Gagal kirim notif status peminjaman:', err);
+  }
 
   return updated;
 };

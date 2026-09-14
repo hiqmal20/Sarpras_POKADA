@@ -13,7 +13,7 @@ const createItemSchema = Joi.object({
   stock: Joi.number().integer().min(0).default(0),
   available_stock: Joi.number().integer().min(0).allow(null),
   condition: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat').default('Baik'),
-  status: Joi.string().valid('Tersedia', 'Dipinjam', 'Dalam Pemeliharaan').default('Tersedia')
+  status: Joi.string().valid('Tersedia', 'Dipinjam', 'Dalam Pemeliharaan', 'Stok Kosong', 'Habis', 'Tidak Tersedia').default('Tersedia')
 });
 
 const updateItemSchema = Joi.object({
@@ -25,7 +25,7 @@ const updateItemSchema = Joi.object({
   stock: Joi.number().integer().min(0),
   available_stock: Joi.number().integer().min(0),
   condition: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat'),
-  status: Joi.string().valid('Tersedia', 'Dipinjam', 'Dalam Pemeliharaan')
+  status: Joi.string().valid('Tersedia', 'Dipinjam', 'Dalam Pemeliharaan', 'Stok Kosong', 'Habis', 'Tidak Tersedia')
 });
 
 module.exports = {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   User, 
   Mail, 
@@ -174,10 +175,10 @@ export default function ProfilePage() {
   ];
 
   const activityLog = [
-    { action: "Mengajukan peminjaman", item: "Projector Epson EB-X51", date: "24 Okt 2023, 10:30" },
-    { action: "Mengembalikan", item: "Kamera Canon 90D", date: "23 Okt 2023, 15:45" },
-    { action: "Update profil", item: "Informasi kontak", date: "20 Okt 2023, 09:15" },
-    { action: "Mengajukan peminjaman", item: "Laptop Thinkpad T14", date: "18 Okt 2023, 14:20" },
+    { action: "Mengajukan peminjaman", item: "Projector Epson EB-X51", date: "24 Okt 2023, 10:30", href: "/admin/manajemen_peminjaman" },
+    { action: "Mengembalikan", item: "Kamera Canon 90D", date: "23 Okt 2023, 15:45", href: "/admin/pengembalian" },
+    { action: "Update profil", item: "Informasi kontak", date: "20 Okt 2023, 09:15", href: "/admin/settings" },
+    { action: "Mengajukan peminjaman", item: "Laptop Thinkpad T14", date: "18 Okt 2023, 14:20", href: "/admin/manajemen_peminjaman" },
   ];
 
   return (
@@ -428,20 +429,27 @@ export default function ProfilePage() {
             <h3 className="text-lg font-bold text-slate-900">Aktivitas Terbaru</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
+            <div className="space-y-3">
               {activityLog.map((activity, index) => (
-                <div key={index} className="flex items-start gap-4 pb-4 border-b border-slate-100 last:border-0 last:pb-0">
-                  <div className="w-2 h-2 rounded-full bg-[#0785BC] mt-2 flex-shrink-0"></div>
+                <Link
+                  key={index}
+                  href={activity.href}
+                  className="flex items-start gap-4 p-3 rounded-xl border border-transparent hover:border-slate-100 hover:bg-slate-50/80 transition-all group cursor-pointer"
+                >
+                  <div className="w-2 h-2 rounded-full bg-[#0785BC] mt-2 flex-shrink-0 group-hover:scale-125 transition-transform"></div>
                   <div className="flex-1">
-                    <p className="font-medium text-slate-900">
-                      {activity.action} <span className="text-[#0785BC]">{activity.item}</span>
+                    <p className="font-medium text-slate-900 text-sm group-hover:text-[#0785BC] transition-colors">
+                      {activity.action} <span className="text-[#0785BC] font-semibold">{activity.item}</span>
                     </p>
                     <div className="flex items-center gap-2 mt-1">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      <p className="text-sm text-slate-500">{activity.date}</p>
+                      <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                      <p className="text-xs text-slate-500">{activity.date}</p>
                     </div>
                   </div>
-                </div>
+                  <span className="text-xs font-semibold text-[#0785BC] opacity-0 group-hover:opacity-100 transition-opacity self-center">
+                    Buka &rarr;
+                  </span>
+                </Link>
               ))}
             </div>
           </div>

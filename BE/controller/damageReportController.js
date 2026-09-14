@@ -22,7 +22,8 @@ exports.getAllReports = async (req, res, next) => {
         total: result.total,
         page: result.page,
         limit: result.limit,
-        totalPages: result.totalPages
+        totalPages: result.totalPages,
+        counts: result.counts
       }
     );
   } catch (err) {
@@ -51,6 +52,16 @@ exports.getReportById = async (req, res, next) => {
  */
 exports.createReport = async (req, res, next) => {
   try {
+    const isPrivileged = [ROLES.ADMIN, ROLES.PETUGAS].includes(req.user.role);
+    if (!isPrivileged || !req.body.user_id) {
+      req.body.user_id = isPrivileged ? (req.body.user_id || req.user.id) : req.user.id;
+    }
+    // Jika bukan admin, cegah manipulasi denda sendiri
+    if (!isPrivileged) {
+      delete req.body.fine_amount;
+      delete req.body.fine_reason;
+      delete req.body.fine_status;
+    }
     const data = await damageReportService.createNewReport(req.body);
     return sendSuccess(res, 'Laporan kerusakan/kehilangan berhasil dibuat', data, 201);
   } catch (err) {

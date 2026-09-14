@@ -67,3 +67,36 @@ WHERE damage_type IS NULL;
 -- FROM information_schema.columns
 -- WHERE table_name = 'damage_reports'
 -- ORDER BY ordinal_position;
+
+-- ============================================================
+-- NEW MIGRATION: Shortcut Direct Link / Redirect di Notifications
+-- ============================================================
+
+-- Tambah kolom action_url untuk menyimpan shortcut direct URL tujuan
+ALTER TABLE notifications
+ADD COLUMN IF NOT EXISTS action_url TEXT;
+
+-- Tambah kolom reference_id (UUID atau Kode dokumen transaksi terkait)
+ALTER TABLE notifications
+ADD COLUMN IF NOT EXISTS reference_id TEXT;
+
+-- Tambah kolom reference_type ('borrowing', 'return', 'damage_report', 'chat', 'system')
+ALTER TABLE notifications
+ADD COLUMN IF NOT EXISTS reference_type TEXT;
+
+-- Buat index untuk pencarian cepat berdasarkan relasi transaksi
+CREATE INDEX IF NOT EXISTS idx_notifications_reference ON notifications(reference_type, reference_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read);
+
+-- ============================================================
+-- NEW MIGRATION: Status Last Seen & Online di Tabel Users
+-- ============================================================
+
+-- Tambah kolom last_seen untuk mencatat riwayat terakhir online user/admin
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ DEFAULT NOW();
+
+-- Index untuk performa query status user
+CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen);
+
+

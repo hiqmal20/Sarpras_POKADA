@@ -50,3 +50,18 @@ exports.deletePackage = async (req, res, next) => {
     next(err);
   }
 };
+
+// Import packages from CSV
+exports.importPackages = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return next(new Error('File CSV paket wajib diunggah'));
+    }
+
+    const result = await packageService.importPackagesFromCSV(req.file.buffer);
+    const message = `Import paket selesai: ${result.success.length} berhasil, ${result.failed.length} gagal`;
+    return sendSuccess(res, message, result, result.failed.length > 0 ? 207 : 201);
+  } catch (err) {
+    next(err);
+  }
+};

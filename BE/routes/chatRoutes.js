@@ -9,6 +9,8 @@ router.get('/', chatController.getChats);
 router.post('/', chatController.createChat);
 router.get('/:chatId/messages', chatController.getChatMessages);
 router.post('/:chatId/messages', chatController.sendMessage);
+router.delete('/:chatId/messages', chatController.clearChatMessages);
 router.patch('/:chatId/read', chatController.markAsRead);
+router.delete('/:chatId', chatController.deleteChat);
 
 module.exports = router;

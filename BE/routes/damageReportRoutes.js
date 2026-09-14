@@ -14,10 +14,9 @@ router.get('/', damageReportController.getAllReports);
 // GET detail laporan
 router.get('/:id', damageReportController.getReportById);
 
-// POST buat laporan baru — Admin/Petugas saja (input manual)
+// POST buat laporan baru — User atau Admin/Petugas
 router.post(
   '/',
-  requireRole(ROLES.ADMIN, ROLES.PETUGAS),
   validateRequest(createDamageReportSchema),
   damageReportController.createReport
 );

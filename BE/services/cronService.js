@@ -36,25 +36,24 @@ const startOverdueChecker = () => {
       console.log(`[CRON] Mengirim ${longBorrowings.length} notifikasi pengingat pengembalian.`);
 
       // Kirim notifikasi pengingat ke masing-masing user
-      const now = new Date().toISOString();
-      const notifications = longBorrowings.map(b => ({
-        user_id: b.user_id,
-        title: 'Pengingat: Segera Kembalikan Barang',
-        message: `Peminjaman dengan kode ${b.borrow_code} sudah berjalan lebih dari 7 hari. Harap segera kembalikan barang ke petugas SARPRAS.`,
-        type: 'peminjaman',
-        is_read: false,
-        created_at: now
-      }));
-
-      const { error: notifError } = await supabase
-        .from('notifications')
-        .insert(notifications);
-
-      if (notifError) {
-        console.error('[CRON] Gagal kirim notifikasi pengingat:', notifError.message);
+      const notifService = require('./notificationService');
+      for (const b of longBorrowings) {
+        try {
+          await notifService.createNotification({
+            user_id: b.user_id,
+            title: 'Pengingat: Segera Kembalikan Barang',
+            message: `Peminjaman dengan kode ${b.borrow_code} sudah berjalan lebih dari 7 hari. Harap segera kembalikan barang ke petugas SARPRAS.`,
+            type: 'peminjaman',
+            action_url: `/user/riwayat_peminjaman?code=${encodeURIComponent(b.borrow_code)}`,
+            reference_id: b.id,
+            reference_type: 'borrowing'
+          });
+        } catch (err) {
+          console.error(`[CRON] Gagal kirim notif ke user ${b.user_id}:`, err.message);
+        }
       }
 
-      console.log(`[CRON] Berhasil kirim ${longBorrowings.length} notifikasi pengingat.`);
+      console.log(`[CRON] Berhasil memproses ${longBorrowings.length} notifikasi pengingat.`);
     } catch (err) {
       console.error('[CRON] Error tidak terduga:', err.message);
     }

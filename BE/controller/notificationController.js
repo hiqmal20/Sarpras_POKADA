@@ -3,7 +3,11 @@ const { sendSuccess } = require('../utils/responseHandler');
 
 exports.getUserNotifications = async (req, res, next) => {
   try {
-    const query = { ...req.query, user_id: req.user.id };
+    const query = {
+      ...req.query,
+      user_id: req.user.id,
+      user_role: req.user.role
+    };
     const result = await notificationService.findAllNotifications(query);
     return sendSuccess(res, 'Notifikasi berhasil dimuat', result.notifications, 200, {
       total: result.total,

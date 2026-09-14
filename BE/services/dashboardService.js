@@ -47,11 +47,10 @@ exports.getStats = async () => {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'Dikembalikan'),
 
-    // Laporan kerusakan aktif (belum selesai)
+    // Laporan kerusakan (lengkap untuk klasifikasi status)
     supabase
       .from('damage_reports')
-      .select('id', { count: 'exact', head: true })
-      .neq('status', 'Selesai'),
+      .select('id, status, fine_status'),
 
     // Total user aktif
     supabase
@@ -72,33 +71,66 @@ exports.getStats = async () => {
     // Aktivitas / notifikasi sistem terbaru
     supabase
       .from('notifications')
-      .select('id, title, message, type, created_at')
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(6)
   ]);
+
+  // Laporan kerusakan dikelompokkan sesuai dengan halaman Rekap Laporan
+  const damageReports = damageResult.data || [];
+  let damageReviewCount = 0;      // Menunggu Review
+  let damageRepairCount = 0;      // Sedang Diperbaiki / Dalam Pemeliharaan
+  let damageResolvedCount = 0;    // Selesai
+
+  damageReports.forEach(r => {
+    const rawStatus = (r.status || '').toLowerCase();
+    const fineStatus = r.fine_status || '';
+    const isResolved = rawStatus.includes('selesai') || rawStatus === 'resolved' || fineStatus === 'Sudah Dibayar';
+
+    if (isResolved) {
+      damageResolvedCount++;
+    } else if (
+      rawStatus.includes('perbaik') ||
+      rawStatus.includes('proses') ||
+      rawStatus === 'in_progress' ||
+      rawStatus === 'sedang diperbaiki'
+    ) {
+      damageRepairCount++;
+    } else {
+      damageReviewCount++;
+    }
+  });
 
   // Hitung statistik barang (total jenis & total fisik unit barang)
   const items = itemsResult.data || [];
   const totalItemTypes = itemsResult.count || 0;
   const totalUnits = items.reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
+  const rawAvailable = items.reduce((acc, i) => acc + (Number(i.available_stock !== undefined && i.available_stock !== null ? i.available_stock : i.stock) || 0), 0);
 
-  // Laporan kerusakan aktif (belum selesai)
-  const activeDamageReportsCount = damageResult.count || 0;
-  const damagedUnitsFromItems = items.filter(i => i.condition !== 'Baik').reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
-  const damagedUnits = Math.max(damagedUnitsFromItems, activeDamageReportsCount);
+  // Status Pemeliharaan & Rusak diambil dari data barang dan laporan teknisi aktif
+  const itemsUnderMaintenance = items.filter(i => i.status === 'Dalam Pemeliharaan').reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
+  const itemsDamaged = items.filter(i => i.status === 'Rusak' || i.condition === 'Rusak Berat').reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
 
-  const rawAvailable = items.reduce((acc, i) => acc + (Number(i.available_stock) || 0), 0);
-  const availableUnits = Math.max(0, rawAvailable - (damagedUnitsFromItems === 0 && activeDamageReportsCount > 0 ? activeDamageReportsCount : 0));
-  const borrowedUnits = items.reduce((acc, i) => acc + Math.max(0, (Number(i.stock) || 0) - (Number(i.available_stock) || 0)), 0);
-  const maintenanceUnits = items.filter(i => i.status === 'Dalam Pemeliharaan').reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
+  const maintenanceUnits = Math.max(itemsUnderMaintenance, damageRepairCount);
+  const damagedUnits = Math.max(itemsDamaged, damageReviewCount);
+
+  // Unit yang sedang dipinjam (total unit fisik - tersedia - dalam pemeliharaan - rusak)
+  const activeBorrowingsCount = borrowingsResult.count || 0;
+  const borrowedUnits = Math.max(activeBorrowingsCount, Math.max(0, totalUnits - rawAvailable - maintenanceUnits - damagedUnits));
+  const availableUnits = Math.max(0, totalUnits - borrowedUnits - maintenanceUnits - damagedUnits);
+  const damagedLightUnits = items.filter(i => i.condition === 'Rusak Ringan').reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
 
   // Hitung distribusi kategori untuk visualisasi Pie Chart
   const categories = categoriesResult.data || [];
-  const categoryDistribution = categories.map(cat => ({
-    id: cat.id,
-    name: cat.name,
-    count: items.filter(i => i.category_id === cat.id).length
-  })).filter(c => c.count > 0);
+  const categoryDistribution = categories.map(cat => {
+    const catItems = items.filter(i => i.category_id === cat.id);
+    return {
+      id: cat.id,
+      name: cat.name,
+      count: catItems.length,
+      totalUnits: catItems.reduce((acc, i) => acc + (Number(i.stock) || 0), 0)
+    };
+  }).filter(c => c.count > 0 || c.totalUnits > 0);
 
   // Ambil item details untuk recent borrowings
   const recentBorrowings = recentBorrowingsResult.data || [];
@@ -129,7 +161,8 @@ exports.getStats = async () => {
       tersedia: availableUnits,
       dipinjam: borrowedUnits,
       dalamPemeliharaan: maintenanceUnits,
-      rusak: damagedUnits
+      rusak: damagedUnits,
+      rusakRingan: damagedLightUnits
     },
     categoryDistribution,
     borrowings: {
@@ -139,12 +172,21 @@ exports.getStats = async () => {
       dikembalikan: returnsResult.count || 0
     },
     laporanKerusakan: {
-      menungguReview: damageResult.count || 0
+      menungguReview: damageReviewCount,
+      sedangDiperbaiki: damageRepairCount,
+      selesai: damageResolvedCount,
+      total: damageReports.length
     },
     users: {
       totalAktif: usersResult.count || 0
     },
     recentBorrowings,
-    recentActivities: notificationsResult.data || []
+    recentActivities: (notificationsResult.data || []).map((act) => {
+      const { resolveActionUrl } = require('./notificationService');
+      return {
+        ...act,
+        action_url: resolveActionUrl(act, 'Admin')
+      };
+    })
   };
 };

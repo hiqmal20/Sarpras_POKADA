@@ -18,6 +18,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
+import { getNotificationTargetUrl, getNotificationActionLabel } from "@/lib/notificationHelper";
 
 interface NavbarProps {
   showSearch?: boolean;
@@ -35,6 +36,7 @@ interface NotificationItem {
   is_read?: boolean;
   read?: boolean;
   type: string;
+  action_url?: string;
 }
 
 export default function Navbar({
@@ -92,6 +94,7 @@ export default function Navbar({
               title: n.title,
               message: n.message,
               type: n.type || "sistem",
+              action_url: n.action_url,
               is_read: n.is_read,
               read: n.is_read,
               created_at: n.created_at,
@@ -169,6 +172,15 @@ export default function Navbar({
     } catch {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }
+  };
+
+  const handleNotificationClick = async (notif: NotificationItem) => {
+    if (!notif.read && !notif.is_read) {
+      handleMarkAsRead(notif.id);
+    }
+    setShowNotifDropdown(false);
+    const targetUrl = getNotificationTargetUrl(notif, true);
+    router.push(targetUrl);
   };
 
   const handleLogout = () => {
@@ -286,7 +298,8 @@ export default function Navbar({
                   notifications.map((notif) => (
                     <div
                       key={notif.id}
-                      className={`px-4 py-3 hover:bg-slate-50/70 transition-colors ${
+                      onClick={() => handleNotificationClick(notif)}
+                      className={`px-4 py-3 hover:bg-blue-50/50 cursor-pointer transition-all group ${
                         !notif.read && !notif.is_read ? "bg-blue-50/30" : ""
                       }`}
                     >
@@ -294,12 +307,17 @@ export default function Navbar({
                         {getNotifIcon(notif.type)}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-1">
-                            <p className="font-semibold text-xs text-slate-900 leading-snug">
+                            <p className="font-semibold text-xs text-slate-900 leading-snug group-hover:text-[#0785BC] transition-colors">
                               {notif.title}
                             </p>
                             <button
-                              onClick={() => handleClearNotification(notif.id)}
-                              className="text-slate-300 hover:text-slate-500"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleClearNotification(notif.id);
+                              }}
+                              className="text-slate-300 hover:text-slate-500 p-0.5 rounded"
+                              title="Hapus notifikasi"
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -307,16 +325,25 @@ export default function Navbar({
                           <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                             {notif.message}
                           </p>
-                          <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
-                            <span>{notif.time}</span>
-                            {!notif.read && !notif.is_read && (
-                              <button
-                                onClick={() => handleMarkAsRead(notif.id)}
-                                className="text-[#0785BC] font-semibold hover:underline"
-                              >
-                                Tandai dibaca
-                              </button>
-                            )}
+                          <div className="flex items-center justify-between mt-2 text-[10px]">
+                            <span className="text-slate-400">{notif.time}</span>
+                            <div className="flex items-center gap-2">
+                              {!notif.read && !notif.is_read && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleMarkAsRead(notif.id);
+                                  }}
+                                  className="text-[#0785BC] font-semibold hover:underline"
+                                >
+                                  Tandai dibaca
+                                </button>
+                              )}
+                              <span className="text-[#0785BC] font-semibold flex items-center gap-0.5 group-hover:underline">
+                                {getNotificationActionLabel(notif.type)} &rarr;
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -104,14 +104,17 @@ exports.createNewItem = async (payload) => {
   }
 
   const now = new Date().toISOString();
-  const finalAvailableStock = available_stock !== undefined ? available_stock : stock;
+  const numStock = Number(stock) || 0;
+  const numAvailable = available_stock !== undefined && available_stock !== null ? Number(available_stock) : numStock;
+  const finalStatus = payload.status || (numAvailable === 0 ? 'Stok Kosong' : 'Tersedia');
 
   const { data, error } = await supabase
     .from('items')
     .insert([{
       ...payload,
-      stock: Number(stock),
-      available_stock: Number(finalAvailableStock),
+      stock: numStock,
+      available_stock: numAvailable,
+      status: finalStatus,
       created_at: now,
       update_at: now
     }])
@@ -128,6 +131,28 @@ exports.updateExistingItem = async (id, payload) => {
     ...payload,
     update_at: new Date().toISOString()
   };
+
+  if (payload.stock !== undefined) {
+    updateData.stock = Number(payload.stock);
+  }
+
+  if (payload.available_stock !== undefined && payload.available_stock !== null) {
+    updateData.available_stock = Number(payload.available_stock);
+    if (updateData.available_stock === 0 && (!payload.status || payload.status === 'Tersedia')) {
+      updateData.status = 'Stok Kosong';
+    } else if (updateData.available_stock > 0 && payload.status === 'Stok Kosong') {
+      updateData.status = 'Tersedia';
+    }
+  } else if (payload.stock !== undefined && Number(payload.stock) > 0) {
+    // Jika stok diperbarui tapi available_stock tidak disertakan dan sebelumnya 0, otomatis samakan
+    const { data: current } = await supabase.from('items').select('available_stock, status').eq('id', id).maybeSingle();
+    if (current && (current.available_stock === 0 || current.available_stock === null)) {
+      updateData.available_stock = Number(payload.stock);
+      if (current.status === 'Stok Kosong' || current.status === 'Tersedia') {
+        updateData.status = 'Tersedia';
+      }
+    }
+  }
 
   const { data, error } = await supabase
     .from('items')

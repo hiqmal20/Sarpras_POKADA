@@ -1,10 +1,10 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 
-exports.findAllReturns = async ({ page = 1, limit = 20 }) => {
+exports.findAllReturns = async ({ page = 1, limit = 20, status, search, start_date, end_date }) => {
   const offset = (page - 1) * limit;
 
-  const { data: returns, count, error } = await supabase
+  let query = supabase
     .from('returns')
     .select(`
       *,
@@ -13,12 +13,21 @@ exports.findAllReturns = async ({ page = 1, limit = 20 }) => {
         borrow_code,
         purpose,
         borrow_date,
-        users (id, name, email, no_hp)
+        actual_return_date,
+        status,
+        users (id, name, email, nomor_induk, no_hp, role, foto)
       ),
-      receiver:users!returns_received_by_fkey (id, name, role)
+      receiver:users!returns_received_by_fkey (id, name, role, foto)
     `, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + Number(limit) - 1);
+    .order('created_at', { ascending: false });
+
+  if (status) query = query.eq('status', status);
+  if (start_date) query = query.gte('return_date', start_date);
+  if (end_date) query = query.lte('return_date', end_date);
+
+  query = query.range(offset, offset + Number(limit) - 1);
+
+  const { data: returns, count, error } = await query;
 
   if (error) throw error;
 
@@ -59,9 +68,9 @@ exports.findReturnById = async (id) => {
       *,
       borrowings (
         *,
-        users (id, name, email, no_hp)
+        users (id, name, email, no_hp, role, foto)
       ),
-      receiver:users!returns_received_by_fkey (id, name, role)
+      receiver:users!returns_received_by_fkey (id, name, role, foto)
     `)
     .eq('id', id)
     .single();
@@ -165,24 +174,32 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
   }
 
   // 5. Notifikasi ke user peminjam
-  await supabase.from('notifications').insert([{
-    user_id: borrowing.user_id,
-    title: 'Pengembalian Berhasil',
-    message: `Peminjaman dengan kode ${borrowing.borrow_code} telah resmi diterima kembali. Terima kasih!`,
-    type: 'pengembalian',
-    is_read: false,
-    created_at: now
-  }]);
+  const notifService = require('./notificationService');
+  try {
+    await notifService.createNotification({
+      user_id: borrowing.user_id,
+      title: 'Pengembalian Berhasil',
+      message: `Peminjaman dengan kode ${borrowing.borrow_code} telah resmi diterima kembali. Terima kasih!`,
+      type: 'pengembalian',
+      action_url: `/user/riwayat_peminjaman?tab=returned&code=${encodeURIComponent(borrowing.borrow_code)}`,
+      reference_id: returnData.id,
+      reference_type: 'return'
+    });
+  } catch (err) {
+    console.error('Gagal kirim notif pengembalian ke user:', err);
+  }
 
   // Notifikasi ke seluruh Admin / Petugas
   try {
-    const notifService = require('./notificationService');
     const { data: borrowerUser } = await supabase.from('users').select('name').eq('id', borrowing.user_id).single();
     const borrowerName = borrowerUser?.name || 'User';
     await notifService.notifyAdmins({
       title: 'Barang Telah Dikembalikan',
       message: `${borrowerName} telah mengembalikan barang untuk peminjaman ${borrowing.borrow_code}. Kondisi: ${condition}.${note ? ` Catatan: ${note}` : ''}`,
-      type: 'pengembalian'
+      type: 'pengembalian',
+      action_url: `/admin/pengembalian?search=${encodeURIComponent(borrowing.borrow_code)}`,
+      reference_id: returnData.id,
+      reference_type: 'return'
     });
   } catch (err) {
     console.error('Gagal broadcast notif pengembalian ke admin:', err);

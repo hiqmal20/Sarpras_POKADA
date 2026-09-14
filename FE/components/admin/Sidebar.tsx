@@ -18,6 +18,7 @@ import {
   PanelLeft,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 const navItems = [
   { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
@@ -40,7 +41,7 @@ interface SidebarProps {
 export default function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [unreadMsgCount, setUnreadMsgCount] = useState<number>(1);
+  const [unreadMsgCount, setUnreadMsgCount] = useState<number>(0);
 
   useEffect(() => {
     const syncUser = () => {
@@ -56,19 +57,41 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
       try {
         const res = await api.chats.getAll();
         if (res.status === "success" && Array.isArray(res.data)) {
-          // Hitung chat yang belum selesai / unread
-          const count = res.data.filter((c: any) => c.unread_count > 0 || c.status === "Open").length;
-          setUnreadMsgCount(count > 0 ? count : (res.data.length > 0 ? 1 : 0));
+          // Hitung murni chat dengan pesan unread
+          const count = res.data.reduce((total: number, c: any) => total + (c.unread_count || 0), 0);
+          setUnreadMsgCount(count);
+        } else {
+          setUnreadMsgCount(0);
         }
       } catch {
-        setUnreadMsgCount(1);
+        setUnreadMsgCount(0);
       }
     }
     loadChatCount();
 
+    const handleMessagesRead = () => {
+      loadChatCount();
+    };
+    window.addEventListener("messages-read", handleMessagesRead);
+
+    const socket = getSocket();
+    if (socket) {
+      socket.on("notification", loadChatCount);
+      socket.on("chat_updated", loadChatCount);
+      socket.on("new_message", loadChatCount);
+      socket.on("messages_read", loadChatCount);
+    }
+
     return () => {
       window.removeEventListener("user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
+      window.removeEventListener("messages-read", handleMessagesRead);
+      if (socket) {
+        socket.off("notification", loadChatCount);
+        socket.off("chat_updated", loadChatCount);
+        socket.off("new_message", loadChatCount);
+        socket.off("messages_read", loadChatCount);
+      }
     };
   }, []);
 

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import api, { getCurrentUser } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import {
   LayoutDashboard,
   BookOpen,
@@ -36,11 +38,51 @@ interface SidebarProps {
 export default function UserSidebar({ collapsed: controlledCollapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(controlledCollapsed ?? false);
+  const [unreadMsgCount, setUnreadMsgCount] = useState<number>(0);
 
   // Sync with controlled prop
   useEffect(() => {
     if (controlledCollapsed !== undefined) setCollapsed(controlledCollapsed);
   }, [controlledCollapsed]);
+
+  useEffect(() => {
+    async function loadChatCount() {
+      try {
+        const res = await api.chats.getAll();
+        if (res.status === "success" && Array.isArray(res.data)) {
+          const count = res.data.reduce((total: number, c: any) => total + (c.unread_count || 0), 0);
+          setUnreadMsgCount(count);
+        } else {
+          setUnreadMsgCount(0);
+        }
+      } catch {
+        setUnreadMsgCount(0);
+      }
+    }
+
+    loadChatCount();
+
+    const handleMessagesRead = () => {
+      loadChatCount();
+    };
+    window.addEventListener("messages-read", handleMessagesRead);
+
+    const socket = getSocket();
+    if (socket) {
+      socket.on("notification", loadChatCount);
+      socket.on("chat_updated", loadChatCount);
+      socket.on("messages_read", loadChatCount);
+    }
+
+    return () => {
+      window.removeEventListener("messages-read", handleMessagesRead);
+      if (socket) {
+        socket.off("notification", loadChatCount);
+        socket.off("chat_updated", loadChatCount);
+        socket.off("messages_read", loadChatCount);
+      }
+    };
+  }, []);
 
   function toggle() {
     const next = !collapsed;
@@ -109,12 +151,15 @@ export default function UserSidebar({ collapsed: controlledCollapsed, onToggle }
         <nav className="px-2 py-3 space-y-0.5">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href || pathname.startsWith(href + "/");
+            const isMessages = href === "/user/messages";
+            const badgeCount = isMessages ? unreadMsgCount : 0;
+
             return (
               <Link
                 key={href}
                 href={href}
                 title={collapsed ? label : undefined}
-                className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 ${
+                className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-150 relative ${
                   collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2.5"
                 } ${
                   isActive
@@ -124,6 +169,15 @@ export default function UserSidebar({ collapsed: controlledCollapsed, onToggle }
               >
                 <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-[#0785BC]" : ""}`} />
                 {!collapsed && <span className="truncate">{label}</span>}
+                {badgeCount > 0 && (
+                  <span
+                    className={`w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 ${
+                      collapsed ? "absolute -top-1 -right-1" : "ml-auto"
+                    }`}
+                  >
+                    {badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}

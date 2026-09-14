@@ -1,10 +1,9 @@
 const Joi = require('joi');
 
-// Admin membuat laporan manual
+// Admin atau User membuat laporan kerusakan
 const createDamageReportSchema = Joi.object({
-  user_id: Joi.string().uuid().required().messages({
-    'string.empty': 'user_id (pemilik peminjaman) wajib diisi',
-    'any.required': 'user_id wajib diisi'
+  user_id: Joi.string().uuid().allow(null, '').messages({
+    'string.base': 'user_id harus berupa string UUID'
   }),
   item_id: Joi.string().uuid().allow(null, ''),
   package_id: Joi.string().uuid().allow(null, ''),

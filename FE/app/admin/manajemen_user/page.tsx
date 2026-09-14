@@ -14,9 +14,14 @@ import {
   Trash2,
   X,
   Loader2,
+  Download,
+  Upload,
+  FileText,
+  FileSpreadsheet,
 } from "lucide-react";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
+import ExportModal from "@/components/ExportModal";
 
 interface User {
   id: string;
@@ -25,6 +30,7 @@ interface User {
   nomor_induk?: string;
   no_hp?: string;
   role: string;
+  foto?: string | null;
   status?: string;
 }
 
@@ -66,7 +72,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ── Avatar ──
-function Avatar({ name, color }: { name?: string; color: string }) {
+function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
   const safeName = (name || "").trim();
   const initials = safeName
     ? safeName
@@ -77,23 +83,25 @@ function Avatar({ name, color }: { name?: string; color: string }) {
         .join("")
         .toUpperCase()
     : "U";
+
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt={safeName}
+        className="w-9 h-9 rounded-full object-cover border border-slate-200 shrink-0"
+      />
+    );
+  }
+
   return (
     <div
-      className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${color}`}
+      className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-[#0785BC]"
     >
       {initials}
     </div>
   );
 }
-
-const avatarColors = [
-  "bg-teal-500",
-  "bg-blue-500",
-  "bg-purple-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-cyan-500",
-];
 
 const PAGE_SIZE = 10;
 
@@ -120,16 +128,76 @@ export default function ManajemenUserPage() {
     status: "Aktif",
   });
 
+  const [allUsersStats, setAllUsersStats] = useState({ total: 0, admins: 0, inactive: 0 });
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importSummary, setImportSummary] = useState<{ success: number; failed: number } | null>(null);
+
+  const handleDownloadTemplate = () => {
+    const csvContent = "name,email,nomor_induk,role,no_hp,password\nContoh Mahasiswa,mahasiswa@kampus.ac.id,202401001,Mahasiswa,08123456789,Password123\nContoh Dosen,dosen@kampus.ac.id,198501002,Dosen,08123456780,Password123";
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "template_import_user_pokada.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExecuteImport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!importFile) return;
+    setImporting(true);
+    setImportSummary(null);
+    try {
+      const res = await api.users.importCSV(importFile);
+      if (res.status === "success" || res.statusCode === 201 || res.statusCode === 207) {
+        const succ = res.data?.success?.length || 0;
+        const fail = res.data?.failed?.length || 0;
+        setImportSummary({ success: succ, failed: fail });
+        await fetchUsers();
+        alert(res.message || `Import selesai: ${succ} berhasil, ${fail} gagal`);
+        if (fail === 0) setShowImportModal(false);
+      } else {
+        alert("Gagal memproses import CSV: " + (res.message || "Error"));
+      }
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + (err.message || err));
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.users.getAll({ page, limit: PAGE_SIZE });
+      const [res, allRes] = await Promise.all([
+        api.users.getAll({ page, limit: PAGE_SIZE }),
+        api.users.getAll({ limit: 500 }),
+      ]);
+
       if (res.status === "success" && Array.isArray(res.data)) {
         setUsers(res.data as User[]);
         setTotal(res.total || res.data.length);
       } else {
         setUsers([]);
         setTotal(0);
+      }
+
+      if (allRes.status === "success" && Array.isArray(allRes.data)) {
+        const all = allRes.data as User[];
+        const admins = all.filter(
+          (u) => (u.role?.toLowerCase() === "admin" || u.role?.toLowerCase() === "petugas") && u.status !== "Nonaktif"
+        ).length;
+        const inactive = all.filter((u) => u.status === "Nonaktif" || u.status === "inactive").length;
+        setAllUsersStats({
+          total: all.length,
+          admins,
+          inactive,
+        });
       }
     } catch (err) {
       console.warn("Gagal memuat pengguna:", err);
@@ -308,43 +376,90 @@ export default function ManajemenUserPage() {
     >
       <div className="space-y-6">
         {/* Page header */}
-        <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Manajemen Pengguna</h1>
             <p className="text-sm text-slate-500 mt-0.5">Kelola data pengguna, peran akses, dan status akun platform.</p>
           </div>
-          <button
-            onClick={handleOpenAdd}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Tambah Pengguna Baru
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setShowExportModal(true)}
+              className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-[#0785BC]" />
+              Ekspor / Impor Data
+            </button>
+            <button
+              onClick={handleOpenAdd}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Tambah Pengguna
+            </button>
+          </div>
         </div>
 
-        {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              style={{ animationDelay: `${i * 75}ms` }}
-              className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 ${mounted ? "animate-fade-up" : "opacity-0"}`}
-            >
+        {/* ── Stat Cards (Modern Design) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
+          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-slate-500 font-medium mb-1">{s.label}</p>
-                <p
-                  className={`text-3xl font-bold tabular-nums ${
-                    i === 0 ? "text-blue-600" : i === 1 ? "text-teal-600" : "text-red-500"
-                  }`}
-                >
-                  {s.value}
-                </p>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 mb-2">
+                  Total Member
+                </span>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pengguna</p>
               </div>
-              <div className={`w-12 h-12 rounded-xl ${s.iconBg} flex items-center justify-center`}>
-                {s.icon}
+              <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[#0785BC] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <Users className="w-5 h-5" />
               </div>
             </div>
-          ))}
+            <div className="mt-3">
+              <p className="text-3xl font-extrabold text-slate-900 tabular-nums">
+                {loading ? "..." : allUsersStats.total || total} <span className="text-xs text-slate-400 font-semibold">akun terdaftar</span>
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">Mahasiswa, Dosen, & Staf</p>
+            </div>
+          </div>
+
+          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 mb-2">
+                  Privileged
+                </span>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin & Petugas</p>
+              </div>
+              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <UserCheck className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-3xl font-extrabold text-emerald-600 tabular-nums">
+                {loading ? "..." : allUsersStats.admins} <span className="text-xs text-emerald-700/60 font-semibold">operator aktif</span>
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">Mengelola operasional sarpras</p>
+            </div>
+          </div>
+
+          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100 mb-2">
+                  Akses Dinonaktifkan
+                </span>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Akun Nonaktif</p>
+              </div>
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <UserX className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-3">
+              <p className="text-3xl font-extrabold text-rose-600 tabular-nums">
+                {loading ? "..." : allUsersStats.inactive} <span className="text-xs text-rose-700/60 font-semibold">akun terkunci</span>
+              </p>
+              <p className="text-[11px] text-slate-400 mt-1">Dibekukan atau dinonaktifkan</p>
+            </div>
+          </div>
         </div>
 
         {/* ── User Directory ── */}
@@ -406,7 +521,7 @@ export default function ManajemenUserPage() {
                       {/* User */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <Avatar name={user.name} color={avatarColors[i % avatarColors.length]} />
+                          <Avatar name={user.name} foto={user.foto} />
                           <div>
                             <p className="font-semibold text-slate-800 text-xs">{user.name}</p>
                             <p className="text-[11px] text-slate-400 mt-0.5">{user.email}</p>
@@ -637,6 +752,44 @@ export default function ManajemenUserPage() {
           </div>
         </div>
       )}
+
+      {/* ── Unified Modal Ekspor & Impor Pengguna ── */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        title="Kelola Data Pengguna"
+        description="Pilih tab untuk ekspor berkas terfilter tanggal atau impor berkas CSV pengguna."
+        moduleName="Pengguna"
+        filenamePrefix="SARPRAS_Pengguna"
+        data={users}
+        dateFieldGetter={(u) => (u as any).created_at}
+        dataRowMapper={(u) => ({
+          "Nomor Induk / NIM": u.nomor_induk || "-",
+          "Nama Lengkap": u.name,
+          Email: u.email,
+          "No Telepon": u.no_hp || "-",
+          Peran: u.role,
+          Status: u.status || "Aktif",
+        })}
+        allowImport={true}
+        importTitle="Template Berkas CSV Pengguna"
+        importTemplateFilename="template_import_user_pokada.csv"
+        importTemplateHeader="name, email, nomor_induk, role, no_hp, password"
+        importTemplateContent="name,email,nomor_induk,role,no_hp,password\nContoh Mahasiswa,mahasiswa@kampus.ac.id,202401001,Mahasiswa,08123456789,Password123\nContoh Dosen,dosen@kampus.ac.id,198501002,Dosen,08123456780,Password123"
+        onExecuteImport={async (file) => {
+          const res = await api.users.importCSV(file);
+          if (res.status === "success" || res.statusCode === 201 || res.statusCode === 207) {
+            await fetchUsers();
+            const succ = res.data?.success?.length || 0;
+            const fail = res.data?.failed?.length || 0;
+            alert(res.message || `Import selesai: ${succ} berhasil, ${fail} gagal`);
+            return { success: succ, failed: fail };
+          } else {
+            alert("Gagal impor CSV pengguna: " + (res.message || "Error"));
+            return { success: 0, failed: 1 };
+          }
+        }}
+      />
     </AdminLayout>
   );
 }

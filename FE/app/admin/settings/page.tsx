@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
+import ExportModal from "@/components/ExportModal";
 
 type SettingsTab = "profile" | "account" | "notifications" | "security" | "data";
 
@@ -25,6 +26,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [saved, setSaved] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   // Profile settings
   const [fullName, setFullName] = useState("");
@@ -721,9 +723,24 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="space-y-3 max-w-md">
+                    <div className="p-4 border border-blue-200 bg-blue-50/40 rounded-2xl flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-slate-900 text-xs">Arsip Master Komprehensif</p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Ekspor data 5 modul (Peminjaman, Pengembalian, Barang, Kerusakan, User) dalam Excel / CSV
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowExportModal(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl font-bold shadow-2xs shrink-0 ml-2"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Ekspor Master
+                      </button>
+                    </div>
+
                     <div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-slate-800">Ekspor Salinan Data</p>
+                        <p className="font-semibold text-slate-800">Ekspor Salinan Konfigurasi</p>
                         <p className="text-[11px] text-slate-400">Unduh data profil dan konfigurasi dalam format JSON</p>
                       </div>
                       <button
@@ -753,6 +770,15 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        isMasterArchive={true}
+        title="Ekspor Arsip Master SARPRAS"
+        description="Unduh berkas rekapitulasi data riil seluruh modul sistem."
+        moduleName="Master_Archive"
+      />
     </AdminLayout>
   );
 }
