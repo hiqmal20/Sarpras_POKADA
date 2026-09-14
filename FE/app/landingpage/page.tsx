@@ -17,12 +17,26 @@ import {
   Camera,
   Laptop,
   Mic,
-  Tent,
   Building2,
   HelpCircle,
   MapPin,
-  Clock, 
-  Sparkle
+  Clock,
+  Sparkle,
+  Cpu,
+  Activity,
+  QrCode,
+  GraduationCap,
+  Stethoscope,
+  Database,
+  Share2,
+  ArrowUpRight,
+  FileText,
+  Phone,
+  Mail,
+  MessageSquare,
+  ExternalLink,
+  Shield,
+  Zap,
 } from "lucide-react";
 
 export default function LandingPage() {
@@ -31,6 +45,20 @@ export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [activeWorkflowStep, setActiveWorkflowStep] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Auto-cycle workflow animation every 3.5s like n8n active runner
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveWorkflowStep((prev) => (prev + 1) % 4);
+    }, 3500);
+    return () => clearInterval(timer);
+  }, []);
 
   // Smooth scroll handler for nav items
   const handleScrollTo = (id: string, e?: React.MouseEvent) => {
@@ -45,15 +73,15 @@ export default function LandingPage() {
 
     const element = document.getElementById(id);
     if (element) {
-      const yOffset = -80; // Offset navbar height
+      const yOffset = -80;
       const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
   };
 
-  // ScrollSpy with IntersectionObserver for smooth active nav tracking
+  // ScrollSpy with IntersectionObserver
   useEffect(() => {
-    const sections = ["beranda", "cara-kerja", "katalog", "faq"];
+    const sections = ["beranda", "alur-kerja", "katalog", "tentang", "faq"];
     const handleScroll = () => {
       const scrollPosition = window.scrollY + 120;
 
@@ -79,74 +107,86 @@ export default function LandingPage() {
   }, []);
 
   const categories = [
-    { id: "all", label: "Semua Kategori", icon: Layers },
-    { id: "camera", label: "Kamera & Foto", icon: Camera },
-    { id: "audio", label: "Sound & Audio", icon: Mic },
-    { id: "lab", label: "Peralatan Lab", icon: Laptop },
-    { id: "outdoor", label: "Outdoor & Event", icon: Tent },
-    { id: "room", label: "Ruangan & Aula", icon: Building2 },
+    { id: "all", label: "Semua Sarpras", icon: Layers },
+    { id: "health", label: "Lab Keperawatan & Medis", icon: Stethoscope },
+    { id: "mik", label: "Lab MIK & Komputer", icon: Laptop },
+    { id: "multimedia", label: "Studio & Audio Visual", icon: Camera },
+    { id: "auditorium", label: "Ruangan & Aula", icon: Building2 },
   ];
 
+  // Data aset sarpras nyata sesuai konteks Politeknik Karya Husada (POKADA - khj.ac.id)
   const featuredItems = [
     {
       id: "1",
-      name: "Sony Alpha A7 III + Lensa 28-70mm",
-      category: "camera",
-      categoryName: "Kamera & Foto",
-      stock: 3,
-      location: "Lab Multimedia Gedung B",
-      image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80",
+      name: "Tensimeter Digital Omron & Doppler Vaskular",
+      category: "health",
+      categoryName: "Lab Keperawatan & Medis",
+      stock: 6,
+      location: "Lab Praktikum Keperawatan Lt. 6",
+      image: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
+      code: "BRG-MED-001",
+      condition: "Sangat Baik",
     },
     {
       id: "2",
-      name: "Wireless Mic Hollyland Lark M1 (Dual)",
-      category: "audio",
-      categoryName: "Sound & Audio",
-      stock: 5,
-      location: "Studio Podcast POKADA",
-      image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=600&q=80",
+      name: "Phantom Manekin Resusitasi CPR & Anatomi",
+      category: "health",
+      categoryName: "Lab Keperawatan & Medis",
+      stock: 4,
+      location: "Lab Keperawatan Gawat Darurat",
+      image: "https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
+      code: "BRG-MED-002",
+      condition: "Terstandarisasi",
     },
     {
       id: "3",
-      name: "Projector Epson EB-E500 3300 Lumens",
-      category: "lab",
-      categoryName: "Peralatan Lab",
-      stock: 4,
-      location: "Ruang Sarpras Utama",
-      image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80",
+      name: "Workstation PC Core i7 Lab Health Data Science",
+      category: "mik",
+      categoryName: "Lab MIK & Komputer",
+      stock: 12,
+      location: "Lab Komputer SIMRS Gedung Atlanta",
+      image: "https://images.unsplash.com/photo-1581092921461-eab62e97a780?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
+      code: "BRG-MIK-003",
+      condition: "Optimal",
     },
     {
       id: "4",
-      name: "Tenda Dome Kapasitas 4 Orang + Matras",
-      category: "outdoor",
-      categoryName: "Outdoor & Event",
-      stock: 6,
-      location: "Gudang UKM Pecinta Alam",
-      image: "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=600&q=80",
+      name: "Wireless Mic Hollyland Lark M1 & Audio Mixer",
+      category: "multimedia",
+      categoryName: "Studio & Audio Visual",
+      stock: 5,
+      location: "Studio Podcast & Media POKADA",
+      image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
+      code: "BRG-SND-004",
+      condition: "Siap Pakai",
     },
     {
       id: "5",
-      name: "Bor Listrik Impact Drill Pro 13mm",
-      category: "lab",
-      categoryName: "Peralatan Lab",
-      stock: 2,
-      location: "Bengkel Teknik Mesin",
-      image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=600&q=80",
+      name: "Projector Epson EB-E500 3300 Lumens + Screen",
+      category: "multimedia",
+      categoryName: "Studio & Audio Visual",
+      stock: 4,
+      location: "Ruang Sarpras Utama Gedung Atlanta",
+      image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
+      code: "BRG-PRJ-005",
+      condition: "Prima",
     },
     {
       id: "6",
-      name: "Ruang Diskusi Kolaboratif Smart TV",
-      category: "room",
+      name: "Aula Utama & Ruang Seminar Gedung Atlanta",
+      category: "auditorium",
       categoryName: "Ruangan & Aula",
       stock: 2,
-      location: "Perpustakaan Lt. 2",
-      image: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=600&q=80",
+      location: "Gedung Atlanta Lt. 2 POKADA",
+      image: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
+      code: "RNG-AULA-006",
+      condition: "Kapasitas 150 Orang",
     },
   ];
 
@@ -155,118 +195,204 @@ export default function LandingPage() {
     const matchSearch =
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase());
+      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.code.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
+  // Alur Kerja Interaktif ala n8n AI Workflow Nodes
+  const workflowNodes = [
+    {
+      step: 1,
+      tag: "Trigger Node",
+      title: "Pilih Sarpras & Jadwal",
+      desc: "Mahasiswa / Dosen memilih peralatan praktikum atau ruangan dengan kalender ketersediaan real-time.",
+      badge: "Katalog Mandiri",
+      icon: GraduationCap,
+      color: "from-blue-500 to-[#0785BC]",
+      output: "Kode PJ-2026xxxx Terbit",
+    },
+    {
+      step: 2,
+      tag: "Verification Engine",
+      title: "Validasi Kuota Otomatis",
+      desc: "Sistem cerdas memeriksa sisa stok aset fisik, riwayat peminjam, serta jadwal bentrok secara otomatis.",
+      badge: "Instant Checking",
+      icon: Cpu,
+      color: "from-indigo-500 to-sky-500",
+      output: "Stok Terverifikasi Aman",
+    },
+    {
+      step: 3,
+      tag: "Approval Gate",
+      title: "Persetujuan Petugas SARPRAS",
+      desc: "Petugas laboratorium / admin memverifikasi tujuan peminjaman melalui portal admin satu pintu.",
+      badge: "Notifikasi Real-Time",
+      icon: ShieldCheck,
+      color: "from-[#0785BC] to-teal-500",
+      output: "Status: Disetujui",
+    },
+    {
+      step: 4,
+      tag: "Execution Node",
+      title: "Serah Terima & Digital Return",
+      desc: "Peralatan diambil di Gedung Atlanta POKADA, kondisi dicek transparan hingga pengembalian selesai.",
+      badge: "Paperless & Rapi",
+      icon: CheckCircle2,
+      color: "from-emerald-500 to-teal-600",
+      output: "Aset Kembali Sempurna",
+    },
+  ];
+
   const faqs = [
     {
-      q: "Siapa saja yang dapat meminjam sarana & prasarana di POKADA?",
-      a: "Seluruh civitas akademika aktif (Mahasiswa, Dosen, dan Staff) yang telah terdaftar dan memverifikasi akun di portal SARPRAS POKADA.",
+      q: "Siapa saja yang berhak meminjam sarana & prasarana di POKADA?",
+      a: "Seluruh sivitas akademika aktif Politeknik Karya Husada (Mahasiswa DIII Keperawatan, STr Kebidanan, Profesi Bidan, STr MIK, serta Dosen & Staff) yang telah terdaftar dengan NIM/NIP valid.",
     },
     {
-      q: "Berapa lama batas waktu peminjaman barang?",
-      a: "Batas peminjaman standar adalah 1-3 hari kalender dan dapat diperpanjang atas persetujuan petugas sarpras sebelum masa tenggat berakhir.",
+      q: "Bagaimana jika barang yang ingin dipinjam adalah paket bundling?",
+      a: "Sistem SARPRAS POKADA menyediakan fitur 'Paket Bundling' lengkap untuk seminar atau praktikum kelompok. Ketersediaan paket otomatis memvalidasi seluruh unit komponen di dalamnya.",
     },
     {
-      q: "Bagaimana proses pengambilan dan pengembalian barang?",
-      a: "Setelah mendapat persetujuan, datang ke lokasi sarpras untuk mengambil barang dan mengembalikannya setelah selesai digunakan.",
+      q: "Berapa lama batas peminjaman aset praktikum kampus?",
+      a: "Peminjaman standar berkisar 1 hingga 3 hari kerja dan dapat diperpanjang atas konfirmasi petugas SARPRAS sebelum batas tanggal kembali tercapai.",
     },
     {
-      q: "Apa yang terjadi jika barang mengalami kendala atau kerusakan?",
-      a: "Peminjam wajib melaporkan kondisi melalui fitur 'Lapor Kerusakan' di sistem. Petugas akan memverifikasi kondisi awal dan riwayat serah terima.",
+      q: "Di mana lokasi serah terima dan pengambilan sarpras fisik?",
+      a: "Seluruh penyerahan aset fisik terpusat di Unit SARPRAS POKADA, Gedung Atlanta Jl. Margonda Raya No. 28, Depok atau di laboratorium terkait sesuai petunjuk notifikasi.",
+    },
+    {
+      q: "Apa yang harus dilakukan jika terjadi kendala atau kerusakan alat?",
+      a: "Peminjam dapat langsung memanfaatkan menu 'Lapor Kerusakan' di portal akun. Petugas laboratorium akan segera memverifikasi kondisi awal dan tindak lanjut perbaikan.",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 selection:bg-[#0785BC]/20">
-      {/* Header / Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 shadow-xs transition-all duration-300">
+    <div className="min-h-screen bg-[#fafcff] text-slate-900 selection:bg-[#0785BC]/20 font-sans antialiased overflow-x-hidden">
+      {/* ── Ambient Background Glow (ChatGPT / AI Aesthetic) ── */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-[#0785BC]/15 via-sky-300/10 to-transparent blur-3xl rounded-full opacity-70 animate-glow-pulse" />
+        <div className="absolute top-[800px] -left-40 w-[600px] h-[600px] bg-blue-100/30 blur-3xl rounded-full opacity-50" />
+        <div className="absolute top-[1600px] -right-40 w-[600px] h-[600px] bg-teal-100/30 blur-3xl rounded-full opacity-40" />
+      </div>
+
+      {/* ── Top Floating Notification Bar (Live System Status) ── */}
+      <div className="relative z-50 bg-[#0B132B] text-white py-2 px-4 text-xs font-medium border-b border-slate-800">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 truncate">
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-slate-300">
+              Portal Sarana & Prasarana Resmi <strong className="text-white">Politeknik Karya Husada (POKADA)</strong>
+            </span>
+            <span className="hidden md:inline-block text-slate-500">•</span>
+            <span className="hidden md:inline-block text-slate-400">
+              Terintegrasi Kampus Utama Gedung Atlanta Depok
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 text-[11px] text-slate-400">
+            <a
+              href="https://khj.ac.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors flex items-center gap-1"
+            >
+              khj.ac.id <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Navigation Bar ── */}
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/70 shadow-2xs transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-20">
-            {/* Logo */}
+          <div className="flex items-center justify-between h-18">
+            {/* Logo Brand */}
             <button
               onClick={() => handleScrollTo("beranda")}
-              className="flex items-center gap-2.5 flex-shrink-0 group text-left cursor-pointer focus:outline-none"
+              className="flex items-center gap-3 group text-left cursor-pointer focus:outline-none"
             >
-              <div className="relative w-8 h-8 flex items-center justify-center">
-                {/* SVG Exact Brand Logo */}
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-slate-200 shadow-2xs flex items-center justify-center bg-white group-hover:scale-105 transition-transform">
                 <img
-                  className="w-8 h-8 transition-transform duration-300 group-hover:scale-105"
                   src="/images/pokada.jpg"
                   alt="Logo POKADA"
+                  className="w-full h-full object-cover"
                 />
               </div>
-              <span className="text-xl font-extrabold tracking-tight text-[#0785BC]">
-                SARPRAS
-              </span>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-lg font-black tracking-tight text-slate-900 leading-none">
+                    SARPRAS<span className="text-[#0785BC]">POKADA</span>
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium leading-tight mt-0.5">
+                  Politeknik Karya Husada
+                </p>
+              </div>
             </button>
 
-            {/* Center Search Bar (Desktop) */}
-            <div className="hidden md:flex flex-1 max-w-md mx-6 lg:mx-10">
-              <div className="relative w-full">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 transition-colors group-focus-within:text-[#0785BC]" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Cari barang untuk disewa..."
-                  className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0785BC] focus:bg-white focus:border-transparent transition-all duration-200 text-slate-800 placeholder:text-slate-400"
-                />
-              </div>
-            </div>
-
-            {/* Desktop Navigation Links with Smooth Animated Underline */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8">
+            {/* Desktop Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1 lg:gap-2">
               <button
                 onClick={() => handleScrollTo("beranda")}
-                className={`text-sm font-semibold relative py-2 transition-colors duration-200 cursor-pointer ${
-                  activeNav === "beranda" ? "text-[#0785BC]" : "text-slate-600 hover:text-[#0785BC]"
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                  activeNav === "beranda"
+                    ? "bg-[#0785BC]/10 text-[#0785BC]"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
                 Beranda
-                <span
-                  className={`absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#0785BC] rounded-full transition-all duration-300 ease-out ${
-                    activeNav === "beranda" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
-                  }`}
-                />
               </button>
-
+              <button
+                onClick={() => handleScrollTo("alur-kerja")}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                  activeNav === "alur-kerja"
+                    ? "bg-[#0785BC]/10 text-[#0785BC]"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
+                }`}
+              >
+                Alur Kerja
+              </button>
               <button
                 onClick={() => handleScrollTo("katalog")}
-                className={`text-sm font-medium relative py-2 transition-colors duration-200 cursor-pointer ${
-                  activeNav === "katalog" ? "text-[#0785BC] font-semibold" : "text-slate-600 hover:text-[#0785BC]"
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                  activeNav === "katalog"
+                    ? "bg-[#0785BC]/10 text-[#0785BC]"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                Jelajahi
-                <span
-                  className={`absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#0785BC] rounded-full transition-all duration-300 ease-out ${
-                    activeNav === "katalog" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
-                  }`}
-                />
+                Katalog Sarpras
               </button>
-
               <button
-                onClick={() => handleScrollTo("cara-kerja")}
-                className={`text-sm font-medium relative py-2 transition-colors duration-200 cursor-pointer ${
-                  activeNav === "cara-kerja" ? "text-[#0785BC] font-semibold" : "text-slate-600 hover:text-[#0785BC]"
+                onClick={() => handleScrollTo("faq")}
+                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all cursor-pointer ${
+                  activeNav === "faq"
+                    ? "bg-[#0785BC]/10 text-[#0785BC]"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                Cara Kerja
-                <span
-                  className={`absolute bottom-0 left-0 right-0 h-[2.5px] bg-[#0785BC] rounded-full transition-all duration-300 ease-out ${
-                    activeNav === "cara-kerja" ? "opacity-100 scale-x-100" : "opacity-0 scale-x-0"
-                  }`}
-                />
+                Bantuan & FAQ
               </button>
+            </nav>
 
+            {/* Right Action CTA */}
+            <div className="hidden md:flex items-center gap-2.5">
               <Link
                 href="/auth/login"
-                className="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:bg-[#055d82] rounded-full transition-all duration-200 shadow-sm hover:shadow active:scale-95"
+                className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-[#0785BC] hover:bg-slate-100/70 rounded-full transition-colors"
               >
-                Daftarkan Barang
+                Masuk Akun
               </Link>
-            </nav>
+              <Link
+                href="/auth/register"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-full transition-all shadow-sm hover:shadow-md"
+              >
+                Daftar Mahasiswa / Staff <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
 
             {/* Mobile Menu Trigger */}
             <div className="flex md:hidden items-center gap-2">
@@ -279,170 +405,291 @@ export default function LandingPage() {
               </button>
             </div>
           </div>
-
-          {/* Search bar on Mobile */}
-          <div className="md:hidden pb-4">
-            <div className="relative w-full">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari barang untuk disewa..."
-                className="w-full pl-11 pr-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-slate-800 transition-all duration-200"
-              />
-            </div>
-          </div>
         </div>
 
-        {/* Mobile Dropdown Menu with Smooth Animation */}
-        <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-t border-slate-100 bg-white ${
-            mobileMenuOpen ? "max-h-80 opacity-100 shadow-xl" : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="px-4 py-4 space-y-2">
+        {/* Mobile Dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-xl px-4 py-4 space-y-2 animate-fade-in shadow-xl">
             <button
               onClick={() => handleScrollTo("beranda")}
-              className={`w-full text-left px-4 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
-                activeNav === "beranda" ? "bg-[#0785BC]/10 text-[#0785BC]" : "text-slate-700 hover:bg-slate-50"
-              }`}
+              className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50"
             >
               Beranda
             </button>
             <button
-              onClick={() => handleScrollTo("katalog")}
-              className={`w-full text-left px-4 py-2.5 text-sm font-medium rounded-xl transition-colors ${
-                activeNav === "katalog" ? "bg-[#0785BC]/10 text-[#0785BC]" : "text-slate-700 hover:bg-slate-50"
-              }`}
+              onClick={() => handleScrollTo("alur-kerja")}
+              className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50"
             >
-              Jelajahi
+              Alur Kerja n8n
             </button>
             <button
-              onClick={() => handleScrollTo("cara-kerja")}
-              className={`w-full text-left px-4 py-2.5 text-sm font-medium rounded-xl transition-colors ${
-                activeNav === "cara-kerja" ? "bg-[#0785BC]/10 text-[#0785BC]" : "text-slate-700 hover:bg-slate-50"
-              }`}
+              onClick={() => handleScrollTo("katalog")}
+              className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50"
             >
-              Cara Kerja
+              Katalog Sarpras
             </button>
             <button
               onClick={() => handleScrollTo("faq")}
-              className={`w-full text-left px-4 py-2.5 text-sm font-medium rounded-xl transition-colors ${
-                activeNav === "faq" ? "bg-[#0785BC]/10 text-[#0785BC]" : "text-slate-700 hover:bg-slate-50"
-              }`}
+              className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50"
             >
-              FAQ
+              Bantuan & FAQ
             </button>
-            <div className="pt-2">
+            <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
               <Link
                 href="/auth/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full flex items-center justify-center px-4 py-3 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-full shadow-sm"
+                className="w-full text-center py-2.5 text-xs font-bold text-slate-700 border border-slate-200 rounded-xl"
               >
-                Daftarkan Barang
+                Masuk Akun
+              </Link>
+              <Link
+                href="/auth/register"
+                className="w-full text-center py-2.5 text-xs font-bold text-white bg-[#0785BC] rounded-xl"
+              >
+                Daftar Mahasiswa / Staff
               </Link>
             </div>
           </div>
-        </div>
+        )}
       </header>
 
-      {/* Hero Section */}
-      <section id="beranda" className="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24 ">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-12 gap-10 lg:gap-12 items-center ">
-            {/* Left Text Column */}
+      {/* ── HERO SECTION (ChatGPT & n8n Inspired) ── */}
+      <section id="beranda" className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+        {/* Subtle n8n Workflow Background Grid Canvas */}
+        <div className="absolute inset-0 bg-workflow-grid opacity-60 pointer-events-none" />
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
+          <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left: Text & Prompt-Style Search */}
             <div className="lg:col-span-6 space-y-6 text-left">
               {/* Pill Badge */}
-              
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/60 shadow-2xs text-[#0785BC] text-xs font-bold">
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#0785BC]" style={{ animationDuration: "6s" }} />
+                <span>Smart Campus Facilities Management</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0785BC]" />
+                <span className="text-slate-600 font-semibold">Gedung Atlanta</span>
+              </div>
 
-              {/* Main Heading */}
-              <h1 className="text-4x1 sm:text-5xl lg:text-[56px] font-black text-slate-900 tracking-tight leading-[1.15] mt-9">
-                Smart  <span className="text-[#0785BC]">Sarpras</span>,<br />
-                Untuk Smart kampus.
+              {/* Main Headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black tracking-tight text-slate-900 leading-[1.15]">
+                Pengelolaan Sarpras Kampus{" "}
+                <span className="bg-gradient-to-r from-[#0785BC] via-sky-600 to-teal-600 bg-clip-text text-transparent">
+                  Cerdas & Otomatis.
+                </span>
               </h1>
 
               {/* Subheading */}
-              <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-xl">
-                Digitalisasi pengelolaan sarana dan prasarana untuk menciptakan sistem 
-                kampus yang lebih efisien, transparan, dan terorganisir.
+              <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl">
+                Solusi satu pintu peminjaman sarana prasarana akademik di{" "}
+                <strong className="text-slate-800 font-bold">Politeknik Karya Husada (POKADA)</strong>.
+                Dari laboratorium keperawatan, data kesehatan, studio multimedia, hingga aula seminar kampus.
               </p>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              {/* ChatGPT Prompt-Style Quick Search Bar */}
+              <div className="bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 shadow-lg shadow-blue-500/5 transition-all focus-within:border-[#0785BC] focus-within:ring-3 focus-within:ring-[#0785BC]/15 max-w-xl">
+                <div className="flex items-center gap-2 px-2">
+                  <Search className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Cari alat praktikum, tensimeter, proyektor, aula..."
+                    className="w-full text-xs sm:text-sm bg-transparent border-0 focus:outline-none text-slate-800 placeholder:text-slate-400"
+                  />
+                  <button
+                    onClick={() => handleScrollTo("katalog")}
+                    className="px-4 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold rounded-xl transition-all shrink-0 active:scale-95 shadow-xs"
+                  >
+                    Temukan
+                  </button>
+                </div>
+
+                {/* Quick Chips */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-2 px-2 border-t border-slate-100 mt-2 text-[11px] text-slate-400">
+                  <span className="font-semibold text-slate-500">Paling Dicari:</span>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("Tensimeter");
+                      handleScrollTo("katalog");
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                  >
+                    🩺 Tensimeter
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("Workstation");
+                      handleScrollTo("katalog");
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                  >
+                    💻 Lab MIK
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("Projector");
+                      handleScrollTo("katalog");
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                  >
+                    📽️ Proyektor
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("Aula");
+                      handleScrollTo("katalog");
+                    }}
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                  >
+                    🏛️ Ruang Aula
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3 pt-2">
                 <Link
                   href="/auth/login"
-                  className="inline-flex items-center justify-center px-7 py-3 text-sm sm:text-base font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:bg-[#055d82] rounded-full transition-all duration-200 shadow-md hover:shadow-lg active:scale-95"
+                  className="px-6 py-3 text-xs sm:text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center gap-2"
                 >
-                  Mulai Meminjam
+                  <Zap className="w-4 h-4 fill-white" />
+                  Mulai Ajukan Pinjam
                 </Link>
                 <button
-                  onClick={() => handleScrollTo("cara-kerja")}
-                  className="inline-flex items-center justify-center px-7 py-3 text-sm sm:text-base font-semibold text-[#0785BC] bg-white border border-[#0785BC] hover:bg-[#0785BC]/5 rounded-full transition-all duration-200 active:scale-95 cursor-pointer"
+                  onClick={() => handleScrollTo("alur-kerja")}
+                  className="px-6 py-3 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
                 >
-                  Pelajari Lebih Lanjut
+                  Lihat Alur Kerja n8n
                 </button>
               </div>
 
-              {/* Mini stats */}
-              <div className="pt-6 border-t border-slate-100 grid grid-cols-3 gap-4 max-w-lg">
+              {/* Campus Verified Telemetry Stats */}
+              <div className="pt-4 grid grid-cols-3 gap-4 border-t border-slate-200/70 max-w-lg">
                 <div>
-                  <p className="text-2xl font-extrabold text-[#0785BC]">500+</p>
-                  <p className="text-xs text-slate-500 font-medium">Aset Kampus</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#0785BC]">500+</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Aset Kampus Aktif</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-extrabold text-[#0785BC]">100%</p>
-                  <p className="text-xs text-slate-500 font-medium">Terverifikasi</p>
+                  <p className="text-xl sm:text-2xl font-black text-[#0785BC]">4 Prodi</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Terintegrasi Sistem</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-extrabold text-[#10B981]">0 Kg</p>
-                  <p className="text-xs text-slate-500 font-medium">Emisi Baru</p>
+                  <p className="text-xl sm:text-2xl font-black text-emerald-600">100%</p>
+                  <p className="text-[11px] text-slate-500 font-medium">Paperless & Valid</p>
                 </div>
               </div>
             </div>
 
-            {/* Right Hero Image Column with Floating Cards */}
+            {/* Right: n8n AI Animated Workflow Canvas Visualizer */}
             <div className="lg:col-span-6 relative">
-              <div className="relative mx-auto max-w-lg lg:max-w-none">
-                {/* Main Hero Image Container */}
-                <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/3] sm:aspect-[16/11] bg-slate-100 border border-slate-200/60 transition-transform duration-500 hover:scale-[1.01]">
-                  <Image
-                    src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=85"
-                    alt="Mahasiswa menggunakan sarpras kampus"
-                    fill
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    priority
-                    className="object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
-                </div>
-
-                {/* Floating Card 1: Top-Left (Transaksi Aman - Jaminan 100%) */}
-                <div className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-white/95 backdrop-blur-md px-4 py-3 rounded-2xl shadow-xl border border-white/60 flex items-center gap-3 transform -rotate-1 hover:rotate-0 transition-all duration-300 hover:shadow-2xl">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle2 className="w-6 h-6 fill-emerald-600 text-white" />
+              {/* Outer decorative card */}
+              <div className="relative rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/40 p-5 sm:p-6 border border-slate-200/90 shadow-2xl shadow-blue-500/10 backdrop-blur-md">
+                {/* Header of Canvas */}
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
+                    </div>
+                    <span className="text-[11px] font-mono font-bold text-slate-500 ml-2">
+                      pokada_sarpras_pipeline.n8n
+                    </span>
                   </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                      Peminjaman 
-                    </p>
-                    <p className="text-[11px] text-slate-500 font-medium">Jaminan 100%</p>
+                  <div className="flex items-center gap-1.5">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      Live Flow Active
+                    </span>
                   </div>
                 </div>
 
-                {/* Floating Card 2: Bottom-Right (Bor Listrik Pro) */}
-                <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 bg-white/95 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-xl border border-white/60 flex items-center gap-3 transform rotate-1 hover:rotate-0 transition-all duration-300 hover:shadow-2xl">
-                  <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    <Image
-                      src="https://images.unsplash.com/photo-1504148455328-c376907d081c?auto=format&fit=crop&w=120&q=80"
-                      alt="Bor Listrik"
-                      width={36}
-                      height={36}
-                      className="object-cover"
+                {/* Animated Workflow Flow Canvas */}
+                <div className="space-y-3.5 relative">
+                  {/* Visual Node Connectors with SVG Animated Flow Line */}
+                  <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-slate-200 pointer-events-none hidden sm:block">
+                    <div
+                      className="w-full bg-[#0785BC] transition-all duration-700"
+                      style={{ height: `${(activeWorkflowStep + 1) * 25}%` }}
                     />
                   </div>
-                  <span className="text-xs sm:text-sm font-bold text-slate-900 pr-1">
-                    Bor Listrik Pro
+
+                  {workflowNodes.map((node, idx) => {
+                    const Icon = node.icon;
+                    const isActive = activeWorkflowStep === idx;
+                    return (
+                      <div
+                        key={node.step}
+                        onClick={() => setActiveWorkflowStep(idx)}
+                        className={`relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                          isActive
+                            ? "bg-white border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md translate-x-1 sm:translate-x-2"
+                            : "bg-white/70 border-slate-200/70 hover:bg-white hover:border-slate-300 shadow-2xs"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3.5">
+                          <div
+                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold transition-transform ${
+                              isActive
+                                ? `bg-gradient-to-br ${node.color} text-white shadow-xs scale-105`
+                                : "bg-slate-100 text-slate-600"
+                            }`}
+                          >
+                            <Icon className="w-4 h-4" />
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-mono font-bold text-[#0785BC] uppercase tracking-wider">
+                                {node.tag}
+                              </span>
+                              <span
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                                  isActive
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-slate-100 text-slate-500"
+                                }`}
+                              >
+                                {isActive ? "● Executing" : "Ready"}
+                              </span>
+                            </div>
+
+                            <p className="text-xs font-bold text-slate-900 mt-0.5">{node.title}</p>
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
+                              {node.desc}
+                            </p>
+
+                            {isActive && (
+                              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-[#0785BC] font-semibold animate-fade-in">
+                                <span>Output: {node.output}</span>
+                                <span className="flex items-center gap-0.5">
+                                  Next Node &rarr;
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Floating Interactive Telemetry Card (n8n Live Output preview) */}
+                <div className="mt-4 p-3 rounded-2xl bg-[#0B132B] text-white border border-slate-800 shadow-lg flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-[#0785BC] flex items-center justify-center shrink-0">
+                      <QrCode className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-white text-[11px] truncate">
+                        Aset Siap: Tensimeter & Manekin CPR
+                      </p>
+                      <p className="text-[10px] text-slate-400 truncate">
+                        Lokasi: Gedung Atlanta POKADA Lt. 3
+                      </p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                    Terverifikasi
                   </span>
                 </div>
               </div>
@@ -451,390 +698,465 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Cara Kerja Section */}
-      <section id="cara-kerja" className="py-16 sm:py-20 lg:py-24 bg-[#fafcff] border-y border-slate-100">
+      {/* ── ALUR KERJA AUTOMATION SECTION (n8n style) ── */}
+      <section id="alur-kerja" className="py-20 bg-white border-y border-slate-100 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Section Header */}
-          <div className="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
-              Cara Kerja SARPRAS POKADA
+          <div className="text-center max-w-2xl mx-auto mb-14">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-[#0785BC] mb-3">
+              <Cpu className="w-3.5 h-3.5" /> ALUR KERJA TERPADU
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+              Peminjaman Tanpa Kertas & Antrean
             </h2>
-            <p className="mt-3 text-sm sm:text-base text-slate-600 leading-relaxed">
-              Tiga langkah mudah untuk mengakses barang impian Anda. Tanpa ribet, aman, dan
-              mendukung gaya hidup berkelanjutan.
+            <p className="text-slate-500 text-sm mt-2 leading-relaxed">
+              Didesain khusus untuk efisiensi dosen, mahasiswa, dan staf laboratorium di lingkungan Politeknik Karya Husada.
             </p>
           </div>
 
-          {/* 3 Step Cards */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-            {/* Step 1 */}
-            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 rounded-full bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Search className="w-7 h-7 stroke-[2.2]" />
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-slate-50/70 p-6 rounded-3xl border border-slate-200/70 hover:border-[#0785BC]/50 hover:bg-white hover:shadow-xl transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#0785BC] border border-blue-100 flex items-center justify-center font-bold text-lg mb-4 group-hover:scale-110 transition-transform">
+                <Search className="w-6 h-6" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2.5 group-hover:text-[#0785BC] transition-colors">
-                1. Temukan Barang
-              </h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Jelajahi ribuan barang berkualitas dari komunitas kami. Gunakan filter cerdas untuk
-                menemukan yang tepat.
+              <span className="text-[10px] font-mono font-bold text-[#0785BC] uppercase tracking-wider">Langkah 01</span>
+              <h3 className="text-base font-bold text-slate-900 mt-1 mb-2">Eksplorasi Sarpras & Stok</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Cari peralatan praktikum keperawatan, komputer lab MIK, proyektor, hingga ruang seminar dengan informasi ketersediaan real-time.
               </p>
             </div>
 
-            {/* Step 2 */}
-            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group">
-              <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Calendar className="w-7 h-7 stroke-[2.2]" />
+            <div className="bg-slate-50/70 p-6 rounded-3xl border border-slate-200/70 hover:border-[#0785BC]/50 hover:bg-white hover:shadow-xl transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-lg mb-4 group-hover:scale-110 transition-transform">
+                <Calendar className="w-6 h-6" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2.5 group-hover:text-emerald-600 transition-colors">
-                2. Peminjaman Mudah
-              </h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Pilih tanggal pinjam yang diinginkan. Sistem kami akan mengatur jadwal dan
-                ketersediaan secara otomatis.
+              <span className="text-[10px] font-mono font-bold text-indigo-600 uppercase tracking-wider">Langkah 02</span>
+              <h3 className="text-base font-bold text-slate-900 mt-1 mb-2">Pengajuan Cepat & Approval</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Tentukan tanggal pinjam dan selesai. Petugas SARPRAS akan memvalidasi permohonan melalui sistem dan mengirim notifikasi status.
               </p>
             </div>
 
-            {/* Step 3 */}
-            <div className="bg-white rounded-2xl p-8 border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col items-center text-center group sm:col-span-2 lg:col-span-1">
-              <div className="w-16 h-16 rounded-full bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <ShieldCheck className="w-7 h-7 stroke-[2.2]" />
+            <div className="bg-slate-50/70 p-6 rounded-3xl border border-slate-200/70 hover:border-[#0785BC]/50 hover:bg-white hover:shadow-xl transition-all duration-300 group">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold text-lg mb-4 group-hover:scale-110 transition-transform">
+                <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-slate-900 mb-2.5 group-hover:text-[#0785BC] transition-colors">
-                3. Semua Lebih Teratur
-              </h3>
-              <p className="text-slate-500 text-sm leading-relaxed">
-                Pantau peminjaman, cek status pengajuan, dan 
-                lihat riwayat sarpras dengan praktis dalam satu platform.
+              <span className="text-[10px] font-mono font-bold text-emerald-600 uppercase tracking-wider">Langkah 03</span>
+              <h3 className="text-base font-bold text-slate-900 mt-1 mb-2">Serah Terima & Digital Return</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Ambil peralatan di Gedung Atlanta POKADA dengan bukti transaksi digital. Pengembalian dan kondisi barang dicatat transparan.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Katalog Barang Interaktif Section */}
-      <section id="katalog" className="py-16 sm:py-20 lg:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-wider text-[#0785BC] uppercase mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              Katalog Sarana Kampus
+      {/* ── KATALOG SARANA & PRASARANA KAMPUS ── */}
+      <section id="katalog" className="py-20 bg-[#fafcff]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#0785BC]/10 text-[#0785BC] mb-2">
+                <Layers className="w-3.5 h-3.5" /> KATALOG SARANA POKADA
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+                Peralatan Praktikum & Fasilitas Kampus
+              </h2>
+              <p className="text-xs text-slate-500 mt-1">
+                Fasilitas pendukung DIII Keperawatan, STr Kebidanan, Profesi Bidan, dan STr Manajemen Informasi Kesehatan.
+              </p>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              Pilihan Barang Terpopuler
-            </h2>
-          </div>
-          <p className="text-slate-500 text-sm max-w-md">
-            Pilih dan pinjam peralatan praktikum, dokumentasi organisasi, hingga ruangan dengan mudah.
-          </p>
-        </div>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 no-scrollbar">
-          {categories.map((cat) => {
-            const Icon = cat.icon;
-            const isActive = activeTab === cat.id;
-            return (
-              <button
-                key={cat.id}
-                onClick={() => setActiveTab(cat.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200 cursor-pointer ${
-                  isActive
-                    ? "bg-[#0785BC] text-white shadow-md scale-105"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {cat.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Item Cards Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="group bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col"
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0785BC] hover:underline self-start md:self-auto"
             >
-              {/* Image Thumbnail */}
-              <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
-                <Image
-                  src={item.image}
-                  alt={item.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <span className="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#0785BC] text-[11px] font-bold px-2.5 py-1 rounded-full shadow-xs">
-                  {item.categoryName}
-                </span>
-                <span className="absolute top-3 right-3 bg-emerald-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
-                  {item.status}
-                </span>
-              </div>
-
-              {/* Card Body */}
-              <div className="p-5 flex flex-col flex-1 justify-between">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-base group-hover:text-[#0785BC] transition-colors line-clamp-1">
-                    {item.name}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                    <span className="line-clamp-1">{item.location}</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
-                  <div className="text-xs">
-                    <span className="text-slate-400">Sisa Stok:</span>{" "}
-                    <span className="font-bold text-[#0785BC]">{item.stock} Unit</span>
-                  </div>
-                  <Link
-                    href="/auth/login"
-                    className="inline-flex items-center gap-1 text-xs font-bold text-[#0785BC] hover:text-[#0672a0] group/btn"
-                  >
-                    Pinjam Sekarang
-                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-0.5" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {filteredItems.length === 0 && (
-          <div className="text-center py-16 bg-slate-50 rounded-2xl">
-            <p className="text-slate-500 text-sm">Tidak ada barang yang cocok dengan pencarian Anda.</p>
+              Lihat Seluruh Aset di Portal &rarr;
+            </Link>
           </div>
-        )}
-      </section>
 
-      {/* Banner CTA Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="relative rounded-3xl bg-gradient-to-r from-[#0785BC] via-[#0672a0] to-[#0785BC] text-white p-8 sm:p-12 overflow-hidden shadow-xl">
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              Punya Perlengkapan yang Jarang Terpakai?
-            </h2>
-            <p className="text-blue-50 text-sm sm:text-base leading-relaxed">
-              Daftarkan inventaris UKM, Lab, atau jurusanmu agar bisa dimanfaatkan secara produktif oleh sesama mahasiswa.
-            </p>
-            <div className="pt-2">
-              <Link
-                href="/auth/register"
-                className="inline-flex items-center justify-center px-6 py-3 text-sm font-bold text-[#0785BC] bg-white hover:bg-slate-50 rounded-full transition-all duration-200 shadow-md active:scale-95"
-              >
-                Daftarkan Sarpras Sekarang
-              </Link>
-            </div>
-          </div>
-          <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-15 bg-radial from-white to-transparent pointer-events-none"></div>
-        </div>
-      </section>
-
-      {/* FAQ Section with Smooth CSS Grid Transition */}
-      <section id="faq" className="py-16 sm:py-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-1 text-xs font-bold text-[#0785BC] uppercase tracking-wider mb-2">
-            <HelpCircle className="w-4 h-4" />
-            Tanya Jawab
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-            Pertanyaan yang Sering Diajukan
-          </h2>
-        </div>
-
-        <div className="space-y-4">
-          {faqs.map((faq, idx) => {
-            const isOpen = openFaq === idx;
-            return (
-              <div
-                key={idx}
-                className={`border rounded-2xl bg-white transition-all duration-300 ${
-                  isOpen ? "border-[#0785BC]/40 shadow-md" : "border-slate-200 hover:border-slate-300"
-                }`}
-              >
+          {/* Category Filter Buttons */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+            {categories.map((cat) => {
+              const Icon = cat.icon;
+              const isActive = activeTab === cat.id;
+              return (
                 <button
-                  onClick={() => setOpenFaq(isOpen ? null : idx)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 font-semibold text-slate-900 text-sm sm:text-base hover:text-[#0785BC] transition-colors cursor-pointer"
-                >
-                  <span>{faq.q}</span>
-                  <ChevronDown
-                    className={`w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0 ${
-                      isOpen ? "rotate-180 text-[#0785BC]" : ""
-                    }`}
-                  />
-                </button>
-                <div
-                  className={`grid transition-all duration-300 ease-in-out ${
-                    isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                  key={cat.id}
+                  onClick={() => setActiveTab(cat.id)}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200 cursor-pointer ${
+                    isActive
+                      ? "bg-[#0785BC] text-white shadow-sm scale-102"
+                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
                   }`}
                 >
-                  <div className="overflow-hidden">
-                    <div className="px-6 pb-5 text-sm text-slate-600 leading-relaxed border-t border-slate-100 pt-3">
-                      {faq.a}
+                  <Icon className="w-3.5 h-3.5" />
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Items Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredItems.map((item) => (
+              <div
+                key={item.id}
+                className="bg-white rounded-3xl border border-slate-200/80 shadow-2xs overflow-hidden flex flex-col hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+              >
+                {/* Image */}
+                <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-3 left-3">
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/90 backdrop-blur-md text-slate-800 shadow-2xs">
+                      {item.categoryName}
+                    </span>
+                  </div>
+                  <div className="absolute top-3 right-3">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500 text-white shadow-2xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-5 flex flex-col flex-1 justify-between space-y-4">
+                  <div>
+                    <span className="text-[10px] font-mono font-bold text-[#0785BC] bg-blue-50 px-2 py-0.5 rounded">
+                      {item.code}
+                    </span>
+                    <h3 className="font-bold text-slate-900 text-sm mt-1.5 group-hover:text-[#0785BC] transition-colors leading-snug">
+                      {item.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{item.location}</span>
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Sisa Stok:</span>
+                      <span className="text-xs font-bold text-slate-800">
+                        {item.stock} Unit ({item.condition})
+                      </span>
                     </div>
+
+                    <Link
+                      href="/auth/login"
+                      className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-colors shadow-2xs"
+                    >
+                      Pinjam &rarr;
+                    </Link>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Footer (Harmonized Brand Blue #0785BC / #066089) */}
-      <footer className="bg-[#0785BC] text-white pt-16 pb-8">
+      {/* ── BENTAR KAMPUS POKADA CTA BANNER ── */}
+      <section className="py-12 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mb-12">
-            {/* Col 1 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-extrabold tracking-tight text-white">
-                SARPRAS POKADA
-              </h3>
-              <p className="text-blue-50 text-sm leading-relaxed">
-                Membangun komunitas untuk masa depan yang lebih berkelanjutan melalui berbagi.
+          <div className="relative rounded-3xl bg-gradient-to-r from-[#0785BC] via-[#066d9b] to-[#0B132B] p-8 sm:p-12 text-white overflow-hidden shadow-2xl">
+            <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-10 pointer-events-none bg-dot-grid-dark" />
+            <div className="relative z-10 max-w-2xl space-y-4">
+              <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-md inline-block">
+                Sivitas Akademika Politeknik Karya Husada
+              </span>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">
+                Punya Kebutuhan Praktikum atau Acara Kampus?
+              </h2>
+              <p className="text-blue-100 text-xs sm:text-sm leading-relaxed">
+                Manfaatkan inventaris laboratorium resmi, peralatan dokumentasi, hingga aula seminar untuk menunjang prestasi dan kelancaran kegiatan akademik Anda.
               </p>
+              <div className="pt-2 flex items-center gap-3">
+                <Link
+                  href="/auth/login"
+                  className="px-6 py-3 text-xs sm:text-sm font-bold text-[#0785BC] bg-white hover:bg-slate-100 rounded-xl transition-all shadow-md active:scale-95"
+                >
+                  Ajukan Sekarang di Portal
+                </Link>
+                <a
+                  href="https://pmbonline.khj.ac.id/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-3 text-xs sm:text-sm font-semibold text-white/90 hover:text-white border border-white/30 hover:border-white rounded-xl transition-all"
+                >
+                  PMB Online POKADA
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ SECTION ── */}
+      <section id="faq" className="py-20 bg-[#fafcff]">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-[#0785BC]/10 text-[#0785BC] mb-2">
+              <HelpCircle className="w-3.5 h-3.5" /> PUSAT INFORMASI
+            </div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+              Pertanyaan yang Sering Diajukan
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Panduan seputar aturan dan tata kelola peminjaman sarana prasarana POKADA.
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            {faqs.map((faq, idx) => {
+              const isOpen = openFaq === idx;
+              return (
+                <div
+                  key={idx}
+                  className="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden transition-colors"
+                >
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : idx)}
+                    className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 font-bold text-xs sm:text-sm text-slate-900 hover:text-[#0785BC] transition-colors cursor-pointer"
+                  >
+                    <span>{faq.q}</span>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-400 transition-transform duration-300 shrink-0 ${
+                        isOpen ? "rotate-180 text-[#0785BC]" : ""
+                      }`}
+                    />
+                  </button>
+                  {isOpen && (
+                    <div className="px-6 pb-4 pt-1 text-xs text-slate-500 leading-relaxed border-t border-slate-100 animate-fade-in">
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FOOTER (ChatGPT & Claude Style: Clean, Sophisticated, Minimalist) ── */}
+      <footer className="bg-[#0A0F1D] text-slate-400 pt-16 pb-12 border-t border-slate-800/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 pb-14 border-b border-slate-800">
+            {/* Col 1: Brand & Campus Bio (Colspan 2) */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/images/pokada.jpg"
+                  alt="Logo POKADA"
+                  className="w-8 h-8 rounded-lg object-cover border border-slate-700"
+                />
+                <span className="text-lg font-black tracking-tight text-white">
+                  SARPRAS<span className="text-[#0785BC]">POKADA</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
+                Sistem Informasi Pengelolaan Sarana dan Prasarana Kampus Politeknik Karya Husada (POKADA).
+                Mewujudkan tata kelola fasilitas akademik yang transparan, modern, dan efisien.
+              </p>
+
+              {/* Campus Address & Contacts */}
+              <div className="space-y-2 pt-2 text-xs text-slate-300">
+                <p className="flex items-start gap-2">
+                  <MapPin className="w-4 h-4 text-[#0785BC] shrink-0 mt-0.5" />
+                  <span>Gedung Atlanta, Jl. Margonda Raya No. 28, Pondok Cina, Beji, Kota Depok, Jawa Barat 16424</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-[#0785BC] shrink-0" />
+                  <span>021-2780-1509 · WhatsApp: 0821 1376 7144</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-[#0785BC] shrink-0" />
+                  <span>khj@khj.ac.id</span>
+                </p>
+              </div>
             </div>
 
-            {/* Col 2 */}
-            <div className="space-y-5">
-              <h4 className="text-base font-extrabold uppercase tracking-[0.12em] text-white">
-                Platform
-              </h4>
-              <ul className="space-y-3 text-sm text-blue-50">
+            {/* Col 2: Fasilitas & Sarpras */}
+            <div className="space-y-3 text-xs">
+              <p className="font-bold text-white uppercase tracking-wider text-[11px]">
+                Fasilitas Kampus
+              </p>
+              <ul className="space-y-2">
                 <li>
                   <button
-                    onClick={() => handleScrollTo("katalog")}
-                    className="hover:text-white transition-colors cursor-pointer text-left"
+                    onClick={() => {
+                      setActiveTab("health");
+                      handleScrollTo("katalog");
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
                   >
-                    Jelajahi Barang
+                    Lab Keperawatan & Medis
                   </button>
                 </li>
                 <li>
                   <button
-                    onClick={() => handleScrollTo("cara-kerja")}
-                    className="hover:text-white transition-colors cursor-pointer text-left"
+                    onClick={() => {
+                      setActiveTab("mik");
+                      handleScrollTo("katalog");
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
                   >
-                    Cara Menyewa
+                    Lab MIK & Komputer SIMRS
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      setActiveTab("multimedia");
+                      handleScrollTo("katalog");
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    Studio Podcast & Media
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      setActiveTab("auditorium");
+                      handleScrollTo("katalog");
+                    }}
+                    className="hover:text-white transition-colors cursor-pointer"
+                  >
+                    Aula Gedung Atlanta
                   </button>
                 </li>
                 <li>
                   <Link href="/auth/login" className="hover:text-white transition-colors">
-                    Daftarkan Barang
+                    Paket Bundling Sarpras
                   </Link>
                 </li>
               </ul>
             </div>
 
-            {/* Col 3 */}
-            <div className="space-y-5">
-              <h4 className="text-base font-extrabold uppercase tracking-[0.12em] text-white">
-                Perusahaan
-              </h4>
-              <ul className="space-y-3 text-sm text-blue-50">
+            {/* Col 3: Portal Akademik KHJ */}
+            <div className="space-y-3 text-xs">
+              <p className="font-bold text-white uppercase tracking-wider text-[11px]">
+                Portal Akademik KHJ
+              </p>
+              <ul className="space-y-2">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Tentang Kami
+                  <a
+                    href="https://portalmhs.khj.ac.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    Portal Mahasiswa <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Sustainability Report
+                  <a
+                    href="https://portal.khj.ac.id/portaldos/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    Portal Dosen <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Karier
+                  <a
+                    href="https://slims.khj.ac.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    E-Library (SLiMS) <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://lms.khj.ac.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    LMS POKADA <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://pmbonline.khj.ac.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    PMB Online POKADA <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </li>
               </ul>
             </div>
 
-            {/* Col 4 */}
-            <div className="space-y-5">
-              <h4 className="text-base font-extrabold uppercase tracking-[0.12em] text-white">
-                Bantuan & Legal
-              </h4>
-              <ul className="space-y-3 text-sm text-blue-50">
+            {/* Col 4: Kebijakan & Layanan */}
+            <div className="space-y-3 text-xs">
+              <p className="font-bold text-white uppercase tracking-wider text-[11px]">
+                Kebijakan & Bantuan
+              </p>
+              <ul className="space-y-2">
                 <li>
-                  <button
-                    onClick={() => handleScrollTo("faq")}
-                    className="hover:text-white transition-colors cursor-pointer text-left"
-                  >
-                    Pusat Bantuan
+                  <button onClick={() => handleScrollTo("faq")} className="hover:text-white transition-colors">
+                    Pusat Bantuan & FAQ
                   </button>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Contact Us
+                  <button onClick={() => handleScrollTo("alur-kerja")} className="hover:text-white transition-colors">
+                    SOP Peminjaman Alat
+                  </button>
+                </li>
+                <li>
+                  <Link href="/auth/login" className="hover:text-white transition-colors">
+                    Pelaporan Kerusakan
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href="https://spmi.khj.ac.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    SPMI POKADA <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Privacy Policy
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Terms of Service
+                  <a
+                    href="https://journal.khj.ac.id/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    Jurnal Ilmiah <ArrowUpRight className="w-3 h-3" />
                   </a>
                 </li>
               </ul>
             </div>
           </div>
 
-          {/* Contact Information - Horizontal Layout */}
-          <div className="pt-8 pb-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
-              {/* Customer Service - Left */}
-              <div className="flex items-start gap-3">
-                <img src="/images/phone (1).png" alt="phone" className="h-8 w-8 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-semibold text-blue-100 text-xs">Customer Service</span>
-                  <span className="font-bold text-white">+021-2780-1509</span>
-                </div>
-              </div>
-
-              {/* WhatsApp */}
-              <div className="flex items-start gap-3">
-                <img src="/images/whatsapp (1).png" alt="whatsapp" className="h-8 w-8 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-semibold text-blue-100 text-xs">WhatsApp</span>
-                  <span className="text-white text-xs">0821 1376 7144</span>
-                </div>
-              </div>
-
-              {/* Email */}
-              <div className="flex items-start gap-3">
-                <img src="/images/mail (1).png" alt="mail" className="h-8 w-8 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-semibold text-blue-100 text-xs">Email</span>
-                  <span className="text-white text-xs">khj@khj.ac.id</span>
-                </div>
-              </div>
-
-              {/* Address - Right */}
-              <div className="flex items-start gap-3">
-                <img src="/images/maps-and-flags (1).png" alt="location" className="h-8 w-8 flex-shrink-0" />
-                <div className="flex flex-col">
-                  <span className="font-semibold text-blue-100 text-xs">Gedung Atlanta</span>
-                  <span className="text-white text-xs leading-relaxed">
-                    Jl. Margonda Raya No. 28 Kel. Pondok Cina, Kec. Beji, Kota Depok, Jawa Barat 16424
-                  </span>
-                </div>
-              </div>
+          {/* Claude / ChatGPT Signature Bottom Bar */}
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-slate-300 font-medium">
+                Seluruh Sistem Sarpras Operasional (Uptime 99.9%)
+              </span>
             </div>
-          </div>
 
-          {/* Copyright - Center Bottom */}
-          <div className="pt-6">
-            <p className="text-blue-100/80 text-xs text-center">
-              © 2026 POKADA. All rights reserved.
-            </p>
+            <div className="text-slate-500 text-center sm:text-right">
+              <p>© 2026 Politeknik Karya Husada (POKADA). All rights reserved.</p>
+            </div>
           </div>
         </div>
       </footer>
