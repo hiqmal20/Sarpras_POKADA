@@ -282,7 +282,13 @@ exports.createNewPackage = async ({ name, description = '', image_url = null, st
         .from('packages_items')
         .insert(itemsData);
 
-      if (insertItemsError) throw insertItemsError;
+      if (insertItemsError) {
+        try {
+          await supabase.from('packages_items').delete().eq('package_id', newPkg.id);
+          await supabase.from('packages').delete().eq('id', newPkg.id);
+        } catch (_) { /* best effort rollback */ }
+        throw insertItemsError;
+      }
     }
   }
 
@@ -306,7 +312,15 @@ exports.updateExistingPackage = async (id, { name, description, image_url, statu
   }
 
   if (items && Array.isArray(items)) {
-    await supabase.from('packages_items').delete().eq('package_id', id);
+    const { data: previousItems, error: readPrevError } = await supabase
+      .from('packages_items')
+      .select('item_id, quantity')
+      .eq('package_id', id);
+
+    if (readPrevError) throw readPrevError;
+
+    const { error: deleteError } = await supabase.from('packages_items').delete().eq('package_id', id);
+    if (deleteError) throw deleteError;
 
     if (items.length > 0) {
       const resolvedItems = await resolvePackageItems(items, name || '');
@@ -321,7 +335,19 @@ exports.updateExistingPackage = async (id, { name, description, image_url, statu
           .from('packages_items')
           .insert(itemsData);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          try {
+            const restorePayload = (previousItems || []).map(item => ({
+              package_id: id,
+              item_id: item.item_id,
+              quantity: item.quantity || 1
+            }));
+            if (restorePayload.length > 0) {
+              await supabase.from('packages_items').insert(restorePayload);
+            }
+          } catch (_) { /* best effort rollback */ }
+          throw insertError;
+        }
       }
     }
   }

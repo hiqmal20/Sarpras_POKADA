@@ -103,7 +103,15 @@ async function apiFetch<T>(
       headers,
     });
 
-    const data: ApiResponse<T> = await res.json();
+    let data: ApiResponse<T>;
+    try {
+      data = await res.json();
+    } catch {
+      return {
+        status: "error",
+        message: `Server mengembalikan respons tidak valid (HTTP ${res.status})`,
+      };
+    }
 
     // Jika 401 dan belum pernah retry, coba auto-refresh token
     if (res.status === 401 && !isRetry && !endpoint.includes("/auth/")) {
@@ -132,6 +140,21 @@ async function apiFetch<T>(
           isRefreshing = false;
         }
       }
+    }
+
+    if (!res.ok) {
+      if (res.status === 401 && typeof window !== "undefined") {
+        removeAuthToken();
+        if (!window.location.pathname.startsWith("/auth/")) {
+          window.location.href = "/auth/login";
+        }
+      }
+      return {
+        ...data,
+        status: data?.status && data.status !== "success" ? data.status : "error",
+        message: data?.message || `Permintaan gagal (HTTP ${res.status})`,
+      };
+
     }
 
     return data;
@@ -179,9 +202,37 @@ export const api = {
       return res;
     },
 
-    logout: () => {
+    updateProfile: async (payload: {
+      name?: string;
+      email?: string;
+      no_hp?: string;
+      foto?: string;
+      nomor_induk?: string;
+    }) => {
+      const res = await apiFetch<{ user: any }>("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      if (res.status === "success") return res;
+
+      // Fallback to /users/:id or direct Supabase
+      const local = getCurrentUser();
+      if (local?.id) {
+        return api.users.update(local.id, payload);
+      }
+      return res;
+    },
+
+    changePassword: (payload: { currentPassword: string; newPassword: string }) =>
+      apiFetch("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+
+    logout: async () => {
+      const result = await apiFetch("/auth/logout", { method: "POST" });
       removeAuthToken();
-      return apiFetch("/auth/logout", { method: "POST" });
+      return result;
     },
   },
 
@@ -498,7 +549,7 @@ export const api = {
       const { data: pkgs, error } = await supabase.from("packages").select("*").order("created_at", { ascending: false });
       if (!error && pkgs) {
         const pkgIds = pkgs.map((p: any) => p.id);
-        let itemsMap: Record<string, any[]> = {};
+        const itemsMap: Record<string, any[]> = {};
         if (pkgIds.length > 0) {
           const { data: pItems } = await supabase.from("packages_items").select("*, items(*)").in("package_id", pkgIds);
           if (pItems) {
@@ -693,15 +744,25 @@ export const api = {
     getAll: async (params?: { status?: string; user_id?: string; page?: number; limit?: number }) => {
       const q = toQueryString(params);
       const res = await apiFetch<any[]>(`/borrowings${q}`, { method: "GET" });
-      if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) return res;
+       if (res.status === "success" && Array.isArray(res.data)) return res;
 
-      let query = supabase.from("borrowings").select("*, users(*)", { count: "exact" }).order("created_at", { ascending: false });
-      if (params?.status && params.status !== "undefined") query = query.ilike("status", `%${params.status}%`);
+       let query = supabase.from("borrowings").select("*, users(*)", { count: "exact" }).order("created_at", { ascending: false });
+       const currentUser = getCurrentUser();
+       if (params?.user_id || currentUser?.role === "Mahasiswa" || currentUser?.role === "Peminjam") {
+         query = query.eq("user_id", params?.user_id || currentUser?.id);
+       }
+       if (params?.status && params.status !== "undefined") query = query.ilike("status", `%${params.status}%`);
+       if (params?.page && params?.limit) {
+         const from = (params.page - 1) * params.limit;
+         query = query.range(from, from + params.limit - 1);
+       } else if (params?.limit) {
+         query = query.limit(params.limit);
+       }
 
       const { data: bList, count, error } = await query;
       if (!error && bList) {
         const bIds = bList.map((b: any) => b.id);
-        let bItemsMap: Record<string, any[]> = {};
+        const bItemsMap: Record<string, any[]> = {};
         if (bIds.length > 0) {
           const { data: bItems } = await supabase.from("borrowings_items").select("*, items:items!borrowings_items_item_id_fkey(*)").in("borrowing_id", bIds);
           if (bItems) {
@@ -771,7 +832,7 @@ export const api = {
 
       if (!error && data) {
         const borrowingIds = data.map((r: any) => r.borrowing_id).filter(Boolean);
-        let itemsMap: Record<string, any[]> = {};
+        const itemsMap: Record<string, any[]> = {};
         if (borrowingIds.length > 0) {
           const { data: bItems } = await supabase
             .from("borrowings_items")
@@ -801,16 +862,22 @@ export const api = {
 
     create: async (payload: {
       borrowing_id: string;
+      note?: string;
       notes?: string;
       condition?: string;
     }) => {
-      const res = await apiFetch<any>("/returns", { method: "POST", body: JSON.stringify(payload) });
+      const normalized = {
+        ...payload,
+        note: payload.note || payload.notes || "",
+        notes: payload.notes || payload.note || "",
+      };
+      const res = await apiFetch<any>("/returns", { method: "POST", body: JSON.stringify(normalized) });
       if (res.status === "success") return res;
 
       const { data, error } = await supabase.from("returns").insert([{
         borrowing_id: payload.borrowing_id,
         return_date: new Date().toISOString(),
-        note: payload.notes || "",
+        note: normalized.note,
         condition: payload.condition || "Baik",
         created_at: new Date().toISOString(),
       }]).select().single();
@@ -849,13 +916,16 @@ export const api = {
       borrowing_id?: string;
       item_id?: string;
       package_id?: string;
-      title: string;
-      description: string;
+      title?: string;
+      description?: string;
       report_type?: string;
       damage_type?: string;
       item_condition?: string;
       fine_amount?: number;
       fine_reason?: string;
+      damage_description?: string;
+      photo_url?: string;
+      image_url?: string;
     }) => {
       const res = await apiFetch<any>("/damage-reports", { method: "POST", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
@@ -867,9 +937,10 @@ export const api = {
         package_id: payload.package_id || null,
         borrowing_id: payload.borrowing_id || null,
         title: payload.title || "Laporan Kerusakan",
-        description: payload.description || "",
+         description: payload.description || payload.damage_description || "",
         report_type: payload.report_type || "Kerusakan",
         damage_type: payload.damage_type || (payload.package_id ? "per_package" : "per_item"),
+        image_url: payload.image_url || payload.photo_url || null,
         status: "Menunggu Review",
         fine_amount: Number(payload.fine_amount) || 0,
         fine_reason: payload.fine_reason || "",
@@ -938,22 +1009,54 @@ export const api = {
       const res = await apiFetch<any[]>("/chats", { method: "GET" });
       if (res.status === "success" && Array.isArray(res.data)) return res;
 
-      const { data, error } = await supabase.from("chats").select("*, user:users!chats_user_id_fkey(*)").order("updated_at", { ascending: false });
+      const user = getCurrentUser();
+      let query = supabase
+        .from("chats")
+        .select("*, user:users!chats_user_id_fkey(*), admin:users!chats_admin_id_fkey(*)")
+        .order("updated_at", { ascending: false });
+
+      if (user?.role !== "Admin" && user?.role !== "Petugas" && user?.id) {
+        query = query.or(`user_id.eq.${user.id},admin_id.eq.${user.id}`);
+      }
+
+      const { data, error } = await query;
       if (!error && data) return { status: "success", message: "Chat dari Supabase", data, total: data.length };
       return res;
     },
 
-    create: (payload: { subject?: string; initial_message?: string }) =>
-      apiFetch<any>("/chats", {
+    create: async (payload: { subject?: string; initial_message?: string; admin_id?: string; user_id?: string }) => {
+      const res = await apiFetch<any>("/chats", {
         method: "POST",
         body: JSON.stringify(payload),
-      }),
+      });
+      if (res.status === "success" && res.data) return res;
+
+      const user = getCurrentUser();
+      const now = new Date().toISOString();
+      const insertPayload = {
+        user_id: user?.id || payload.user_id,
+        admin_id: payload.admin_id || null,
+        subject: payload.subject || "Chat Support Admin Sarpras",
+        status: "Open",
+        created_at: now,
+        updated_at: now,
+      };
+
+      const { data, error } = await supabase.from("chats").insert([insertPayload]).select("*, user:users!chats_user_id_fkey(*)").single();
+      if (!error && data) return { status: "success", message: "Ruang chat dibuat di Supabase", data };
+      return res;
+    },
 
     getMessages: async (chatId: string) => {
       const res = await apiFetch<any[]>(`/chats/${chatId}/messages`, { method: "GET" });
       if (res.status === "success" && Array.isArray(res.data)) return res;
 
-      const { data, error } = await supabase.from("chat_messages").select("*, sender:users!chat_messages_sender_id_fkey(*)").eq("chat_id", chatId).order("created_at", { ascending: true });
+      const { data, error } = await supabase
+        .from("chat_messages")
+        .select("*, sender:users!chat_messages_sender_id_fkey(*)")
+        .eq("chat_id", chatId)
+        .order("created_at", { ascending: true });
+
       if (!error && data) return { status: "success", message: "Pesan dari Supabase", data };
       return res;
     },
@@ -969,14 +1072,21 @@ export const api = {
       if (res.status === "success") return res;
 
       const user = getCurrentUser();
+      const now = new Date().toISOString();
       const insertMsg = {
         chat_id: chatId,
         sender_id: user?.id,
         message: payload.message,
-        created_at: new Date().toISOString(),
+        attachment_url: payload.attachment_url || null,
+        created_at: now,
       };
-      const { data, error } = await supabase.from("chat_messages").insert([insertMsg]).select().single();
-      if (!error && data) return { status: "success", message: "Pesan tersimpan di Supabase", data };
+      const { data, error } = await supabase.from("chat_messages").insert([insertMsg]).select("*, sender:users!chat_messages_sender_id_fkey(*)").single();
+      if (!error && data) {
+        try {
+          await supabase.from("chats").update({ updated_at: now }).eq("id", chatId);
+        } catch {}
+        return { status: "success", message: "Pesan tersimpan di Supabase", data };
+      }
       return res;
     },
 
@@ -1000,6 +1110,21 @@ export const api = {
       await supabase.from("chat_messages").delete().eq("chat_id", chatId);
       return { status: "success", message: "Riwayat pesan dibersihkan" };
     },
+
+    updateMessage: (chatId: string, messageId: string, message: string) =>
+      apiFetch(`/chats/${chatId}/messages/${messageId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ message }),
+      }),
+
+    deleteMessage: (chatId: string, messageId: string) =>
+      apiFetch(`/chats/${chatId}/messages/${messageId}`, { method: "DELETE" }),
+
+    updateStatus: (chatId: string, status: "Open" | "Closed") =>
+      apiFetch(`/chats/${chatId}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
 
     deleteChat: async (chatId: string) => {
       const res = await apiFetch(`/chats/${chatId}`, { method: "DELETE" });
@@ -1046,7 +1171,7 @@ export const api = {
   // 11. Dashboard Module
   dashboard: {
     getStats: async () => {
-      const res = await apiFetch<any>("/dashboard", { method: "GET" });
+      const res = await apiFetch<any>("/dashboard/stats", { method: "GET" });
       if (res.status === "success" && res.data) return res;
 
       // Direct calculation from Supabase

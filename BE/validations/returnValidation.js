@@ -8,6 +8,7 @@ const createReturnSchema = Joi.object({
   return_date: Joi.date().iso().default(() => new Date().toISOString()),
   condition: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat').default('Baik'),
   note: Joi.string().allow('', null),
+  notes: Joi.string().allow('', null),
   items_condition: Joi.array().items(
     Joi.object({
       borrowings_item_id: Joi.string().uuid().required(),

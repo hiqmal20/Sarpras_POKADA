@@ -128,13 +128,14 @@ exports.createUserProfile = async ({ nomor_induk, name, email, password, role = 
   return data;
 };
 
-exports.updateUserProfile = async (id, { nomor_induk, name, role, no_hp, foto, status }) => {
+exports.updateUserProfile = async (id, { nomor_induk, name, role, no_hp, foto, status, email }) => {
   const updatePayload = {
     update_at: new Date().toISOString()
   };
 
   if (nomor_induk !== undefined) updatePayload.nomor_induk = nomor_induk.trim();
   if (name !== undefined) updatePayload.name = name;
+  if (email !== undefined) updatePayload.email = email.trim().toLowerCase();
   if (role !== undefined) updatePayload.role = role;
   if (no_hp !== undefined) updatePayload.no_hp = no_hp;
   if (foto !== undefined) updatePayload.foto = foto;
@@ -148,7 +149,16 @@ exports.updateUserProfile = async (id, { nomor_induk, name, role, no_hp, foto, s
     .single();
 
   if (error || !data) {
-    throw new AppError('Gagal memperbarui profil pengguna', 404);
+    throw new AppError('Gagal memperbarui profil pengguna: ' + (error?.message || 'Data tidak ditemukan'), 404);
+  }
+
+  // Sinkronkan juga dengan supabase auth jika email diubah
+  if (email !== undefined && email.trim()) {
+    try {
+      await supabase.auth.admin.updateUserById(id, { email: email.trim().toLowerCase() });
+    } catch (authErr) {
+      console.warn('Gagal sinkronisasi auth email:', authErr.message);
+    }
   }
 
   return data;

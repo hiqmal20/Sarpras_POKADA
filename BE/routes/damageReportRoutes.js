@@ -14,10 +14,15 @@ router.get('/', damageReportController.getAllReports);
 // GET detail laporan
 router.get('/:id', damageReportController.getReportById);
 
-// POST buat laporan baru — User atau Admin/Petugas
+// User terautentikasi juga dapat membuat laporan miliknya sendiri
 router.post(
   '/',
   validateRequest(createDamageReportSchema),
+  (req, res, next) => {
+    const isPrivileged = [ROLES.ADMIN, ROLES.PETUGAS].includes(req.user.role);
+    if (!isPrivileged) req.body.user_id = req.user.id;
+    next();
+  },
   damageReportController.createReport
 );
 

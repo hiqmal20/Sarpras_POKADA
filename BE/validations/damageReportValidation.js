@@ -1,10 +1,8 @@
 const Joi = require('joi');
 
-// Admin atau User membuat laporan kerusakan
+// Admin membuat laporan manual
 const createDamageReportSchema = Joi.object({
-  user_id: Joi.string().uuid().allow(null, '').messages({
-    'string.base': 'user_id harus berupa string UUID'
-  }),
+  user_id: Joi.string().uuid().optional(),
   item_id: Joi.string().uuid().allow(null, ''),
   package_id: Joi.string().uuid().allow(null, ''),
   borrowing_id: Joi.string().uuid().allow(null, ''),
@@ -14,7 +12,9 @@ const createDamageReportSchema = Joi.object({
     'string.min': 'Judul minimal 3 karakter'
   }),
   description: Joi.string().allow('', null),
-  image_url: Joi.string().uri().allow('', null),
+  damage_description: Joi.string().allow('', null),
+  image_url: Joi.string().allow('', null),
+  photo_url: Joi.string().allow('', null),
 
   report_type: Joi.string()
     .valid('Kerusakan', 'Kehilangan', 'Cacat Fungsi')

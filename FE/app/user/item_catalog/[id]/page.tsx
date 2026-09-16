@@ -4,8 +4,9 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ChevronDown, CheckCircle2, Wrench, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ChevronDown, CheckCircle2 } from "lucide-react";
 import api from "@/lib/api";
+import { normalizeItem } from "@/lib/item";
 
 // ── Types ──
 interface ItemDetail {
@@ -53,12 +54,12 @@ export default function ItemDetailPage() {
   const mounted = useMount();
 
   const [item, setItem]       = useState<ItemDetail | null>(null);
-  const [packageItems, setPackageItems] = useState<any[]>([]);
+  const [availableItems, setAvailableItems] = useState<ItemDetail[]>([]);
+  const [selectedItems, setSelectedItems] = useState<ItemDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError]     = useState("");
-  const [damageReason, setDamageReason] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
     borrow_date: "", return_date: "", division: "", purpose: "",
@@ -68,97 +69,19 @@ export default function ItemDetailPage() {
   useEffect(() => {
     async function fetchItem() {
       setLoading(true);
-      try {
-        const [res, damageRes] = await Promise.all([
-          api.items.getById(id),
-          api.damageReports.getAll(),
-        ]);
-
-        const activeDamages = Array.isArray(damageRes?.data)
-          ? damageRes.data.filter((d: any) => d.status !== "Selesai")
-          : [];
-
-        if (res.status === "success" && res.data) {
-          const d = res.data;
-          const avail = d.available_stock !== undefined && d.available_stock !== null ? d.available_stock : (d.stock ?? 0);
-          const itemDamages = activeDamages.filter((ad: any) => ad.item_id === id);
-          const itemDamage = itemDamages[0];
-
-          // Barang hanya busy jika seluruh unit habis (avail === 0)
-          const isZeroAvail = avail === 0 || d.status === "Stok Kosong" || (d.status === "Dalam Pemeliharaan" && avail === 0);
-          const isItemAvailable = !isZeroAvail;
-
-          const dmgReason = itemDamage
-            ? (itemDamages.length > 1
-                ? `${itemDamages.length} unit sedang dalam perbaikan (${itemDamage.title || itemDamage.description})`
-                : `1 unit sedang dalam perbaikan (${itemDamage.title || itemDamage.description})`)
-            : (d.status === "Dalam Pemeliharaan" && avail === 0 ? "Seluruh unit sedang dalam pemeliharaan berkala" : null);
-
-          setDamageReason(dmgReason);
-
-          setItem({
-            id: d.id,
-            name: d.name,
-            description: d.description || "Barang inventaris siap digunakan untuk kegiatan kampus.",
-            category: d.categories?.name || d.category || "Sarana Kampus",
-            asset_id: d.code || "-",
-            status: isItemAvailable ? "available" : "busy",
-            image: d.image_url || undefined,
-          });
-          setPackageItems([]);
-        } else {
-          // Cek apakah ID adalah Paket Bundling
-          try {
-            const pkgRes = await api.packages.getById(id);
-            if (pkgRes.status === "success" && pkgRes.data) {
-              const p = pkgRes.data;
-              const pItems = p.packages_items || [];
-              const pkgDamage = activeDamages.find((ad: any) => ad.package_id === id);
-              const compDamage = pItems.find((pi: any) => {
-                const iId = pi.items?.id || pi.item_id;
-                const reqQty = pi.quantity || 1;
-                const iAvail = pi.items?.available_stock ?? pi.items?.stock ?? 0;
-                return iAvail < reqQty && activeDamages.some((ad: any) => ad.item_id === iId);
-              });
-
-              const unavailableComp = pItems.find(
-                (pi: any) => (pi.items?.available_stock ?? pi.items?.stock ?? 0) < (pi.quantity || 1)
-              );
-              const hasEmpty = Boolean(unavailableComp);
-              const isManualInactive = ["Non-Aktif", "Nonaktif", "Tidak Aktif"].includes(p.status);
-              const isPkgUnderRepair = p.status === "Dalam Pemeliharaan" || Boolean(pkgDamage);
-              const isAvail = !hasEmpty && !isManualInactive && !isPkgUnderRepair && p.is_available !== false;
-
-              const pkgDmgReason = p.damage_reason || (pkgDamage
-                ? `Paket sedang diperbaiki (${pkgDamage.title})`
-                : (compDamage
-                    ? `Komponen "${compDamage.items?.name || 'Barang'}" stok kurang karena unit lain sedang diperbaiki`
-                    : (p.status === "Dalam Pemeliharaan" ? "Paket sedang dalam pemeliharaan" : null)));
-
-              setDamageReason(pkgDmgReason);
-
-              setItem({
-                id: p.id,
-                name: p.name,
-                description: p.description || "Paket gabungan inventaris siap pakai untuk kegiatan kampus.",
-                category: "Paket Bundling",
-                asset_id: `PKG-${p.id.slice(0, 8).toUpperCase()}`,
-                status: isAvail ? "available" : "busy",
-                image: p.image_url || undefined,
-              });
-              setPackageItems(pItems);
-            } else {
-              setItem({ ...mockItem, id });
-            }
-          } catch {
-            setItem({ ...mockItem, id });
-          }
-        }
-      } catch (err) {
-        console.warn("Gagal memuat detail barang:", err);
-      } finally {
-        setLoading(false);
-      }
+       const [res, itemsRes] = await Promise.all([
+         api.items.getById(id),
+         api.items.getAll({ limit: 100 }),
+       ]);
+       if (res.status === "success" && res.data) {
+         setItem(normalizeItem(res.data) as ItemDetail);
+       } else {
+         setItem({ ...mockItem, id });
+       }
+       if (itemsRes.status === "success" && Array.isArray(itemsRes.data)) {
+         setAvailableItems(itemsRes.data.map(normalizeItem).filter((entry) => entry.status === "available" && entry.id !== id) as ItemDetail[]);
+       }
+       setLoading(false);
     }
     if (id) fetchItem();
   }, [id]);
@@ -170,15 +93,7 @@ export default function ItemDetailPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (item?.status !== "available") {
-      setError(
-        damageReason
-          ? `Barang atau paket ini tidak dapat dipinjam karena seluruh unit sedang dalam perbaikan akibat: "${damageReason}".`
-          : "Barang atau paket ini saat ini tidak tersedia / stok kosong dan tidak dapat dipinjam."
-      );
-      return;
-    }
-    if (!form.borrow_date || !form.return_date || !form.division || !form.purpose.trim()) {
+    if (!form.borrow_date || !form.return_date || !form.purpose.trim()) {
       setError("Semua field wajib diisi.");
       return;
     }
@@ -187,25 +102,18 @@ export default function ItemDetailPage() {
       return;
     }
     setSubmitting(true);
-
-    const borrowItems = packageItems.length > 0
-      ? packageItems.map((pi) => ({
-          item_id: pi.item_id || pi.items?.id,
-          quantity: pi.quantity || 1,
-        })).filter((bi) => Boolean(bi.item_id))
-      : [{ item_id: id, quantity: 1 }];
-
     const res = await api.borrowings.create({
       borrow_date: form.borrow_date,
       return_date: form.return_date,
-      purpose: `[${form.division}] ${form.purpose}`,
-      items: borrowItems.length > 0 ? borrowItems : [{ item_id: id, quantity: 1 }],
+      purpose: form.purpose,
+      items: [{ item_id: id, quantity: 1 }, ...selectedItems.map((entry) => ({ item_id: entry.id, quantity: 1 }))],
     });
     setSubmitting(false);
     if (res.status === "success") {
       setSuccess(true);
     } else {
-      setError(res.message || "Gagal mengirim permohonan peminjaman.");
+      const details = res.errors?.map((entry) => entry.message).join(", ");
+      setError(details || res.message || "Gagal mengirim permintaan.");
     }
   }
 
@@ -253,22 +161,21 @@ export default function ItemDetailPage() {
         </Link>
       </header>
 
-      <div className={`max-w-4xl mx-auto px-6 py-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
-        {/* Page header */}
+      <div className={`max-w-[1120px] mx-auto px-5 sm:px-8 py-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900">Item Detail</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Please review the item and complete the loan request form.</p>
+          <h1 className="text-3xl font-bold text-slate-900">Item Detail</h1>
+          <p className="text-sm text-slate-500 mt-1">Please review the item and complete the loan request form.</p>
         </div>
 
-        <div className="flex gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[352px_minmax(0,1fr)] gap-5 items-start">
           {/* ── Item Card ── */}
-          <div className="w-80 shrink-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="w-full bg-white rounded-3xl shadow-sm overflow-hidden">
             {loading ? (
               <div className="aspect-video bg-slate-100 animate-pulse" />
             ) : (
-              <div className="relative aspect-video bg-slate-100 overflow-hidden">
+              <div className="relative h-[210px] bg-slate-100 overflow-hidden p-4">
                 {item?.image ? (
-                  <Image src={item.image} alt={item.name} fill className="object-cover" sizes="320px" />
+                  <Image src={item.image} alt={item.name} fill className="object-cover rounded-lg" sizes="352px" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-100">
                     <span className="text-slate-300 text-4xl">📦</span>
@@ -277,7 +184,7 @@ export default function ItemDetailPage() {
               </div>
             )}
 
-            <div className="p-5">
+            <div className="p-7">
               {loading ? (
                 <div className="space-y-2">
                   <div className="h-4 bg-slate-100 rounded animate-pulse w-1/3" />
@@ -287,89 +194,56 @@ export default function ItemDetailPage() {
               ) : (
                 <>
                   {/* Status badge */}
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-3 ${
-                    item?.status === "available"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : (damageReason ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-rose-100 text-rose-700 border border-rose-200")
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${item?.status === "available" ? "bg-emerald-500 animate-pulse" : (damageReason ? "bg-amber-500 animate-pulse" : "bg-rose-500")}`} />
-                    {item?.status === "available" ? "Siap Dipinjam" : (damageReason ? "Dalam Perbaikan" : "Stok Kosong / Tidak Tersedia")}
-                  </span>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#0785BC] mb-2">{item?.category || "Barang"}</p>
+                  <h2 className="text-2xl font-bold text-slate-900 mb-3">{item?.name}</h2>
+                  <p className="text-sm text-slate-500 leading-relaxed mb-6">{item?.description}</p>
 
-                  <h2 className="text-lg font-bold text-slate-900 mb-2">{item?.name}</h2>
-                  <p className="text-sm text-slate-500 leading-relaxed mb-5">{item?.description}</p>
-
-                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                  <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-5">
                     <div>
-                      <p className="text-[11px] text-slate-400 uppercase tracking-wide font-medium mb-0.5">Category</p>
-                      <p className="text-sm font-semibold text-slate-800">{item?.category}</p>
+                       <p className="text-xs text-slate-400">Status</p>
+                       <p className="font-semibold text-emerald-600 mt-1">{item?.status === "available" ? "Tersedia" : "Tidak tersedia"}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] text-slate-400 uppercase tracking-wide font-medium mb-0.5">Asset ID</p>
-                      <p className="text-sm font-semibold text-slate-800">{item?.asset_id ?? "—"}</p>
+                       <p className="text-xs text-slate-400">Jenis</p>
+                       <p className="font-semibold text-slate-800 mt-1">Per Item</p>
                     </div>
                   </div>
                 </>
               )}
             </div>
-
-            {packageItems.length > 0 && (
-              <div className="p-5 border-t border-slate-100 bg-slate-50/50">
-                <p className="text-xs font-bold text-slate-800 mb-2.5">
-                  Daftar Barang dalam Paket ({packageItems.length})
-                </p>
-                <div className="space-y-2">
-                  {packageItems.map((pi: any, idx: number) => (
-                    <div key={idx} className="p-2.5 rounded-xl bg-white border border-slate-100 flex items-center justify-between text-xs shadow-2xs">
-                      <div>
-                        <p className="font-semibold text-slate-800">{pi.items?.name || "Barang"}</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="font-mono text-[10px] text-slate-400">{pi.items?.code || "-"}</span>
-                          {(pi.items?.category || pi.items?.categories?.name) && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded font-semibold bg-blue-50 text-[#0785BC] border border-blue-100">
-                              {pi.items?.category || pi.items?.categories?.name}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span className="font-bold text-[#0785BC] bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100">
-                        {pi.quantity || 1} unit
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* ── Request Form ── */}
-          <div className="flex-1 bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-            <h2 className="text-base font-bold text-slate-900 mb-5">Request Form</h2>
-
-            {/* Alert / Info Banner if Damaged / In Repair */}
-            {damageReason && (
-              <div className={`mb-5 p-4 rounded-2xl flex items-start gap-3 text-xs leading-relaxed animate-fade-in shadow-2xs ${
-                item?.status === "available"
-                  ? "bg-blue-50/90 border border-blue-200/90 text-blue-950"
-                  : "bg-amber-50 border border-amber-200/90 text-amber-950"
-              }`}>
-                <Wrench className={`w-5 h-5 shrink-0 mt-0.5 ${item?.status === "available" ? "text-[#0785BC]" : "text-amber-600"}`} />
-                <div>
-                  <p className={`font-extrabold text-sm mb-0.5 ${item?.status === "available" ? "text-blue-900" : "text-amber-950"}`}>
-                    {item?.status === "available"
-                      ? "Informasi Unit Dalam Perbaikan"
-                      : "Tidak Dapat Dipinjam — Sedang Dalam Perbaikan"}
-                  </p>
-                  <p className={item?.status === "available" ? "text-blue-800" : "text-amber-800"}>
-                    {item?.status === "available"
-                      ? `Catatan teknisi: ${damageReason}. Sisa unit yang tercantum di samping dalam kondisi baik dan siap untuk Anda pinjam.`
-                      : `Barang atau komponen paket ini sedang dalam perbaikan akibat: "${damageReason}". Seluruh stok ditarik sementara untuk perbaikan teknisi sarpras.`}
-                  </p>
-                </div>
+          <div className="w-full bg-white rounded-3xl shadow-sm p-7">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <p className="text-xs font-semibold text-[#0785BC] uppercase">Borrow Summary</p>
+                <h2 className="text-xl font-bold text-slate-900 mt-1">Ajukan Peminjaman</h2>
               </div>
-            )}
+              <button type="button" onClick={() => router.back()} className="text-2xl text-slate-400 hover:text-slate-600" aria-label="Tutup">×</button>
+            </div>
+            <div className="rounded-xl bg-blue-50 p-3 text-sm text-[#0785BC] mb-5">
+              <b>{item?.category || item?.name}</b>
+              <p className="text-xs mt-1">1 unit barang</p>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Tambahkan barang lain</label>
+                <select
+                  value=""
+                  onChange={(event) => {
+                    const selected = availableItems.find((entry) => entry.id === event.target.value);
+                    if (selected && !selectedItems.some((entry) => entry.id === selected.id)) setSelectedItems((current) => [...current, selected]);
+                  }}
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl text-slate-700 bg-white"
+                >
+                  <option value="">Pilih barang tambahan...</option>
+                  {availableItems.filter((entry) => !selectedItems.some((selectedEntry) => selectedEntry.id === entry.id)).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
+                </select>
+                {selectedItems.length > 0 && <div className="flex flex-wrap gap-2 mt-2">{selectedItems.map((entry) => <button type="button" key={entry.id} onClick={() => setSelectedItems((current) => current.filter((selectedEntry) => selectedEntry.id !== entry.id))} className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs text-slate-700">{entry.name} ×</button>)}</div>}
+              </div>
+
               {/* Tanggal Mulai & Selesai */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -403,14 +277,13 @@ export default function ItemDetailPage() {
               </div>
 
               {/* Divisi */}
-              <div>
+              <div className="hidden">
                 <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Divisi</label>
                 <div className="relative">
                   <select
                     name="division"
                     value={form.division}
                     onChange={handleChange}
-                    required
                     className="w-full appearance-none px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all text-slate-700 bg-white pr-9"
                   >
                     <option value="" disabled>Pilih Divisi...</option>
@@ -450,11 +323,7 @@ export default function ItemDetailPage() {
                   disabled={submitting || item?.status !== "available"}
                   className="px-6 py-2.5 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting
-                    ? "Mengirim..."
-                    : item?.status !== "available"
-                    ? (damageReason ? "Tidak Dapat Dipinjam (Dalam Perbaikan)" : "Stok Kosong / Tidak Tersedia")
-                    : "Konfirmasi Peminjaman"}
+                  {submitting ? "Mengirim..." : "Ajukan Peminjaman"}
                 </button>
               </div>
             </form>

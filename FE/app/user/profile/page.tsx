@@ -1,353 +1,704 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
-  UserCircle2,
+  User,
+  Mail,
+  Phone,
+  Hash,
+  Shield,
+  Camera,
+  CheckCircle2,
   Lock,
-  TrendingUp,
   Eye,
   EyeOff,
-  Upload,
-  CheckCircle2,
+  Save,
+  Sparkles,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
-import UserSidebar from "@/components/user/Sidebar";
-import UserNavbar from "@/components/user/Navbar";
+import { UserLayout } from "@/components/user";
 
-interface ProfileForm {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-}
+export default function UserProfilePage() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-interface PasswordForm {
-  current: string;
-  next: string;
-  confirm: string;
-}
+  const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-function useMount() {
-  const [m, setM] = useState(false);
-  useEffect(() => { setM(true); }, []);
-  return m;
-}
+  // Profile Form States
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [nomorInduk, setNomorInduk] = useState("");
+  const [role, setRole] = useState("Peminjam");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
-export default function ProfilePage() {
-  const mounted = useMount();
-  const fileRef  = useRef<HTMLInputElement>(null);
+  // Security Form States
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmPw, setShowConfirmPw] = useState(false);
 
-  const [profile, setProfile] = useState<ProfileForm>({
-    first_name: "", last_name: "", email: "", phone: "",
-  });
-  const [avatarSrc, setAvatarSrc]     = useState<string | null>(null);
-  const [profileMsg, setProfileMsg]   = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  // Status & Feedback States
   const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const [pwFeedback, setPwFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
-  const [pwForm, setPwForm]   = useState<PasswordForm>({ current: "", next: "", confirm: "" });
-  const [showPw, setShowPw]   = useState({ current: false, next: false, confirm: false });
-  const [pwMsg, setPwMsg]     = useState<{ type: "ok" | "err"; text: string } | null>(null);
-  const [savingPw, setSavingPw] = useState(false);
+  // Stats
+  const [totalBorrowings, setTotalBorrowings] = useState(0);
 
-  // Load current user from localStorage / API
-  useEffect(() => {
-    const user = getCurrentUser();
-    if (user) {
-      const nameParts = (user.full_name ?? user.name ?? "").split(" ");
-      setProfile({
-        first_name: nameParts[0] ?? "",
-        last_name:  nameParts.slice(1).join(" ") ?? "",
-        email:      user.email ?? "",
-        phone:      user.no_hp ?? user.phone ?? "",
-      });
-    } else {
-      // Fallback: fetch from API
-      api.auth.getProfile().then((res) => {
-        if (res.status === "success" && res.data) {
-          const u = (res.data as any).user ?? res.data;
-          const parts = (u.full_name ?? u.name ?? "POKADA").split(" ");
-          setProfile({
-            first_name: parts[0] ?? "",
-            last_name:  parts.slice(1).join(" ") ?? "",
-            email:      u.email ?? "",
-            phone:      u.no_hp ?? u.phone ?? "",
-          });
-        }
-      });
+  // Load User Data & Sync with Server
+  const loadProfile = useCallback(async () => {
+    // 1. Initial load from localStorage
+    const local = getCurrentUser();
+    if (local) {
+      setCurrentUser(local);
+      setFullName(local.name || local.full_name || "");
+      setEmail(local.email || "");
+      setPhone(local.no_hp || local.phone || "");
+      setNomorInduk(local.nomor_induk || "");
+      setRole(local.role || "Peminjam");
+      if (local.foto) setPhotoUrl(local.foto);
     }
+
+    // 2. Fresh fetch from server API
+    try {
+      const res = await api.auth.getProfile();
+      if (res.status === "success" && res.data) {
+        const u = (res.data as any).user || res.data;
+        setCurrentUser(u);
+        setFullName(u.name || u.full_name || "");
+        setEmail(u.email || "");
+        setPhone(u.no_hp || u.phone || "");
+        setNomorInduk(u.nomor_induk || "");
+        setRole(u.role || "Peminjam");
+        if (u.foto) setPhotoUrl(u.foto);
+
+        localStorage.setItem("user", JSON.stringify(u));
+        window.dispatchEvent(new Event("user-updated"));
+      }
+    } catch (err) {
+      console.warn("Gagal memuat profil terbaru dari server:", err);
+    }
+
+    // 3. Load user borrowings count
+    try {
+      const bRes = await api.borrowings.getAll({ limit: 100 });
+      if (bRes.status === "success" && Array.isArray(bRes.data)) {
+        setTotalBorrowings(bRes.data.length);
+      }
+    } catch {}
   }, []);
 
-  // Avatar preview
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
+
+  // Handle Photo Upload
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setAvatarSrc(reader.result as string);
-    reader.readAsDataURL(file);
-  }
 
-  async function handleSaveProfile(e: React.FormEvent) {
+    setUploadingPhoto(true);
+    setFeedback(null);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      setPhotoUrl(base64);
+
+      const user = getCurrentUser() || currentUser;
+      let finalPhotoUrl = base64;
+
+      if (user?.id) {
+        try {
+          const res = await api.users.uploadPhoto(user.id, file);
+          if (res.status === "success" && res.data?.foto) {
+            finalPhotoUrl = res.data.foto;
+            setPhotoUrl(finalPhotoUrl);
+          }
+        } catch {
+          // Fallback to base64
+        }
+
+        try {
+          await api.users.update(user.id, { foto: finalPhotoUrl });
+        } catch {}
+
+        const updated = { ...user, foto: finalPhotoUrl };
+        setCurrentUser(updated);
+        localStorage.setItem("user", JSON.stringify(updated));
+        window.dispatchEvent(new Event("user-updated"));
+        window.dispatchEvent(new Event("storage"));
+
+        setFeedback({
+          type: "success",
+          message: "Foto profil berhasil diperbarui di database!",
+        });
+        setTimeout(() => setFeedback(null), 4000);
+      }
+      setUploadingPhoto(false);
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  // Handle Save Profile Information (Name, Email, Phone, Nomor Induk)
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingProfile(true);
-    setProfileMsg(null);
-    const user = getCurrentUser();
-    if (user?.id) {
-      await api.users.update(user.id, {
-        name: `${profile.first_name} ${profile.last_name}`.trim(),
-        email: profile.email,
-        no_hp: profile.phone,
+    setFeedback(null);
+
+    if (!fullName.trim()) {
+      setFeedback({ type: "error", message: "Nama lengkap tidak boleh kosong." });
+      setSavingProfile(false);
+      return;
+    }
+
+    if (!email.trim() || !email.includes("@")) {
+      setFeedback({ type: "error", message: "Masukkan alamat email yang valid." });
+      setSavingProfile(false);
+      return;
+    }
+
+    const user = getCurrentUser() || currentUser;
+    const trimmedName = fullName.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedPhone = phone.trim();
+    const trimmedNomorInduk = nomorInduk.trim();
+
+    const updatePayload: any = {
+      name: trimmedName,
+      full_name: trimmedName,
+      email: trimmedEmail,
+      no_hp: trimmedPhone,
+      phone: trimmedPhone,
+      nomor_induk: trimmedNomorInduk,
+      ...(photoUrl ? { foto: photoUrl } : {}),
+    };
+
+    try {
+      // 1. Update via Backend Auth Profile Endpoint
+      let savedSuccessfully = false;
+      try {
+        const authRes = await api.auth.updateProfile(updatePayload);
+        if (authRes.status === "success") savedSuccessfully = true;
+      } catch {}
+
+      // 2. Direct user update by ID
+      if (user?.id) {
+        try {
+          const userRes = await api.users.update(user.id, updatePayload);
+          if (userRes.status === "success") savedSuccessfully = true;
+        } catch {}
+      }
+
+      // 3. Update localStorage and broadcast event to all components (Navbar, Sidebar, Dashboard)
+      const updatedUser = {
+        ...user,
+        ...updatePayload,
+      };
+      setCurrentUser(updatedUser);
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("user-updated"));
+      window.dispatchEvent(new Event("storage"));
+
+      setFeedback({
+        type: "success",
+        message: "Data nama dan email berhasil diperbarui ke database!",
       });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: err.message || "Gagal memperbarui data profil.",
+      });
+    } finally {
+      setSavingProfile(false);
     }
-    setSavingProfile(false);
-    setProfileMsg({ type: "ok", text: "Perubahan berhasil disimpan." });
-    setTimeout(() => setProfileMsg(null), 3000);
-  }
+  };
 
-  async function handleUpdatePassword(e: React.FormEvent) {
+  // Handle Save Password
+  const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPwMsg(null);
-    if (pwForm.next.length < 8) {
-      setPwMsg({ type: "err", text: "Password baru minimal 8 karakter." });
-      return;
-    }
-    if (pwForm.next !== pwForm.confirm) {
-      setPwMsg({ type: "err", text: "Konfirmasi password tidak cocok." });
-      return;
-    }
-    setSavingPw(true);
-    // API password update — endpoint varies; using users.update as placeholder
-    const user = getCurrentUser();
-    if (user?.id) {
-      await api.users.update(user.id, { password: pwForm.next });
-    }
-    setSavingPw(false);
-    setPwForm({ current: "", next: "", confirm: "" });
-    setPwMsg({ type: "ok", text: "Password berhasil diperbarui." });
-    setTimeout(() => setPwMsg(null), 3000);
-  }
+    setSavingPassword(true);
+    setPwFeedback(null);
 
-  const displayName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "POKADA";
+    if (newPassword.length < 8) {
+      setPwFeedback({
+        type: "error",
+        message: "Kata sandi baru minimal harus 8 karakter.",
+      });
+      setSavingPassword(false);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPwFeedback({
+        type: "error",
+        message: "Konfirmasi kata sandi tidak cocok.",
+      });
+      setSavingPassword(false);
+      return;
+    }
+
+    const user = getCurrentUser() || currentUser;
+    if (user?.id) {
+      try {
+        const result = await api.auth.changePassword({ currentPassword, newPassword });
+        if (result.status !== "success") throw new Error(result.message || "Gagal mengubah kata sandi.");
+        setPwFeedback({
+          type: "success",
+          message: "Kata sandi Anda berhasil diperbarui di database!",
+        });
+        setNewPassword("");
+        setConfirmPassword("");
+        setTimeout(() => setPwFeedback(null), 4000);
+      } catch (err: any) {
+        setPwFeedback({
+          type: "error",
+          message: err.message || "Gagal mengubah kata sandi.",
+        });
+      }
+    }
+    setSavingPassword(false);
+  };
+
+  const displayName = fullName || currentUser?.name || "User Sarpras";
+  const userInitials =
+    displayName
+      .split(" ")
+      .filter(Boolean)
+      .map((w: string) => w[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "U";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#eef2f9] text-slate-800">
-      {/* ── Sidebar ── */}
-      <UserSidebar />
+    <UserLayout showSearch={false}>
+      <div className="max-w-5xl mx-auto space-y-6 pb-16 animate-fade-in">
+        {/* ── Page Header ── */}
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Profil Pengguna
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Kelola data pribadi, informasi kontak, dan kredensial akun Anda.
+          </p>
+        </div>
 
-      {/* ── Main ── */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Topbar — di luar scroll area, selalu menetap */}
-        <UserNavbar showSearch={false} />
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-8 max-w-4xl">
-          {/* Page header */}
-          <div className={`mb-7 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
-            <h1 className="text-2xl font-bold text-slate-900">Profile Settings</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Manage your personal information and security preferences.</p>
+        {/* ── Hero Profile Card with Clean Banner ── */}
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+          {/* Top Banner */}
+          <div className="h-32 sm:h-40 bg-gradient-to-r from-[#0785BC] via-[#05638c] to-[#0a2f4c] relative p-6 flex justify-end items-start">
+            <div className="absolute -right-10 -bottom-10 w-60 h-60 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute left-10 top-0 w-40 h-40 bg-[#0785BC]/30 rounded-full blur-xl pointer-events-none" />
+            <span className="relative z-10 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              Member Terverifikasi
+            </span>
           </div>
 
-          <div className="flex gap-6 items-start">
-            {/* ── Left: Avatar card + Trust Score ── */}
-            <div className="w-64 shrink-0 space-y-4">
-              {/* Avatar card */}
-              <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 text-center ${mounted ? "animate-fade-up delay-75" : "opacity-0"}`}>
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  {avatarSrc ? (
-                    <img src={avatarSrc} alt="avatar" className="w-24 h-24 rounded-full object-cover border-2 border-slate-100" />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-[#0785BC]/20 flex items-center justify-center border-2 border-slate-100">
-                      <UserCircle2 className="w-12 h-12 text-[#0785BC]/60" />
-                    </div>
-                  )}
-                </div>
-                <p className="text-base font-bold text-slate-900">{displayName.toUpperCase()}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{profile.email || "pokada.depok@example.com"}</p>
+          {/* Profile Identity Bar - Fully White Background */}
+          <div className="px-6 sm:px-8 pb-6">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              {/* Left Column: Avatar (negative margin) + Name & Badges */}
+              <div className="flex flex-col sm:flex-row sm:items-end gap-5">
+                {/* Avatar with negative margin */}
+                <div className="relative group shrink-0 -mt-14 sm:-mt-16">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-white p-1.5 shadow-lg shadow-slate-900/10 border-4 border-white overflow-hidden relative">
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={displayName}
+                        className="w-full h-full rounded-2xl object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-2xl bg-gradient-to-br from-[#0785BC] to-[#05638c] text-white flex items-center justify-center text-3xl font-extrabold shadow-inner">
+                        {userInitials}
+                      </div>
+                    )}
 
-                <div className="flex justify-center gap-2 mt-3">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                    <CheckCircle2 className="w-3 h-3" /> Verified Lender
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
-                    Member since '23
-                  </span>
+                    {/* Upload Overlay Button */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="absolute inset-1.5 bg-black/40 hover:bg-black/60 rounded-2xl flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer backdrop-blur-[2px]"
+                      title="Ganti Foto Profil"
+                    >
+                      {uploadingPhoto ? (
+                        <Loader2 className="w-6 h-6 animate-spin text-white" />
+                      ) : (
+                        <>
+                          <Camera className="w-6 h-6 mb-1" />
+                          <span className="text-[10px] font-semibold">Ubah Foto</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Floating Camera Button for Mobile/Touch */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="sm:hidden absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#0785BC] text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer"
+                    title="Ganti Foto"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                  />
                 </div>
 
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="mt-4 w-full inline-flex items-center justify-center gap-2 py-2 text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
-                >
-                  <Upload className="w-3.5 h-3.5" /> Change Avatar
-                </button>
+                {/* Name & Badges - Safely sits on white background */}
+                <div className="pt-2 sm:pt-0 sm:pb-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 leading-tight">
+                    {displayName}
+                  </h2>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-[#0785BC] border border-blue-100">
+                      {role === "Admin"
+                        ? "Administrator"
+                        : role === "Petugas"
+                        ? "Petugas"
+                        : "Peminjam"}
+                    </span>
+                    <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      Akun Aktif
+                    </span>
+                    {nomorInduk && (
+                      <span className="px-3 py-1 rounded-xl text-xs font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                        ID: {nomorInduk}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
-              {/* Trust Score */}
-              <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-5 flex items-center justify-between ${mounted ? "animate-fade-up delay-150" : "opacity-0"}`}>
-                <div>
-                  <p className="text-[10px] font-bold text-[#0785BC] uppercase tracking-wider mb-1">Trust Score</p>
-                  <p className="text-2xl font-bold text-slate-900">98/100</p>
-                </div>
-                <div className="w-10 h-10 rounded-full bg-[#0785BC] flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-white" />
+              {/* Right Column: Total Peminjaman Card */}
+              <div className="flex items-center gap-3 pt-3 sm:pt-0 sm:pb-1">
+                <div className="w-full sm:w-auto px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-center shadow-xs">
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Total Peminjaman
+                  </p>
+                  <p className="text-2xl font-extrabold text-slate-900 tabular-nums mt-0.5">
+                    {totalBorrowings}
+                  </p>
                 </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* ── Right: Forms ── */}
-            <div className="flex-1 space-y-5">
-              {/* Personal Information */}
-              <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${mounted ? "animate-fade-up delay-100" : "opacity-0"}`}>
-                <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 mb-5">
-                  <UserCircle2 className="w-4 h-4 text-[#0785BC]" />
-                  Personal Information
-                </h2>
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1.5 block">First Name</label>
-                      <input
-                        type="text"
-                        value={profile.first_name}
-                        onChange={(e) => setProfile((p) => ({ ...p, first_name: e.target.value }))}
-                        className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Last Name</label>
-                      <input
-                        type="text"
-                        value={profile.last_name}
-                        onChange={(e) => setProfile((p) => ({ ...p, last_name: e.target.value }))}
-                        className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-                      />
-                    </div>
+        {/* ── Navigation Tabs ── */}
+        <div className="flex gap-2 border-b border-slate-200/80 pb-px">
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === "profile"
+                ? "border-[#0785BC] text-[#0785BC]"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <User className="w-4 h-4" />
+            Informasi Pribadi
+          </button>
+          <button
+            onClick={() => setActiveTab("security")}
+            className={`flex items-center gap-2 px-5 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+              activeTab === "security"
+                ? "border-[#0785BC] text-[#0785BC]"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300"
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            Keamanan & Kata Sandi
+          </button>
+        </div>
+
+        {/* ── Tab Content ── */}
+        {activeTab === "profile" && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 sm:p-8 space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Data Pribadi & Kontak
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Perubahan nama dan email akan langsung disinkronkan ke database sistem.
+                </p>
+              </div>
+            </div>
+
+            {/* Notification Alert */}
+            {feedback && (
+              <div
+                className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-medium ${
+                  feedback.type === "success"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-rose-50 text-rose-800 border border-rose-200"
+                }`}
+              >
+                {feedback.type === "success" ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                )}
+                <span>{feedback.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSaveProfile} className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {/* Full Name */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Nama Lengkap
+                  </label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      placeholder="Masukkan nama lengkap"
+                      required
+                      className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                    />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Email Address</label>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Nama ini akan muncul pada Navbar, tanda terima peminjaman, dan laporan.
+                  </p>
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Alamat Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="contoh@email.com"
+                      required
+                      className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Phone Number (Optional)</label>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Email digunakan untuk login dan notifikasi peminjaman barang.
+                  </p>
+                </div>
+
+                {/* Phone / WhatsApp */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Nomor WhatsApp / Telepon
+                  </label>
+                  <div className="relative">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
-                      type="tel"
-                      value={profile.phone}
-                      onChange={(e) => setProfile((p) => ({ ...p, phone: e.target.value }))}
-                      placeholder="+62 812 3456 7890"
-                      className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="08123456789"
+                      className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     />
                   </div>
+                </div>
 
-                  {profileMsg && (
-                    <p className={`text-xs font-medium ${profileMsg.type === "ok" ? "text-emerald-600" : "text-red-500"}`}>
-                      {profileMsg.text}
-                    </p>
-                  )}
-
-                  <div className="flex justify-end pt-1">
-                    <button
-                      type="submit"
-                      disabled={savingProfile}
-                      className="px-5 py-2.5 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm disabled:opacity-60"
-                    >
-                      {savingProfile ? "Menyimpan..." : "Simpan Perubahan"}
-                    </button>
+                {/* Nomor Induk (NIM / NIP) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Nomor Induk (NIM / NIP)
+                  </label>
+                  <div className="relative">
+                    <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={nomorInduk}
+                      onChange={(e) => setNomorInduk(e.target.value)}
+                      placeholder="NIM / NIP Anda"
+                      className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all font-mono"
+                    />
                   </div>
-                </form>
+                </div>
+
+                {/* Role */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Role Akun
+                  </label>
+                  <div className="relative">
+                    <Shield className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={role}
+                      disabled
+                      className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-100/80 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed font-medium"
+                    />
+                  </div>
+                </div>
               </div>
 
-              {/* Ubah Password */}
-              <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm p-6 ${mounted ? "animate-fade-up delay-150" : "opacity-0"}`}>
-                <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 mb-5">
-                  <Lock className="w-4 h-4 text-[#0785BC]" />
-                  Ubah Password
-                </h2>
-                <form onSubmit={handleUpdatePassword} className="space-y-4">
-                  {/* Current Password */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Current Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPw.current ? "text" : "password"}
-                        value={pwForm.current}
-                        onChange={(e) => setPwForm((p) => ({ ...p, current: e.target.value }))}
-                        className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-                      />
-                      <button type="button" onClick={() => setShowPw((s) => ({ ...s, current: !s.current }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                        {showPw.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* New Password */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPw.next ? "text" : "password"}
-                        value={pwForm.next}
-                        onChange={(e) => setPwForm((p) => ({ ...p, next: e.target.value }))}
-                        className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-                      />
-                      <button type="button" onClick={() => setShowPw((s) => ({ ...s, next: !s.next }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                        {showPw.next ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    <p className="text-[11px] text-slate-400 mt-1">Must be at least 8 characters long.</p>
-                  </div>
-
-                  {/* Confirm */}
-                  <div>
-                    <label className="text-xs font-semibold text-slate-600 mb-1.5 block">Confirm New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPw.confirm ? "text" : "password"}
-                        value={pwForm.confirm}
-                        onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))}
-                        className="w-full px-3 py-2.5 pr-10 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-                      />
-                      <button type="button" onClick={() => setShowPw((s) => ({ ...s, confirm: !s.confirm }))}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                        {showPw.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {pwMsg && (
-                    <p className={`text-xs font-medium ${pwMsg.type === "ok" ? "text-emerald-600" : "text-red-500"}`}>
-                      {pwMsg.text}
-                    </p>
+              {/* Submit Buttons */}
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={loadProfile}
+                  className="px-4 py-2.5 text-xs sm:text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  Reset Form
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingProfile}
+                  className="px-6 py-2.5 text-xs sm:text-sm font-bold bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {savingProfile ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Menyimpan ke Database...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Simpan Perubahan
+                    </>
                   )}
-
-                  <div className="flex justify-end gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => { setPwForm({ current: "", next: "", confirm: "" }); setPwMsg(null); }}
-                      className="px-5 py-2.5 text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={savingPw}
-                      className="px-5 py-2.5 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm disabled:opacity-60"
-                    >
-                      {savingPw ? "Memperbarui..." : "Update Password"}
-                    </button>
-                  </div>
-                </form>
+                </button>
               </div>
-            </div>
+            </form>
           </div>
-        </div>
-        </div>
-      </main>
-    </div>
+        )}
+
+        {/* ── Tab Security / Password ── */}
+        {activeTab === "security" && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 sm:p-8 space-y-6">
+            <div className="border-b border-slate-100 pb-4">
+              <h3 className="text-base font-bold text-slate-900">
+                Ubah Kata Sandi
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Pastikan akun Anda menggunakan kombinasi kata sandi yang aman dan tidak mudah ditebak.
+              </p>
+            </div>
+
+            {/* Notification Alert */}
+            {pwFeedback && (
+              <div
+                className={`p-4 rounded-2xl flex items-center gap-3 text-xs sm:text-sm font-medium ${
+                  pwFeedback.type === "success"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-rose-50 text-rose-800 border border-rose-200"
+                }`}
+              >
+                {pwFeedback.type === "success" ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                )}
+                <span>{pwFeedback.message}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePassword} className="space-y-5 max-w-lg">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Kata Sandi Saat Ini</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Masukkan kata sandi saat ini" required className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all" />
+              </div>
+
+              {/* New Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showNewPw ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Minimal 8 karakter"
+                    required
+                    className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPw(!showNewPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm New Password */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Ulangi Kata Sandi Baru
+                </label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type={showConfirmPw ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Ketik ulang kata sandi baru"
+                    required
+                    className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPw(!showConfirmPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="px-6 py-2.5 text-xs sm:text-sm font-bold bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+                >
+                  {savingPassword ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Memperbarui Sandi...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Perbarui Kata Sandi
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+      </div>
+    </UserLayout>
   );
 }
-

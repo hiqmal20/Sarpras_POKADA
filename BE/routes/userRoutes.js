@@ -19,7 +19,15 @@ router.post('/:id/photo', uploadImage.single('photo'), userController.uploadPhot
 
 // Route dengan parameter
 router.get('/:id', userController.getUserById);
-router.put('/:id', requireRole('Admin'), userController.updateUser);
+router.put('/:id', (req, res, next) => {
+  if (req.user.role === 'Admin' || req.user.id === req.params.id) {
+    return next();
+  }
+  return res.status(403).json({
+    status: 'fail',
+    message: 'Akses ditolak: Anda tidak memiliki izin untuk mengubah data user ini.'
+  });
+}, userController.updateUser);
 router.delete('/:id', requireRole('Admin'), userController.deleteUser);
 
 module.exports = router;

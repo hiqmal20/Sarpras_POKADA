@@ -96,21 +96,14 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
   });
 
   // 4. Notifikasi selamat datang
-  try {
-    const notifService = require('./notificationService');
-    const isStaffOrAdmin = ['Admin', 'Petugas'].includes(role);
-    await notifService.createNotification({
-      user_id: userId,
-      title: 'Selamat Datang di SARPRAS POKADA',
-      message: `Halo ${cleanName} (${cleanNomorInduk}), akun Anda sebagai ${role} berhasil dibuat. Silakan gunakan sistem untuk kebutuhan sarana & prasarana kampus.`,
-      type: 'sistem',
-      action_url: isStaffOrAdmin ? '/admin/dashboard_admin' : '/user/dashboard',
-      reference_id: userId,
-      reference_type: 'system'
-    });
-  } catch (err) {
-    console.error('Gagal kirim notif selamat datang:', err);
-  }
+  await supabase.from('notifications').insert([{
+    user_id: userId,
+    title: 'Selamat Datang di SARPRAS POKADA',
+    message: `Halo ${cleanName} (${cleanNomorInduk}), akun Anda sebagai ${role} berhasil dibuat. Silakan gunakan sistem untuk kebutuhan sarana & prasarana kampus.`,
+    type: 'sistem',
+    is_read: false,
+    created_at: now
+  }]);
 
   return {
     user: profileData || userPayload,
@@ -118,6 +111,25 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
     refreshToken: loginData?.session?.refresh_token,
     session: loginData?.session
   };
+};
+
+exports.changePassword = async (user, currentPassword, newPassword) => {
+  const authClient = createAuthClient();
+  const { error: verifyError } = await authClient.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword
+  });
+
+  if (verifyError) {
+    throw new AppError('Password saat ini tidak sesuai', 400);
+  }
+
+  const { error } = await supabase.auth.admin.updateUserById(user.id, { password: newPassword });
+  if (error) {
+    throw new AppError(`Gagal mengubah password: ${error.message}`, 400);
+  }
+
+  return { changed: true };
 };
 
 exports.refreshToken = async (refreshToken) => {

@@ -62,6 +62,12 @@ exports.createReport = async (req, res, next) => {
       delete req.body.fine_reason;
       delete req.body.fine_status;
     }
+    if (req.body.photo_url && !req.body.image_url) {
+      req.body.image_url = req.body.photo_url;
+    }
+    if (req.body.damage_description && !req.body.description) {
+      req.body.description = req.body.damage_description;
+    }
     const data = await damageReportService.createNewReport(req.body);
     return sendSuccess(res, 'Laporan kerusakan/kehilangan berhasil dibuat', data, 201);
   } catch (err) {

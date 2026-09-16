@@ -1,644 +1,291 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Search,
-  Paperclip,
-  Smile,
   Send,
-  MoreVertical,
-  Wrench,
   Loader2,
+  Shield,
   MessageSquare,
-  Trash2,
-  RotateCcw,
-  Check,
   CheckCheck,
+  Headphones,
+  Pencil,
+  Trash2,
+  X,
 } from "lucide-react";
-import api, { getCurrentUser } from "@/lib/api";
-import { getSocket, joinChatRoom } from "@/lib/socket";
-import UserSidebar from "@/components/user/Sidebar";
-import UserNavbar from "@/components/user/Navbar";
-import { formatChatDateBadge, isDifferentDay, formatLastSeen } from "@/lib/chatHelper";
+import { io, type Socket } from "socket.io-client";
+import api, { API_BASE_URL, getAuthToken, getCurrentUser } from "@/lib/api";
+import { UserLayout } from "@/components/user";
 
-// ── Types ──
 interface Conversation {
   id: string;
-  adminId?: string;
   title: string;
   preview: string;
   time: string;
   unread?: boolean;
-  lastSeen?: string | null;
 }
 
 interface Message {
   id: string;
-  from: "admin" | "user";
+  sender_id: string;
+  isMe: boolean;
+  senderName: string;
+  senderRole: string;
+  senderFoto?: string | null;
   text: string;
   time: string;
-  rawDate?: string;
-  attachment?: { name: string; subtitle: string; body: string };
-  isRead?: boolean;
 }
 
 export default function UserMessagesPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const activeIdRef = useRef<string>("");
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeId, setActiveId] = useState<string>("");
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [searchConv, setSearchConv] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loadingChats, setLoadingChats] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
-  const [isAdminTyping, setIsAdminTyping] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [isAdminOnline, setIsAdminOnline] = useState(false);
-  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
-  const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
+  const [adminOnline, setAdminOnline] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const socketRef = useRef<Socket | null>(null);
 
-  activeIdRef.current = activeId;
-
-  const joiningChatRef = useRef<string | null>(null);
-
-  const playChatSound = () => {
-    try {
-      const ctxCtor = window.AudioContext || (window as any).webkitAudioContext;
-      if (!ctxCtor) return;
-      const ctx = new ctxCtor();
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.type = "sine";
-      oscillator.frequency.value = 660;
-      gain.gain.value = 0.05;
-      oscillator.start();
-      setTimeout(() => {
-        oscillator.stop();
-        ctx.close();
-      }, 220);
-    } catch {
-      // silent
-    }
-  };
-
-  const showChatToast = (title: string, body: string) => {
-    const toastEl = document.createElement("div");
-    toastEl.className =
-      "fixed top-4 right-4 z-[100] max-w-xs w-full bg-slate-900 text-white rounded-2xl shadow-xl p-3.5 flex items-start gap-2.5";
-    toastEl.innerHTML = `
-      <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-bold text-xs shrink-0">💬</div>
-      <div class="min-w-0">
-        <p class="font-bold text-xs leading-snug truncate">${title}</p>
-        <p class="text-[11px] text-slate-300 leading-relaxed line-clamp-2 mt-0.5">${body}</p>
-      </div>
-    `;
-    document.body.appendChild(toastEl);
-    setTimeout(() => toastEl.remove(), 4500);
-  };
-
-  // Scroll to bottom on new message
-  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
-    bottomRef.current?.scrollIntoView({ behavior });
-  };
-
+  // Scroll smoothly to bottom when messages update
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, isAdminTyping]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  // Sync user info
+  // Sync current user on mount
   useEffect(() => {
     const user = getCurrentUser();
     if (user) setCurrentUser(user);
   }, []);
 
-  // Fetch or create user chat session
-  const fetchChats = async () => {
-    setLoading(true);
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) return;
+    const socketUrl = API_BASE_URL.replace(/\/api\/?$/, "");
+    const socket = io(socketUrl, { auth: { token }, transports: ["websocket", "polling"] });
+    socketRef.current = socket;
+    socket.on("presence_snapshot", (users: { role?: string }[]) => setAdminOnline(users.some((item) => item.role === "Admin" || item.role === "Petugas")));
+    socket.on("user_online", (data: { role?: string }) => {
+      if (data.role === "Admin" || data.role === "Petugas") setAdminOnline(true);
+    });
+    socket.on("user_offline", (data: { role?: string }) => {
+      if (data.role === "Admin" || data.role === "Petugas") setAdminOnline(false);
+    });
+    return () => { socket.disconnect(); socketRef.current = null; };
+  }, []);
+
+  // Fetch or create user chat session connected to admin
+  const loadConversations = useCallback(async () => {
     try {
       const res = await api.chats.getAll();
-      let chatsList = res.status === "success" && Array.isArray(res.data) ? (res.data as any[]) : [];
-
-      // Jika belum ada chat untuk user ini, buatkan chat resmi otomatis
-      if (chatsList.length === 0) {
-        const createRes = await api.chats.create({
-          subject: "Bantuan & Konsultasi SARPRAS",
-        });
-        if (createRes.status === "success" && createRes.data) {
-          chatsList = [createRes.data];
-        }
-      }
-
-      if (chatsList.length > 0) {
-        const initialLastSeen: Record<string, string> = {};
-        const mapped: Conversation[] = chatsList.map((c) => {
-          if (typeof c.has_online_admin === "boolean") {
-            setIsAdminOnline(c.has_online_admin);
-          }
-          const adminId = String(c.admin_id || c.admin?.id || "");
-          const partnerLastSeen = c.partner_last_seen || c.admin?.last_seen || null;
-          if (adminId && partnerLastSeen) {
-            initialLastSeen[adminId] = partnerLastSeen;
-          }
+      if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped: Conversation[] = (res.data as any[]).map((c) => {
+          const partner = c.admin || {};
           return {
             id: c.id,
-            adminId,
-            title: c.admin?.name ? `Admin - ${c.admin.name}` : "Admin Support POKADA",
-            preview: c.last_message || c.subject || "Konsultasi SARPRAS",
-            time: c.last_message_at || c.updated_at
-              ? new Date(c.last_message_at || c.updated_at).toLocaleTimeString("id-ID", {
+            title: partner.name || c.subject || "Admin Support Sarpras",
+            preview: c.last_message || c.subject || "Percakapan aktif dengan Admin",
+            time: c.updated_at
+              ? new Date(c.updated_at).toLocaleTimeString("id-ID", {
                   hour: "2-digit",
                   minute: "2-digit",
                 })
               : "Baru saja",
-            unread: (c.unread_count || 0) > 0,
-            lastSeen: partnerLastSeen,
+            unread: Boolean(c.unread_count && c.unread_count > 0),
           };
         });
 
-        if (Object.keys(initialLastSeen).length > 0) {
-          setLastSeenMap((prev) => ({ ...prev, ...initialLastSeen }));
-        }
-
         setConversations(mapped);
-        mapped.forEach((c) => {
-          joinChatRoom(c.id);
+        if (!activeId && mapped.length > 0) {
+          setActiveId(mapped[0].id);
+        }
+      } else {
+        // If no conversation exists in database yet, automatically create one with Admin!
+        const user = getCurrentUser();
+        const createRes = await api.chats.create({
+          subject: "Bantuan & Konsultasi Admin Sarpras",
+          user_id: user?.id,
         });
-        setActiveId(mapped[0].id);
+
+        if (createRes.status === "success" && createRes.data) {
+          const newConv: Conversation = {
+            id: createRes.data.id,
+            title: "Admin Support Sarpras",
+            preview: "Percakapan baru dengan Admin",
+            time: "Baru saja",
+            unread: false,
+          };
+          setConversations([newConv]);
+          setActiveId(newConv.id);
+        }
       }
     } catch (err) {
-      console.warn("Gagal memuat chat user:", err);
+      console.warn("Gagal memuat percakapan user:", err);
     } finally {
-      setLoading(false);
+      setLoadingChats(false);
     }
-  };
+  }, [activeId]);
 
   useEffect(() => {
-    fetchChats();
-  }, []);
+    loadConversations();
+  }, [loadConversations]);
 
-  // Load messages when conversation changes & sync periodically
-  useEffect(() => {
-    if (!activeId) return;
-    const currentActiveId = activeId;
-    let isSubscribed = true;
+  // Load real-time messages from database for the active chat
+  const fetchMessages = useCallback(
+    async (isPolling = false) => {
+      if (!activeId) return;
+      if (!isPolling) setLoadingMessages(true);
 
-    async function fetchMessages(isInitial = false) {
       try {
-        const res = await api.chats.getMessages(currentActiveId);
-        if (isSubscribed && res.status === "success" && Array.isArray(res.data)) {
-          const user = currentUser || getCurrentUser();
-          const msgs: Message[] = (res.data as any[]).map((m) => {
+        const res = await api.chats.getMessages(activeId);
+        if (res.status === "success" && Array.isArray(res.data)) {
+          const user = getCurrentUser();
+          const userId = user?.id;
+
+          const mapped: Message[] = (res.data as any[]).map((m) => {
             const sender = m.sender || {};
-            const senderRole = String(sender.role || "").toLowerCase();
-            const isUser =
-              (user?.id && (m.sender_id === user.id || sender.id === user.id)) ||
-              (!["admin", "petugas"].includes(senderRole) &&
-                (!sender.role || senderRole === "mahasiswa" || senderRole === "dosen" || senderRole === "staff"));
+            const isMe = Boolean(
+              sender.id === userId ||
+              m.sender_id === userId ||
+              (sender.role !== "Admin" && sender.role !== "Petugas" && !sender.role)
+            );
+
             return {
               id: String(m.id),
-              from: isUser ? "user" : "admin",
-              text: m.message,
-              rawDate: m.created_at || new Date().toISOString(),
+              sender_id: String(m.sender_id || sender.id || ""),
+              isMe,
+              senderName: isMe
+                ? user?.name || "Saya"
+                : sender.name || "Admin Support Sarpras",
+              senderRole: isMe ? "user" : "admin",
+              senderFoto: sender.foto || null,
+              text: m.message || "",
               time: m.created_at
                 ? new Date(m.created_at).toLocaleTimeString("id-ID", {
                     hour: "2-digit",
                     minute: "2-digit",
                   })
                 : "",
-              attachment: m.attachment_url
-                ? { name: "Lampiran", subtitle: m.attachment_url, body: "" }
-                : undefined,
-              isRead: Boolean(m.is_read),
             };
           });
 
-          setMessages((prev) => {
-            if (msgs.length === 0 && prev.length === 0) return prev;
-            const hasChanged =
-              msgs.length !== prev.length ||
-              msgs.some(
-                (m, idx) =>
-                  !prev[idx] ||
-                  prev[idx].id !== m.id ||
-                  prev[idx].isRead !== m.isRead ||
-                  prev[idx].text !== m.text
-              );
-            if (!hasChanged) return prev;
-            const tempMsgs = prev.filter(
-              (p) => p.id.startsWith("temp-") && !msgs.some((m) => m.text === p.text)
-            );
-            return [...msgs, ...tempMsgs];
+          setMessages((previous) => {
+            const pending = previous.filter((message) => message.id.startsWith("temp-") && !mapped.some((item) => item.text === message.text));
+            return [...mapped, ...pending];
           });
-
-          if (isInitial) {
-            setTimeout(() => scrollToBottom("auto"), 60);
-          }
-
-          // Mark as read di backend
-          api.chats.markAsRead(currentActiveId);
-          window.dispatchEvent(new CustomEvent("messages-read", { detail: { chatId: currentActiveId } }));
         }
       } catch (err) {
-        console.warn("Gagal memuat pesan:", err);
+        console.warn("Gagal mengambil pesan:", err);
+      } finally {
+        if (!isPolling) setLoadingMessages(false);
       }
-    }
+    },
+    [activeId]
+  );
 
-    fetchMessages(true);
+  // Load messages on activeId change and set up real-time polling interval (every 3 seconds)
+  useEffect(() => {
+    if (!activeId) return;
+    fetchMessages(false);
 
     const interval = setInterval(() => {
-      fetchMessages(false);
-    }, 2000);
+      fetchMessages(true);
+    }, 3000);
 
-    const handleFocus = () => fetchMessages(false);
-    window.addEventListener("focus", handleFocus);
+    return () => clearInterval(interval);
+  }, [activeId, fetchMessages]);
 
-    return () => {
-      isSubscribed = false;
-      clearInterval(interval);
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [activeId]);
-
-  const upsertIncomingMessage = (msg: any) => {
-    if (!msg) return;
-    const currentChat = String(activeIdRef.current || "");
-    const incomingChatId = String(msg.chat_id || msg.chatId || "");
-    const user = currentUser || getCurrentUser();
-    const sender = msg.sender || {};
-    const myId = String(user?.id || "");
-    const senderId = String(sender.id || msg.sender_id || "");
-    const senderRole = String(sender.role || "").toLowerCase();
-    const isUser =
-      (myId && senderId === myId) ||
-      (!["admin", "petugas"].includes(senderRole) && (!sender.role || ["mahasiswa", "dosen", "staff"].includes(senderRole)));
-    const isCurrentChat = Boolean(incomingChatId && currentChat && incomingChatId === currentChat);
-
-    if (isCurrentChat) {
-      const formattedMsg: Message = {
-        id: String(msg.id || `msg-${Date.now()}`),
-        from: isUser ? "user" : "admin",
-        text: msg.message || "",
-        rawDate: msg.created_at || new Date().toISOString(),
-        time: msg.created_at
-          ? new Date(msg.created_at).toLocaleTimeString("id-ID", {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "Baru saja",
-        isRead: Boolean(msg.is_read),
-      };
-
-      setMessages((prev) => {
-        if (prev.some((m) => String(m.id) === formattedMsg.id)) return prev;
-        const tempIndex = prev.findIndex(
-          (m) => m.id.startsWith("temp-") && m.text === formattedMsg.text
-        );
-        if (tempIndex >= 0) {
-          const next = [...prev];
-          next[tempIndex] = formattedMsg;
-          return next;
-        }
-        return [...prev, formattedMsg];
-      });
-
-      setTimeout(() => scrollToBottom("smooth"), 50);
-
-      if (!isUser && currentChat) {
-        const socket = getSocket();
-        api.chats.markAsRead(currentChat);
-        if (socket?.connected) socket.emit("mark_as_read", currentChat);
-        window.dispatchEvent(new CustomEvent("messages-read", { detail: { chatId: currentChat } }));
-      }
-    } else if (!isUser) {
-      playChatSound();
-      showChatToast(`Pesan baru dari ${sender.name || "Admin"}`, msg.message || "Pesan baru");
-    }
-
-    // Update conversation list preview
-    setConversations((prev) => {
-      const exists = prev.some((c) => String(c.id) === incomingChatId);
-      const updated = prev.map((c) =>
-        String(c.id) === incomingChatId
-          ? {
-              ...c,
-              preview: msg.message || c.preview,
-              time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-              unread: incomingChatId !== currentChat,
-            }
-          : c
-      );
-      if (!exists && incomingChatId) {
-        joinChatRoom(incomingChatId);
-        fetchChats();
-        return updated;
-      }
-      return updated.sort((a, b) => (String(a.id) === incomingChatId ? -1 : String(b.id) === incomingChatId ? 1 : 0));
-    });
-  };
-
-  // Join chat room and setup socket listeners
-  useEffect(() => {
-    if (!activeId || joiningChatRef.current === activeId) return;
-    joiningChatRef.current = activeId;
-    joinChatRoom(activeId);
-    setTimeout(() => {
-      const socket = getSocket();
-      if (socket?.connected) socket.emit("mark_as_read", activeId);
-    }, 300);
-    setTimeout(() => scrollToBottom("auto"), 100);
-    joiningChatRef.current = null;
-  }, [activeId]);
-
-  // Socket listener sekali pasang (tidak tergantung activeId agar tidak pasang-lepas)
-  useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
-
-    const handleNewMessage = (msg: any) => {
-      upsertIncomingMessage(msg);
-    };
-
-    const handleNotification = (payload: any) => {
-      if (payload?.message) {
-        upsertIncomingMessage(payload.message);
-      } else if (payload?.chatId) {
-        joinChatRoom(payload.chatId);
-      }
-    };
-
-    const handleChatUpdated = (payload?: { chatId?: string; message?: any }) => {
-      if (payload?.chatId) joinChatRoom(payload.chatId);
-      if (payload?.message) {
-        upsertIncomingMessage(payload.message);
-      } else {
-        fetchChats();
-      }
-    };
-
-    const handleMessagesRead = (data: { chatId: string }) => {
-      setConversations((prev) =>
-        prev.map((c) => (c.id === data.chatId ? { ...c, unread: false } : c))
-      );
-      if (activeIdRef.current === data.chatId) {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.from === "user" ? { ...msg, isRead: true } : msg
-          )
-        );
-      }
-    };
-
-    const handleOnlineUsersList = (data: { onlineUserIds?: string[]; hasOnlineAdmin?: boolean; lastSeenMap?: Record<string, string> } | string[]) => {
-      const hasAdmin = !Array.isArray(data) && typeof data?.hasOnlineAdmin === "boolean" ? data.hasOnlineAdmin : false;
-      const ids = Array.isArray(data) ? data : data?.onlineUserIds || [];
-      setOnlineUserIds(new Set(ids.map(String)));
-      setIsAdminOnline(hasAdmin);
-      if (!Array.isArray(data) && data?.lastSeenMap) {
-        setLastSeenMap((prev) => ({ ...prev, ...data.lastSeenMap }));
-      }
-    };
-
-    const handleUserStatusChange = (data: { userId: string; online: boolean; isAdmin?: boolean; hasOnlineAdmin?: boolean; last_seen?: string }) => {
-      const targetId = String(data?.userId || "");
-      if (targetId) {
-        if (data.last_seen) {
-          const seenStr = String(data.last_seen);
-          setLastSeenMap((prev) => ({ ...prev, [targetId]: seenStr }));
-        }
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          if (data.online) next.add(targetId);
-          else next.delete(targetId);
-          return next;
-        });
-      }
-      if (typeof data?.hasOnlineAdmin === "boolean") {
-        setIsAdminOnline(data.hasOnlineAdmin);
-      } else if (data?.isAdmin) {
-        setIsAdminOnline(Boolean(data.online));
-      }
-    };
-
-    const requestOnlineStatus = () => {
-      if (socket.connected) {
-        socket.emit("check_online_users");
-        socket.emit("get_online_users");
-      }
-    };
-
-    const handleSocketReconnect = () => {
-      if (activeIdRef.current) joinChatRoom(activeIdRef.current);
-      requestOnlineStatus();
-    };
-
-    const handleUserTyping = (data: { chatId: string; user?: any }) => {
-      if (data.chatId === activeIdRef.current) {
-        setIsAdminTyping(true);
-      }
-    };
-
-    const handleUserStopTyping = (data: { chatId: string }) => {
-      if (data.chatId === activeIdRef.current) {
-        setIsAdminTyping(false);
-      }
-    };
-
-    const handleChatCleared = (data: { chatId: string }) => {
-      if (activeIdRef.current === data.chatId) {
-        setMessages([]);
-      }
-      setConversations((prev) =>
-        prev.map((c) => (c.id === data.chatId ? { ...c, preview: "(Riwayat pesan dibersihkan)" } : c))
-      );
-    };
-
-    const handleChatDeleted = (data: { chatId: string }) => {
-      setConversations((prev) => {
-        const remaining = prev.filter((c) => c.id !== data.chatId);
-        if (activeIdRef.current === data.chatId) {
-          if (remaining.length > 0) {
-            setActiveId(remaining[0].id);
-          } else {
-            setActiveId("");
-            setMessages([]);
-          }
-        }
-        return remaining;
-      });
-    };
-
-    socket.on("new_message", handleNewMessage);
-    socket.on("notification", handleNotification);
-    socket.on("chat_updated", handleChatUpdated);
-    socket.on("messages_read", handleMessagesRead);
-    socket.on("online_users_list", handleOnlineUsersList);
-    socket.on("user_status_change", handleUserStatusChange);
-    socket.on("user_typing", handleUserTyping);
-    socket.on("user_stop_typing", handleUserStopTyping);
-    socket.on("chat_cleared", handleChatCleared);
-    socket.on("chat_deleted", handleChatDeleted);
-    window.addEventListener("socket-connected", handleSocketReconnect);
-
-    // Check online status initially & periodic sync
-    requestOnlineStatus();
-    const onlineInterval = setInterval(requestOnlineStatus, 8000);
-
-    return () => {
-      clearInterval(onlineInterval);
-      socket.off("new_message", handleNewMessage);
-      socket.off("notification", handleNotification);
-      socket.off("chat_updated", handleChatUpdated);
-      socket.off("messages_read", handleMessagesRead);
-      socket.off("online_users_list", handleOnlineUsersList);
-      socket.off("user_status_change", handleUserStatusChange);
-      socket.off("user_typing", handleUserTyping);
-      socket.off("user_stop_typing", handleUserStopTyping);
-      socket.off("chat_cleared", handleChatCleared);
-      socket.off("chat_deleted", handleChatDeleted);
-      window.removeEventListener("socket-connected", handleSocketReconnect);
-    };
-  }, []);
-
-  const handleClearHistory = async () => {
-    if (!activeId) return;
-    if (!confirm("Bersihkan seluruh riwayat percakapan ini?")) return;
-
-    try {
-      setMessages([]);
-      const socket = getSocket();
-      if (socket?.connected) {
-        socket.emit("clear_chat", activeId);
-      }
-      await api.chats.clearMessages(activeId);
-      setConversations((prev) =>
-        prev.map((c) => (c.id === activeId ? { ...c, preview: "(Riwayat pesan dibersihkan)" } : c))
-      );
-    } catch (err: any) {
-      alert("Gagal membersihkan riwayat pesan: " + (err.message || err));
-    }
-  };
-
-  const handleDeleteChat = async (chatId: string) => {
-    if (!chatId) return;
-    if (!confirm("Hapus seluruh percakapan ini?")) return;
-
-    try {
-      const socket = getSocket();
-      if (socket?.connected) {
-        socket.emit("delete_chat", chatId);
-      }
-      await api.chats.deleteChat(chatId);
-      setConversations((prev) => {
-        const remaining = prev.filter((c) => c.id !== chatId);
-        if (activeId === chatId) {
-          if (remaining.length > 0) {
-            setActiveId(remaining[0].id);
-          } else {
-            setActiveId("");
-            setMessages([]);
-          }
-        }
-        return remaining;
-      });
-    } catch (err: any) {
-      alert("Gagal menghapus percakapan: " + (err.message || err));
-    }
-  };
-
-  const handleInputChange = (val: string) => {
-    setInput(val);
-
-    const socket = getSocket();
-    if (socket && activeId) {
-      socket.emit("typing", activeId);
-
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        socket.emit("stop_typing", activeId);
-      }, 1500);
-    }
-  };
-
-  async function handleSend() {
+  // Send message to Database and Admin
+  const handleSend = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const text = input.trim();
-    if (!text || !activeId) return;
+    if (!text || !activeId || sending) return;
 
-    const socket = getSocket();
-    if (socket) {
-      socket.emit("stop_typing", activeId);
-    }
+    setSending(true);
+    setInput("");
 
+    // Optimistic UI message
     const tempId = `temp-${Date.now()}`;
-    const nowIso = new Date().toISOString();
-    const newMsg: Message = {
+    const optimisticMsg: Message = {
       id: tempId,
-      from: "user",
+      sender_id: currentUser?.id || "me",
+      isMe: true,
+      senderName: currentUser?.name || "Saya",
+      senderRole: "user",
       text,
-      rawDate: nowIso,
       time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
-      isRead: false,
     };
 
-    setMessages((prev) => [...prev, newMsg]);
-    setInput("");
-    setSending(true);
+    setMessages((prev) => [...prev, optimisticMsg]);
 
-    // Update preview in conversation list
+    // Update conversation preview
     setConversations((prev) =>
       prev.map((c) =>
-        c.id === activeId
-          ? { ...c, preview: text, time: "Baru saja", unread: false }
-          : c
+        c.id === activeId ? { ...c, preview: text, time: "Baru saja" } : c
       )
     );
 
     try {
-      if (socket && socket.connected) {
-        socket.emit("send_message", {
-          chatId: activeId,
-          message: text,
-        });
-      } else {
-        await api.chats.sendMessage(activeId, { message: text });
+      const result = await api.chats.sendMessage(activeId, { message: text });
+      if (result.status !== "success") {
+        setMessages((prev) => prev.filter((message) => message.id !== tempId));
       }
     } catch (err) {
-      console.error("Gagal mengirim pesan user:", err);
+      console.error("Gagal mengirim pesan ke database:", err);
     } finally {
       setSending(false);
     }
-  }
+  };
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  const handleEditMessage = async (message: Message) => {
+    if (!activeId || !editingText.trim()) return;
+    const res = await api.chats.updateMessage(activeId, message.id, editingText.trim());
+    if (res.status === "success") {
+      setMessages((prev) => prev.map((item) => item.id === message.id ? { ...item, text: editingText.trim() } : item));
+      setEditingMessageId(null);
+      setEditingText("");
     }
-  }
+  };
 
-  const activeConv = conversations.find((c) => c.id === activeId);
-  const isSupportOnline = Boolean((activeConv?.adminId && onlineUserIds.has(activeConv.adminId)) || isAdminOnline);
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!activeId || !window.confirm("Hapus pesan ini?")) return;
+    const res = await api.chats.deleteMessage(activeId, messageId);
+    if (res.status === "success") setMessages((prev) => prev.filter((item) => item.id !== messageId));
+  };
+
+  const handleDeleteChat = async () => {
+    if (!activeId || !window.confirm("Hapus seluruh chat ini?")) return;
+    const res = await api.chats.deleteChat(activeId);
+    if (res.status === "success") {
+      const remaining = conversations.filter((item) => item.id !== activeId);
+      setConversations(remaining);
+      setActiveId(remaining[0]?.id || null);
+      setMessages([]);
+    }
+  };
+
   const filteredConvs = conversations.filter((c) =>
     !searchConv || c.title.toLowerCase().includes(searchConv.toLowerCase())
   );
 
   return (
-    <div className="flex flex-col h-screen bg-[#eef2f9] text-slate-800 overflow-hidden">
-      {/* ── Navbar ── */}
-      <UserNavbar showSearch={false} />
+    <UserLayout fullWidth={true} showSearch={false}>
+      <div className="flex min-w-0 h-full min-h-[32rem] flex-col overflow-hidden bg-white lg:flex-row">
+        {/* ── Left Pane: Conversation List ── */}
+        <div className="w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-80 lg:h-full lg:w-80 lg:border-b-0 lg:border-r">
+          {/* Header */}
+          <div className="p-4 border-b border-slate-100">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-slate-900">Pesan Bantuan</h2>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" title="Terhubung" />
+            </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* ── Sidebar ── */}
-        <UserSidebar />
-
-        {/* ── Conversation List ── */}
-        <div className="w-64 shrink-0 bg-white border-r border-slate-100 flex flex-col">
-          <div className="px-4 pt-5 pb-3">
-            <h2 className="text-base font-bold text-slate-900 mb-3">Support Messages</h2>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
@@ -646,275 +293,200 @@ export default function UserMessagesPage() {
                 placeholder="Cari percakapan..."
                 value={searchConv}
                 onChange={(e) => setSearchConv(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
               />
             </div>
           </div>
 
-          <ul className="flex-1 overflow-y-auto divide-y divide-slate-50">
-            {loading ? (
-              <div className="p-4 space-y-3">
-                {[1, 2].map((i) => (
-                  <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />
-                ))}
-              </div>
+          {/* Conversation Items */}
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-50">
+            {loadingChats ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 flex gap-3 animate-pulse">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-slate-100 rounded w-1/2" />
+                    <div className="h-2.5 bg-slate-100 rounded w-3/4" />
+                  </div>
+                </div>
+              ))
             ) : filteredConvs.length === 0 ? (
-              <div className="p-4 text-center text-xs text-slate-400">
-                Belum ada pesan.
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Tidak ada percakapan aktif.
               </div>
             ) : (
               filteredConvs.map((conv) => {
-                const isItemAdminOnline = Boolean((conv.adminId && onlineUserIds.has(conv.adminId)) || isAdminOnline);
+                const isActive = activeId === conv.id;
                 return (
-                <li key={conv.id}>
-                  <div
-                    onClick={() => {
-                      setActiveId(conv.id);
-                      joinChatRoom(conv.id);
-                      api.chats.markAsRead(conv.id);
-                      const socket = getSocket();
-                      if (socket?.connected) socket.emit("mark_as_read", conv.id);
-                      setConversations((prev) =>
-                        prev.map((c) => (c.id === conv.id ? { ...c, unread: false } : c))
-                      );
-                      setTimeout(() => scrollToBottom("auto"), 100);
-                      window.dispatchEvent(new CustomEvent("messages-read", { detail: { chatId: conv.id } }));
-                    }}
-                    className={`w-full text-left px-4 py-3.5 transition-colors hover:bg-slate-50 cursor-pointer group flex items-start justify-between gap-2 ${
-                      activeId === conv.id ? "bg-slate-50 border-l-2 border-[#0785BC]" : ""
+                  <button
+                    key={conv.id}
+                    onClick={() => setActiveId(conv.id)}
+                    className={`w-full text-left p-4 transition-all flex items-start gap-3 cursor-pointer ${
+                      isActive
+                        ? "bg-blue-50/50 border-l-4 border-[#0785BC]"
+                        : "hover:bg-slate-50"
                     }`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-[#0785BC] flex items-center justify-center shrink-0 relative text-white text-[10px] font-bold">
-                            A
-                            <span
-                              className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                                isItemAdminOnline ? "bg-emerald-500" : "bg-slate-300"
-                              }`}
-                              title={isItemAdminOnline ? "Online" : "Offline"}
-                            />
-                            {conv.unread && (
-                              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white" />
-                            )}
-                          </div>
-                          <p className="text-xs font-semibold text-slate-800 truncate">{conv.title}</p>
-                        </div>
-                        <span className="text-[10px] text-slate-400 shrink-0">{conv.time}</span>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-snug line-clamp-2 pl-10">{conv.preview}</p>
+                    <div className="w-10 h-10 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0 relative">
+                      <Headphones className="w-5 h-5" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteChat(conv.id);
-                      }}
-                      title="Hapus percakapan"
-                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all shrink-0 mt-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </li>
-              );
-            })
-            )}
-          </ul>
-        </div>
-
-        {/* ── Chat Area ── */}
-        <div className="flex-1 flex flex-col bg-white min-w-0">
-          {/* Chat header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-            <div className="flex items-center gap-3">
-              <div className="relative shrink-0">
-                <div className="w-9 h-9 rounded-full bg-[#0785BC] flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">A</span>
-                </div>
-                <span
-                  className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                    isSupportOnline ? "bg-emerald-500" : "bg-slate-300"
-                  }`}
-                  title={isSupportOnline ? "Online" : "Offline"}
-                />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900">{activeConv?.title ?? "Admin Support SARPRAS"}</p>
-                {(() => {
-                  const adminId = activeConv?.adminId;
-                  const lastSeenTime = (adminId && lastSeenMap[adminId]) || activeConv?.lastSeen;
-                  const statusInfo = formatLastSeen(lastSeenTime, isSupportOnline);
-
-                  if (statusInfo.isOnline) {
-                    return (
-                      <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        Online · Petugas Siap Membantu
-                      </p>
-                    );
-                  }
-                  return (
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                      {statusInfo.text}
-                    </p>
-                  );
-                })()}
-              </div>
-            </div>
-            {/* Action Buttons: Bersihkan Riwayat & Hapus Chat */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleClearHistory}
-                title="Bersihkan riwayat pesan dalam obrolan ini"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 transition-all active:scale-95"
-              >
-                <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-                Bersihkan Riwayat
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDeleteChat(activeId)}
-                title="Hapus sesi percakapan"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200/60 transition-all active:scale-95"
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                Hapus Chat
-              </button>
-            </div>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4 bg-slate-50/40">
-            {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 text-xs">
-                <MessageSquare className="w-8 h-8 mb-2 text-slate-300" />
-                <p>Mulai percakapan dengan Admin SARPRAS POKADA.</p>
-              </div>
-            ) : (
-              messages.map((msg, i) => {
-                const isUser = msg.from === "user";
-                const showDateBadge =
-                  i === 0 || isDifferentDay(msg.rawDate, messages[i - 1].rawDate);
-
-                return (
-                  <React.Fragment key={msg.id || i}>
-                    {showDateBadge && (
-                      <div className="flex justify-center my-3 sticky top-1 z-10 select-none">
-                        <span className="px-3.5 py-1 rounded-full text-[11px] font-semibold bg-white/90 text-slate-600 shadow-2xs border border-slate-200/80 backdrop-blur-xs">
-                          {formatChatDateBadge(msg.rawDate)}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <p className="text-xs font-bold text-slate-800 truncate">
+                          {conv.title}
+                        </p>
+                        <span className="text-[10px] text-slate-400 shrink-0">
+                          {conv.time}
                         </span>
                       </div>
-                    )}
-                    <div
-                      className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}
-                    >
-                      {/* Avatar */}
-                      {!isUser && (
-                        <div className="w-8 h-8 rounded-full bg-[#0785BC] flex items-center justify-center shrink-0 self-end text-white text-[10px] font-bold">
-                          A
-                        </div>
-                      )}
-                      {isUser && (
-                        currentUser?.foto ? (
-                          <img
-                            src={currentUser.foto}
-                            alt="Me"
-                            className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0 self-end"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-[#0785BC] flex items-center justify-center shrink-0 self-end text-white text-[10px] font-bold">
-                            {(currentUser?.name || "U").charAt(0).toUpperCase()}
-                          </div>
-                        )
-                      )}
-
-                      <div className={`max-w-sm space-y-1 ${isUser ? "items-end" : "items-start"} flex flex-col`}>
-                        {/* Attachment card */}
-                        {msg.attachment && (
-                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 w-full mb-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Wrench className="w-3.5 h-3.5 text-slate-500" />
-                              <p className="text-xs font-bold text-slate-700">{msg.attachment.name}</p>
-                            </div>
-                            <p className="text-[11px] text-[#0785BC] font-semibold">{msg.attachment.subtitle}</p>
-                          </div>
-                        )}
-
-                        {/* Bubble */}
-                        <div className={`px-4 py-2.5 rounded-2xl text-xs leading-relaxed ${
-                          isUser
-                            ? "bg-[#0785BC] text-white rounded-br-none"
-                            : "bg-white text-slate-800 border border-slate-100 shadow-2xs rounded-bl-none"
-                        }`}>
-                          <p>{msg.text}</p>
-                          <div className={`flex items-center gap-1 mt-1 ${isUser ? "text-blue-100 justify-end" : "text-slate-400 justify-start"}`}>
-                            <span className="text-[10px]">{msg.time}</span>
-                            {isUser && (
-                              <span title={msg.isRead ? "Dibaca" : "Terkirim"}>
-                                {msg.isRead ? (
-                                  <CheckCheck className="w-3.5 h-3.5 text-sky-300 stroke-[2.5]" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 text-blue-200/70 stroke-[2]" />
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      <p className="text-xs text-slate-500 truncate">{conv.preview}</p>
                     </div>
-                  </React.Fragment>
+                  </button>
                 );
               })
             )}
+          </div>
+        </div>
 
-            {isAdminTyping && (
-              <div className="flex items-center gap-2 text-xs text-slate-400 italic">
-                <div className="w-6 h-6 rounded-full bg-[#0785BC] text-white flex items-center justify-center text-[9px] font-bold">
-                  A
-                </div>
-                <span>Admin sedang mengetik...</span>
+        {/* ── Right Pane: Chat Window ── */}
+        <div className="flex-1 flex flex-col h-full bg-[#f8faff] min-w-0">
+          {/* Chat Header */}
+          <div className="h-16 px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-[#0785BC] text-white flex items-center justify-center shrink-0 shadow-xs shadow-[#0785BC]/20">
+                <Shield className="w-5 h-5" />
               </div>
-            )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                    Admin Support Sarpras
+                  </h3>
+<span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${adminOnline ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-slate-50 text-slate-500 border-slate-200"}`}>
+                     {adminOnline ? "Online" : "Offline"}
+                   </span>
+                </div>
+                <p className="text-[11px] text-slate-400 truncate">
+                  Petugas siap membantu kendala dan pengajuan fasilitas Anda
+                </p>
+              </div>
+              <button onClick={handleDeleteChat} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600" aria-label="Hapus chat">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
 
+          </div>
+
+          {/* Messages Bubble Scroll Area */}
+          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+            {loadingMessages ? (
+              <div className="h-full flex flex-col items-center justify-center text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin text-[#0785BC] mb-2" />
+                <p className="text-xs">Memuat riwayat chat...</p>
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-6">
+                <div className="w-16 h-16 rounded-2xl bg-blue-50 text-[#0785BC] flex items-center justify-center mb-3">
+                  <MessageSquare className="w-8 h-8" />
+                </div>
+                <h4 className="text-sm font-bold text-slate-800">
+                  Mulai Percakapan dengan Admin
+                </h4>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                  Silakan tanyakan ketersediaan barang, konfirmasi peminjaman, atau bantuan sarpras lainnya.
+                </p>
+              </div>
+            ) : (
+              messages.map((m) => {
+                if (m.isMe) {
+                  // User's own message (right side)
+                  return (
+                    <div key={m.id} className="flex justify-end items-end gap-2">
+                       <div className="max-w-md sm:max-w-lg bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 shadow-xs">
+                         {editingMessageId === m.id ? (
+                           <div className="flex gap-2">
+                             <input value={editingText} onChange={(e) => setEditingText(e.target.value)} className="min-w-40 rounded px-2 py-1 text-slate-900" autoFocus />
+                             <button onClick={() => handleEditMessage(m)} aria-label="Simpan"><CheckCheck className="h-4 w-4" /></button>
+                             <button onClick={() => setEditingMessageId(null)} aria-label="Batal"><X className="h-4 w-4" /></button>
+                           </div>
+                         ) : <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">{m.text}</p>}
+                         {editingMessageId !== m.id && typeof m.id === "string" && !m.id.startsWith("temp-") && (
+                           <div className="mt-1 flex justify-end gap-2 text-white/70">
+                             <button onClick={() => { setEditingMessageId(m.id); setEditingText(m.text); }} aria-label="Edit pesan"><Pencil className="h-3 w-3" /></button>
+                             <button onClick={() => handleDeleteMessage(m.id)} aria-label="Hapus pesan"><Trash2 className="h-3 w-3" /></button>
+                           </div>
+                         )}
+                        <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-white/80">
+                          <span>{m.time}</span>
+                          <CheckCheck className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Admin's message (left side)
+                return (
+                  <div key={m.id} className="flex items-start gap-3 max-w-md sm:max-w-lg">
+                    <div className="w-8 h-8 rounded-xl bg-[#0785BC] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-xs">
+                      A
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-bold text-slate-800">
+                          {m.senderName}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-[#0785BC]">
+                          Petugas
+                        </span>
+                      </div>
+                      <div className="bg-white border border-slate-200/80 text-slate-800 rounded-2xl rounded-tl-xs px-4 py-3 shadow-xs">
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
+                          {m.text}
+                        </p>
+                        <p className="text-[10px] text-slate-400 mt-1 text-right">
+                          {m.time}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
             <div ref={bottomRef} />
           </div>
 
-          {/* Input area */}
-          <div className="px-6 py-4 border-t border-slate-100 bg-white">
-            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5">
-              <button className="text-slate-400 hover:text-slate-600 transition-colors shrink-0" type="button">
-                <Paperclip className="w-4 h-4" />
-              </button>
+          {/* Chat Input Bar */}
+          <div className="p-4 bg-white border-t border-slate-100 shrink-0">
+            <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto">
               <input
                 type="text"
-                placeholder="Ketik pesan Anda..."
                 value={input}
-                onChange={(e) => handleInputChange(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="flex-1 bg-transparent text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none"
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Tulis pesan ke admin sarpras..."
+                disabled={sending || !activeId}
+                className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
               />
-              <button className="text-slate-400 hover:text-slate-600 transition-colors shrink-0" type="button">
-                <Smile className="w-4 h-4" />
-              </button>
+
               <button
-                onClick={handleSend}
-                disabled={!input.trim() || sending}
-                className="w-8 h-8 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] flex items-center justify-center shrink-0 transition-all active:scale-90 disabled:opacity-40"
+                type="submit"
+                disabled={!input.trim() || sending || !activeId}
+                className="px-5 py-2.5 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-2xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
               >
-                {sending ? <Loader2 className="w-3.5 h-3.5 text-white animate-spin" /> : <Send className="w-3.5 h-3.5 text-white" />}
+                {sending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span className="hidden sm:inline">Kirim</span>
+                  </>
+                )}
               </button>
-            </div>
-            <p className="text-[11px] text-slate-400 text-center mt-2">
-              Tim support SARPRAS POKADA melayani konsultasi operasional kampus.
-            </p>
+            </form>
           </div>
         </div>
       </div>
-    </div>
+    </UserLayout>
   );
 }

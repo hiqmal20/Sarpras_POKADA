@@ -4,7 +4,7 @@ const authController = require('../controller/authController');
 const { requireAuth } = require('../middleware/authMiddleware');
 const { authLimiter } = require('../middleware/rateLimiter');
 const validateRequest = require('../middleware/validateRequest');
-const { registerSchema, loginSchema } = require('../validations/authValidation');
+const { registerSchema, loginSchema, changePasswordSchema } = require('../validations/authValidation');
 const { updateUserSchema } = require('../validations/userValidation');
 
 // Public routes (no auth required)
@@ -16,5 +16,6 @@ router.post('/refresh', authLimiter, authController.refresh);
 router.get('/me', requireAuth, authController.getMe);
 router.patch('/profile', requireAuth, validateRequest(updateUserSchema), authController.updateProfile);
 router.post('/logout', requireAuth, authController.logout);
+router.post('/change-password', requireAuth, validateRequest(changePasswordSchema), authController.changePassword);
 
 module.exports = router;

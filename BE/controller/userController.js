@@ -90,7 +90,14 @@ exports.uploadPhoto = async (req, res, next) => {
 // Update user profile
 exports.updateUser = async (req, res, next) => {
   try {
-    const data = await userService.updateUserProfile(req.params.id, req.body);
+    const isAdmin = req.user.role === 'Admin';
+    let payload = req.body;
+    if (!isAdmin) {
+      const { name, no_hp, foto, nomor_induk, email } = req.body || {};
+      payload = { name, no_hp, foto, nomor_induk, email };
+      Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
+    }
+    const data = await userService.updateUserProfile(req.params.id, payload);
     return sendSuccess(res, 'Profil pengguna berhasil diperbarui', data, 200);
   } catch (err) {
     next(err);

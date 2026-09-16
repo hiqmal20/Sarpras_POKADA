@@ -50,14 +50,25 @@ exports.updateProfile = async (req, res, next) => {
   try {
     const userService = require('../services/userService');
     // Batasi field agar user biasa tidak bisa self-elevate role / status
-    const { name, no_hp, foto, nomor_induk } = req.body;
+    const { name, no_hp, foto, nomor_induk, email } = req.body;
     const updated = await userService.updateUserProfile(req.user.id, {
       name,
       no_hp,
       foto,
-      nomor_induk
+      nomor_induk,
+      email
     });
     return sendSuccess(res, 'Profil berhasil diperbarui', { user: updated }, 200);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.changePassword(req.user, currentPassword, newPassword);
+    return sendSuccess(res, 'Password berhasil diubah', result, 200);
   } catch (err) {
     next(err);
   }

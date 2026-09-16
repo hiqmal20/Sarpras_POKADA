@@ -7,7 +7,7 @@ const generateBorrowCode = () => {
   return `PJ-${dateStr}-${randomStr}`;
 };
 
-exports.findAllBorrowings = async ({ user_id, status, search, start_date, end_date, page = 1, limit = 20 }) => {
+exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
 
   let query = supabase
@@ -28,8 +28,6 @@ exports.findAllBorrowings = async ({ user_id, status, search, start_date, end_da
   if (user_id) query = query.eq('user_id', user_id);
   if (status) query = query.eq('status', status);
   if (search) query = query.or(`borrow_code.ilike.%${search}%,purpose.ilike.%${search}%`);
-  if (start_date) query = query.gte('borrow_date', start_date);
-  if (end_date) query = query.lte('borrow_date', end_date);
 
   query = query.range(offset, offset + Number(limit) - 1);
 
@@ -105,12 +103,12 @@ exports.findBorrowingById = async (id) => {
   };
 };
 
-exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
-  // Validasi ketersediaan stok & status kerusakan
+exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date }) => {
+  // Validasi ketersediaan stok
   for (const item of items) {
     const { data: itemData, error: itemError } = await supabase
       .from('items')
-      .select('id, name, available_stock, stock, status, condition')
+      .select('id, name, available_stock, status')
       .eq('id', item.item_id)
       .single();
 
@@ -118,41 +116,13 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
       throw new AppError(`Barang dengan ID ${item.item_id} tidak ditemukan`, 404);
     }
 
-    // 1. Cek laporan kerusakan aktif untuk item ini
-    const { data: activeDamages } = await supabase
-      .from('damage_reports')
-      .select('title, description, status')
-      .eq('item_id', item.item_id)
-      .in('status', ['Sedang Diperbaiki', 'Menunggu Review'])
-      .order('created_at', { ascending: false });
-
-    const damageCount = (activeDamages || []).length;
-    const damageTitle = activeDamages?.[0]?.title || activeDamages?.[0]?.description || 'dalam proses perbaikan teknisi';
-
-    // Jika seluruh unit habis / item berstatus Dalam Pemeliharaan tanpa stok tersisa
-    if (itemData.available_stock <= 0 || (itemData.status === 'Dalam Pemeliharaan' && itemData.available_stock <= 0)) {
-      const reason = damageCount > 0
-        ? `seluruh unit sedang dalam perbaikan akibat kerusakan: "${damageTitle}"`
-        : `stok barang saat ini tidak tersedia (status: ${itemData.status})`;
-      throw new AppError(
-        `Barang "${itemData.name}" tidak dapat dipinjam karena ${reason}.`,
-        400
-      );
-    }
-
-    if (itemData.status !== 'Tersedia' && itemData.available_stock <= 0) {
-      throw new AppError(`Barang "${itemData.name}" sedang tidak tersedia untuk dipinjam (status: ${itemData.status}).`, 400);
+    if (itemData.status !== 'Tersedia') {
+      throw new AppError(`Barang "${itemData.name}" sedang tidak tersedia (status: ${itemData.status})`, 400);
     }
 
     const requestedQty = Number(item.quantity) || 1;
     if (itemData.available_stock < requestedQty) {
-      const reasonSuffix = damageCount > 0
-        ? ` (${damageCount} unit sedang dalam penanganan perbaikan akibat: "${damageTitle}")`
-        : '';
-      throw new AppError(
-        `Stok tidak mencukupi untuk "${itemData.name}". Tersedia: ${itemData.available_stock} unit, Diminta: ${requestedQty} unit${reasonSuffix}.`,
-        400
-      );
+      throw new AppError(`Stok tidak mencukupi untuk "${itemData.name}". Tersedia: ${itemData.available_stock}, Diminta: ${requestedQty}`, 400);
     }
   }
 
@@ -165,7 +135,7 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
     .insert([{
       user_id,
       borrow_code: borrowCode,
-      borrow_date: now,
+      borrow_date: borrow_date || now,
       purpose,
       status: 'Pending',
       created_at: now
@@ -175,67 +145,90 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items }) => {
 
   if (borrowError) throw borrowError;
 
-  // Insert items & kurangi stok
-  const borrowingItemsPayload = [];
-  for (const item of items) {
-    const qty = Number(item.quantity) || 1;
+  const stockAdjustments = [];
+  try {
+    // Insert items & kurangi stok
+    const borrowingItemsPayload = [];
+    for (const item of items) {
+      const qty = Number(item.quantity) || 1;
 
-    borrowingItemsPayload.push({
-      borrowing_id: newBorrowing.id,
-      item_id: item.item_id,
-      quantity: qty,
-      condition_before: item.condition_before || 'Baik',
-      note: item.note || ''
-    });
+      borrowingItemsPayload.push({
+        borrowing_id: newBorrowing.id,
+        item_id: item.item_id,
+        quantity: qty,
+        condition_before: item.condition_before || 'Baik',
+        note: item.note || ''
+      });
 
-    const { data: currentItem } = await supabase
-      .from('items')
-      .select('available_stock')
-      .eq('id', item.item_id)
-      .single();
+      const { data: currentItem, error: stockReadError } = await supabase
+        .from('items')
+        .select('available_stock')
+        .eq('id', item.item_id)
+        .single();
 
-    if (currentItem) {
+      if (stockReadError || !currentItem) {
+        throw new AppError(`Gagal membaca stok barang ${item.item_id}`, 500);
+      }
+
       const newStock = Math.max(0, currentItem.available_stock - qty);
-      await supabase
+      const { error: stockUpdateError } = await supabase
         .from('items')
         .update({ available_stock: newStock })
         .eq('id', item.item_id);
+
+      if (stockUpdateError) {
+        throw new AppError(`Gagal mengurangi stok barang: ${stockUpdateError.message}`, 500);
+      }
+      stockAdjustments.push({ item_id: item.item_id, qty });
     }
+
+    const { error: insertItemsError } = await supabase
+      .from('borrowings_items')
+      .insert(borrowingItemsPayload);
+
+    if (insertItemsError) throw insertItemsError;
+  } catch (err) {
+    for (const adj of stockAdjustments) {
+      try {
+        const { data: currentItem } = await supabase
+          .from('items')
+          .select('available_stock')
+          .eq('id', adj.item_id)
+          .single();
+        if (currentItem) {
+          await supabase
+            .from('items')
+            .update({ available_stock: currentItem.available_stock + adj.qty })
+            .eq('id', adj.item_id);
+        }
+      } catch (_) { /* best effort rollback */ }
+    }
+    try {
+      await supabase.from('borrowings_items').delete().eq('borrowing_id', newBorrowing.id);
+      await supabase.from('borrowings').delete().eq('id', newBorrowing.id);
+    } catch (_) { /* best effort rollback */ }
+    throw err instanceof AppError ? err : new AppError(`Gagal membuat peminjaman: ${err.message}`, 500);
   }
-
-  const { error: insertItemsError } = await supabase
-    .from('borrowings_items')
-    .insert(borrowingItemsPayload);
-
-  if (insertItemsError) throw insertItemsError;
 
   // Notifikasi ke User peminjam
-  const notifService = require('./notificationService');
-  try {
-    await notifService.createNotification({
-      user_id,
-      title: 'Pengajuan Peminjaman Diterima',
-      message: `Pengajuan peminjaman dengan kode ${borrowCode} sedang menunggu persetujuan admin.`,
-      type: 'peminjaman',
-      action_url: `/user/riwayat_peminjaman?code=${encodeURIComponent(borrowCode)}`,
-      reference_id: newBorrowing.id,
-      reference_type: 'borrowing'
-    });
-  } catch (err) {
-    console.error('Gagal kirim notif ke user:', err);
-  }
+  await supabase.from('notifications').insert([{
+    user_id,
+    title: 'Pengajuan Peminjaman Diterima',
+    message: `Pengajuan peminjaman dengan kode ${borrowCode} sedang menunggu persetujuan admin.`,
+    type: 'peminjaman',
+    is_read: false,
+    created_at: now
+  }]);
 
   // Notifikasi ke seluruh Admin / Petugas
   try {
+    const notifService = require('./notificationService');
     const { data: borrowerUser } = await supabase.from('users').select('name').eq('id', user_id).single();
     const borrowerName = borrowerUser?.name || 'User';
     await notifService.notifyAdmins({
       title: 'Pengajuan Peminjaman Baru',
       message: `${borrowerName} mengajukan peminjaman baru (${borrowCode}) untuk "${purpose || 'keperluan kampus'}".`,
-      type: 'peminjaman',
-      action_url: `/admin/manajemen_peminjaman?search=${encodeURIComponent(borrowCode)}`,
-      reference_id: newBorrowing.id,
-      reference_type: 'borrowing'
+      type: 'peminjaman'
     });
   } catch (err) {
     console.error('Gagal broadcast notif peminjaman ke admin:', err);
@@ -253,6 +246,20 @@ exports.updateStatus = async (id, { status, admin_note }) => {
 
   if (fetchError || !currentBorrowing) {
     throw new AppError('Data peminjaman tidak ditemukan', 404);
+  }
+
+  const allowedTransitions = {
+    Pending: ['Disetujui', 'Ditolak', 'Dibatalkan'],
+    Disetujui: ['Dipinjam', 'Dibatalkan', 'Ditolak'],
+    Dipinjam: ['Dikembalikan'],
+    Ditolak: [],
+    Dibatalkan: [],
+    Dikembalikan: []
+  };
+
+  const allowedNext = allowedTransitions[currentBorrowing.status] || [];
+  if (!allowedNext.includes(status)) {
+    throw new AppError(`Transisi status ${currentBorrowing.status} -> ${status} tidak diizinkan`, 400);
   }
 
   const { data: bItems } = await supabase
@@ -293,21 +300,15 @@ exports.updateStatus = async (id, { status, admin_note }) => {
 
   if (updateError) throw updateError;
 
-  // Notifikasi status peminjaman ke user
-  try {
-    const notifService = require('./notificationService');
-    await notifService.createNotification({
-      user_id: currentBorrowing.user_id,
-      title: `Status Peminjaman: ${status}`,
-      message: `Peminjaman ${currentBorrowing.borrow_code} statusnya telah diperbarui menjadi "${status}".${admin_note ? ` Catatan: ${admin_note}` : ''}`,
-      type: 'peminjaman',
-      action_url: `/user/riwayat_peminjaman?code=${encodeURIComponent(currentBorrowing.borrow_code)}`,
-      reference_id: id,
-      reference_type: 'borrowing'
-    });
-  } catch (err) {
-    console.error('Gagal kirim notif status peminjaman:', err);
-  }
+  // Notifikasi
+  await supabase.from('notifications').insert([{
+    user_id: currentBorrowing.user_id,
+    title: `Status Peminjaman: ${status}`,
+    message: `Peminjaman ${currentBorrowing.borrow_code} statusnya telah diperbarui menjadi "${status}".${admin_note ? ` Catatan: ${admin_note}` : ''}`,
+    type: 'peminjaman',
+    is_read: false,
+    created_at: new Date().toISOString()
+  }]);
 
   return updated;
 };

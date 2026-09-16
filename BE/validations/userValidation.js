@@ -25,9 +25,10 @@ const createUserSchema = Joi.object({
 const updateUserSchema = Joi.object({
   nomor_induk: Joi.string().trim().min(3).max(50),
   name: Joi.string().trim().min(3).max(100),
+  email: Joi.string().email().trim().allow('', null),
   role: Joi.string().valid(...ALL_ROLES),
   no_hp: Joi.string().allow('', null),
-  foto: Joi.string().uri().allow('', null),
+  foto: Joi.string().allow('', null),
   status: Joi.string().valid(...Object.values(USER_STATUS))
 });
 
