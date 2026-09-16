@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   AlertTriangle,
   Download,
@@ -158,6 +158,7 @@ export default function ManajemenPeminjamanPage() {
   const [selectedBorrowing, setSelectedBorrowing] = useState<Borrowing | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const hasHandledUrlRef = useRef(false);
   const mounted = useMount();
 
   const fetchData = async () => {
@@ -241,12 +242,16 @@ export default function ManajemenPeminjamanPage() {
         setBorrowings(mapped);
         setTotal(res.total || mapped.length);
 
-        // Auto-select borrowing jika diarahkan dari shortcut notifikasi
-        if (typeof window !== "undefined") {
+        // Auto-select borrowing jika diarahkan dari shortcut notifikasi (hanya sekali saat pertama buka)
+        if (!hasHandledUrlRef.current && typeof window !== "undefined") {
           const params = new URLSearchParams(window.location.search);
           const targetCode = params.get("code") || params.get("search");
           const targetId = params.get("id");
           if (targetCode || targetId) {
+            hasHandledUrlRef.current = true;
+            // Bersihkan parameter query dari URL agar tidak memicu auto-open berulang atau mengunci filter
+            window.history.replaceState({}, "", window.location.pathname);
+
             const found = mapped.find(
               (b) =>
                 (targetId && b.id === targetId) ||
@@ -254,6 +259,53 @@ export default function ManajemenPeminjamanPage() {
             );
             if (found) {
               setSelectedBorrowing(found);
+            } else if (targetCode) {
+              // Jika belum ada di list halaman pertama, fetch spesifik agar modal langsung terbuka
+              (api.borrowings.getAll as any)({ search: targetCode, limit: 1 }).then((resDetail: any) => {
+                if (resDetail.status === "success" && Array.isArray(resDetail.data) && resDetail.data[0]) {
+                  const raw = resDetail.data[0];
+                  const user = raw.users || {};
+                  const itemsList = Array.isArray(raw.borrowings_items)
+                    ? raw.borrowings_items.map((bi: any) => ({
+                        id: bi.id,
+                        item_id: bi.item_id,
+                        quantity: bi.quantity,
+                        condition_before: bi.condition_before,
+                        note: bi.note,
+                        items: bi.items || null,
+                      }))
+                    : [];
+                  const firstItem = itemsList[0]?.items;
+                  const rawStatus = raw.status || "Pending";
+                  let normalizedStatus = "pending";
+                  const lower = rawStatus.toLowerCase();
+                  if (lower === "dipinjam") normalizedStatus = "active";
+                  else if (lower === "terlambat") normalizedStatus = "overdue";
+                  else if (lower === "selesai" || lower === "dikembalikan") normalizedStatus = "completed";
+                  else if (lower === "pending" || lower === "menunggu") normalizedStatus = "pending";
+
+                  setSelectedBorrowing({
+                    id: raw.id,
+                    borrow_code: raw.borrow_code || "-",
+                    item_name: firstItem?.name || raw.purpose || "Barang Peminjaman",
+                    item_code: firstItem?.code || raw.borrow_code || "-",
+                    borrower_name: user.name || "Peminjam",
+                    borrower_email: user.email || "-",
+                    borrower_phone: user.no_hp || "-",
+                    borrower_role: user.role || "-",
+                    borrower_foto: user.foto || null,
+                    borrow_date: raw.borrow_date ? new Date(raw.borrow_date).toLocaleDateString("id-ID") : "-",
+                    planned_return_date: raw.planned_return_date ? new Date(raw.planned_return_date).toLocaleDateString("id-ID") : "-",
+                    return_date: raw.actual_return_date ? new Date(raw.actual_return_date).toLocaleDateString("id-ID") : "-",
+                    status: normalizedStatus,
+                    raw_status: rawStatus,
+                    purpose: raw.purpose || "-",
+                    admin_note: raw.admin_note || "",
+                    created_at: raw.created_at ? new Date(raw.created_at).toLocaleString("id-ID") : "-",
+                    items: itemsList,
+                  });
+                }
+              });
             }
           }
         }
@@ -267,17 +319,6 @@ export default function ManajemenPeminjamanPage() {
       setLoading(false);
     }
   };
-
-  // Inisialisasi filter / search dari URL query parameter (shortcut notifikasi)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const targetSearch = params.get("search") || params.get("code");
-    if (targetSearch) {
-      setSearch(targetSearch);
-      setActiveFilter("semua");
-    }
-  }, []);
 
   useEffect(() => {
     fetchData();
@@ -429,22 +470,27 @@ export default function ManajemenPeminjamanPage() {
     >
       <div className="space-y-6">
           {/* Page header */}
-          <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+          <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Manajemen Peminjaman</h1>
-              <p className="text-sm text-slate-500 mt-0.5">Kelola dan pantau seluruh transaksi peminjaman barang.</p>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manajemen Peminjaman</h1>
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  {borrowings.length} TRANSAKSI
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">Kelola dan pantau seluruh sirkulasi dan otorisasi peminjaman barang sarpras.</p>
             </div>
             <button
               onClick={handleHeaderAction}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs self-start sm:self-auto"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
               {activeFilter === "pending" ? "Validasi Semua Pending" : "Filter Menunggu Validasi"}
             </button>
           </div>
 
-          {/* ── Stat Cards (Modern Design) ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4.5">
+          {/* ── Stat Cards (n8n Node Style) ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {stats.map((s, i) => (
               <div
                 key={s.label}
@@ -452,29 +498,29 @@ export default function ManajemenPeminjamanPage() {
                   setActiveFilter(activeFilter === s.filterKey ? "semua" : s.filterKey);
                   setPage(1);
                 }}
-                style={{ animationDelay: `${i * 75}ms` }}
-                className={`group bg-white rounded-2xl border p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+                style={{ animationDelay: `${i * 60}ms` }}
+                className={`group bg-white rounded-xl border p-4.5 flex flex-col justify-between cursor-pointer transition-all duration-200 hover:shadow-sm ${
                   activeFilter === s.filterKey
-                    ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md bg-gradient-to-br from-white via-blue-50/20 to-white"
-                    : "border-slate-100 shadow-sm hover:border-slate-200"
+                    ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-xs bg-sky-50/20"
+                    : "border-slate-200/90 shadow-xs hover:border-slate-300"
                 } ${mounted ? "animate-fade-up" : "opacity-0"}`}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border mb-2 ${s.badgeColor}`}>
+                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold border mb-1.5 ${s.badgeColor}`}>
                       {s.badge}
                     </span>
-                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{s.label}</p>
+                    <p className="text-xs font-medium text-slate-500">{s.label}</p>
                   </div>
-                  <div className={`w-11 h-11 rounded-2xl ${s.iconBg} border border-slate-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                  <div className={`w-8 h-8 rounded-lg ${s.iconBg} border border-slate-100 flex items-center justify-center shrink-0`}>
                     {s.icon}
                   </div>
                 </div>
                 <div className="mt-3">
-                  <p className={`text-3xl font-extrabold text-slate-900 tabular-nums ${mounted ? "animate-count-up" : ""}`}>
+                  <p className={`text-2xl font-black text-slate-900 tabular-nums tracking-tight ${mounted ? "animate-count-up" : ""}`}>
                     {s.value}
                   </p>
-                  <div className="pt-3 mt-2 border-t border-slate-50 flex items-center justify-between text-xs">
+                  <div className="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span className="text-[11px] text-slate-400">
                       {s.filterKey === "pending"
                         ? "Perlu verifikasi admin"
@@ -484,10 +530,10 @@ export default function ManajemenPeminjamanPage() {
                         ? "Lewat estimasi kembali"
                         : "Aset telah kembali"}
                     </span>
-                    <span className={`text-[11px] font-semibold transition-colors ${
+                    <span className={`text-[10px] font-mono font-semibold transition-colors ${
                       activeFilter === s.filterKey ? "text-[#0785BC]" : "text-slate-400 group-hover:text-[#0785BC]"
                     }`}>
-                      {activeFilter === s.filterKey ? "• Aktif" : "Filter"}
+                      {activeFilter === s.filterKey ? "• AKTIF" : "FILTER"}
                     </span>
                   </div>
                 </div>
@@ -496,17 +542,17 @@ export default function ManajemenPeminjamanPage() {
           </div>
 
           {/* ── Table Card ── */}
-          <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
+          <div className={`bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
             {/* Filter tabs + actions */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200/80 bg-slate-50/50 gap-4 flex-wrap">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 {filterTabs.map((tab) => (
                   <button
                     key={tab.key}
                     onClick={() => { setActiveFilter(tab.key); setPage(1); }}
-                    className={`px-3.5 py-1.5 rounded-full text-sm font-medium transition-all active:scale-95 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
                       activeFilter === tab.key
-                        ? "bg-[#0785BC] text-white shadow-sm"
+                        ? "bg-[#0785BC] text-white shadow-xs"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                     }`}
                   >
@@ -681,8 +727,8 @@ export default function ManajemenPeminjamanPage() {
 
       {/* ── Modal Detail Peminjaman (Sebelum/Sesudah Validasi) ── */}
       {selectedBorrowing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] my-auto animate-scale-in">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">

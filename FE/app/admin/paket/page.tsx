@@ -559,26 +559,32 @@ export default function PaketPage() {
       onSearchChange={setSearchQuery}
     >
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Paket Sarana & Prasarana</h1>
-            <p className="text-sm text-slate-500 mt-1">Kelola bundle peminjaman peralatan lengkap</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Paket Bundling Sarpras</h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                {packages.length} BUNDLES
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Kelola paket set peralatan siap pakai untuk kegiatan perkuliahan dan acara.</p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs"
             >
-              <FileSpreadsheet className="w-4 h-4 text-[#0785BC]" />
-              Ekspor / Impor Data
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
+              Ekspor Data
             </button>
             <button
               onClick={() => {
                 resetForm();
                 setShowModal(true);
               }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#0785BC] text-white text-xs font-semibold rounded-xl hover:bg-[#0672a0] active:scale-95 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs"
             >
               <Plus className="w-4 h-4" />
               Tambah Paket
@@ -586,71 +592,70 @@ export default function PaketPage() {
           </div>
         </div>
 
-        {/* ── Stat Cards Real Data (Modern Design) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+        {/* ── Stat Cards (n8n Node Style) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 mb-2">
-                  Koleksi Bundling
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200 mb-1.5">
+                  BUNDLES
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Paket Sarpras</p>
+                <p className="text-xs font-medium text-slate-500">Total Paket Sarpras</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[#0785BC] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Package className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
+                <Package className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-slate-900 tabular-nums">
-                {loading ? "..." : packages.length} <span className="text-xs text-slate-400 font-semibold">paket aktif</span>
+              <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">
+                {loading ? "..." : packages.length} <span className="text-xs text-slate-500 font-normal">paket terdaftar</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Kombinasi multi-item terintegrasi</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Kombinasi multi-item terintegrasi</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 mb-2">
-                  Full Stok
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1.5">
+                  READY
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Siap Dipinjam (Lengkap)</p>
+                <p className="text-xs font-medium text-slate-500">Siap Dipinjam (Komplit)</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-emerald-600 tabular-nums">
-                {loading ? "..." : readyPackagesCount} <span className="text-xs text-emerald-700/60 font-semibold">paket siap pakai</span>
+              <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
+                {loading ? "..." : readyPackagesCount} <span className="text-xs text-emerald-700/60 font-normal">paket siap pakai</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Semua komponen barang tersedia</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Semua komponen barang berstatus cukup</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 mb-2">
-                  Parsial
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 mb-1.5">
+                  PARTIAL
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Stok Terbatas / Parsial</p>
+                <p className="text-xs font-medium text-slate-500">Komponen Terbatas</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <AlertCircle className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-amber-600 tabular-nums">
-                {loading ? "..." : limitedPackagesCount} <span className="text-xs text-amber-700/60 font-semibold">paket terbatas</span>
+              <p className="text-2xl font-black text-amber-600 tabular-nums tracking-tight">
+                {loading ? "..." : limitedPackagesCount} <span className="text-xs text-amber-700/60 font-normal">paket menunggu stok</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Sebagian unit item sedang dipinjam</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Sebagian item sedang dipinjam terpisah</p>
             </div>
           </div>
         </div>
 
-        {/* ── Table Card ── */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
             <div>
               <h2 className="text-sm font-bold text-slate-900">Daftar Paket Sarpras</h2>
@@ -858,8 +863,8 @@ export default function PaketPage() {
 
       {/* Modal Tambah / Edit Paket */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border border-slate-100">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200 my-auto animate-scale-in">
             {/* Header */}
             <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1302,8 +1307,8 @@ export default function PaketPage() {
 
       {/* ── Modern Detail Modal Paket ── */}
       {showDetail && selectedPackage && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden border border-slate-100 shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] my-auto animate-scale-in">
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
               <div className="flex items-center gap-3">
@@ -1646,8 +1651,8 @@ export default function PaketPage() {
 
       {/* ── Dialog Cepat Tambah Stok Barang (Agar Paket Otomatis Aktif Kembali) ── */}
       {replenishModal.open && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto animate-scale-in">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Filter,
   Clock,
@@ -151,6 +151,7 @@ export default function PengembalianPage() {
     totalReturned: 0,
   });
 
+  const hasHandledUrlRef = useRef(false);
   const mounted = useMount();
 
   const fetchData = async () => {
@@ -269,12 +270,16 @@ export default function PengembalianPage() {
       setReturns(itemsCombined);
       setTotal(itemsCombined.length);
 
-      // Auto-select pengembalian jika diarahkan dari shortcut notifikasi
-      if (typeof window !== "undefined") {
+      // Auto-select pengembalian jika diarahkan dari shortcut notifikasi (hanya sekali saat pertama buka)
+      if (!hasHandledUrlRef.current && typeof window !== "undefined") {
         const params = new URLSearchParams(window.location.search);
         const targetCode = params.get("code") || params.get("search");
         const targetId = params.get("id");
         if (targetCode || targetId) {
+          hasHandledUrlRef.current = true;
+          // Bersihkan parameter query dari URL agar tidak memicu auto-open berulang atau mengunci filter
+          window.history.replaceState({}, "", window.location.pathname);
+
           const found = itemsCombined.find(
             (r) =>
               (targetId && (r.id === targetId || r.borrowing_id === targetId)) ||
@@ -308,17 +313,6 @@ export default function PengembalianPage() {
       setLoading(false);
     }
   };
-
-  // Inisialisasi search dari URL query parameter (shortcut notifikasi)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const targetSearch = params.get("search") || params.get("code");
-    if (targetSearch) {
-      setSearch(targetSearch);
-      setStatusFilter("all");
-    }
-  }, []);
 
   useEffect(() => {
     fetchData();
@@ -398,10 +392,15 @@ export default function PengembalianPage() {
     >
       <div className="space-y-6">
         {/* Page header */}
-        <div className={`flex items-start justify-between ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Manajemen Pengembalian</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manajemen Pengembalian</h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                PENGEMBALIAN ASET
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
               Pantau jadwal jatuh tempo, proses konfirmasi pengembalian barang, dan telusuri riwayat riil.
             </p>
           </div>
@@ -409,23 +408,23 @@ export default function PengembalianPage() {
             <button
               onClick={fetchData}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              Refresh
+              Segarkan
             </button>
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs"
             >
-              <FileSpreadsheet className="w-4 h-4 text-[#0785BC]" />
-              Ekspor Pengembalian
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
+              Ekspor Data
             </button>
           </div>
         </div>
 
-        {/* ── Stat Cards Realtime (Modern Design) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
+        {/* ── Stat Cards Realtime (n8n Node Style) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {stats.map((s, i) => (
             <div
               key={s.label}
@@ -433,38 +432,38 @@ export default function PengembalianPage() {
                 setStatusFilter(statusFilter === s.filterKey ? "all" : s.filterKey);
                 setPage(1);
               }}
-              style={{ animationDelay: `${i * 75}ms` }}
-              className={`group bg-white rounded-2xl border p-5 flex flex-col justify-between cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+              style={{ animationDelay: `${i * 60}ms` }}
+              className={`group bg-white rounded-xl border p-4.5 flex flex-col justify-between cursor-pointer transition-all duration-200 hover:shadow-sm ${
                 statusFilter === s.filterKey
-                  ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md bg-gradient-to-br from-white via-blue-50/20 to-white"
-                  : "border-slate-100 shadow-sm hover:border-slate-200"
+                  ? "border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-xs bg-sky-50/20"
+                  : "border-slate-200/90 shadow-xs hover:border-slate-300"
               } ${mounted ? "animate-fade-up" : "opacity-0"}`}
             >
               <div className="flex items-start justify-between">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/60 mb-2">
-                    {s.filterKey === "active" ? "Aktif" : s.filterKey === "overdue" ? "Peringatan" : "Selesai"}
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200 mb-1.5">
+                    {s.filterKey === "active" ? "ACTIVE RUN" : s.filterKey === "overdue" ? "OVERDUE" : "COMPLETED"}
                   </span>
-                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider leading-snug">
+                  <p className="text-xs font-medium text-slate-500 leading-snug">
                     {s.label}
                   </p>
                 </div>
-                <div className={`w-11 h-11 rounded-2xl ${s.iconBg} border border-slate-100 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform`}>
+                <div className={`w-8 h-8 rounded-lg ${s.iconBg} border border-slate-100 flex items-center justify-center shrink-0`}>
                   {s.icon}
                 </div>
               </div>
               <div className="mt-3">
-                <p className={`text-3xl font-extrabold tabular-nums ${s.valueColor} ${mounted ? "animate-count-up" : ""}`}>
+                <p className={`text-2xl font-black tabular-nums tracking-tight ${s.valueColor} ${mounted ? "animate-count-up" : ""}`}>
                   {s.value}
                 </p>
-                <div className="pt-3 mt-2 border-t border-slate-50 flex items-center justify-between text-xs">
+                <div className="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-[11px] text-slate-400">
                     {s.filterKey === "active" ? "Barang di tangan peminjam" : s.filterKey === "overdue" ? "Perlu peneguran segera" : "Aset kembali ke gudang"}
                   </span>
-                  <span className={`text-[11px] font-semibold transition-colors ${
+                  <span className={`text-[10px] font-mono font-semibold transition-colors ${
                     statusFilter === s.filterKey ? "text-[#0785BC]" : "text-slate-400 group-hover:text-[#0785BC]"
                   }`}>
-                    {statusFilter === s.filterKey ? "• Aktif" : "Filter"}
+                    {statusFilter === s.filterKey ? "• AKTIF" : "FILTER"}
                   </span>
                 </div>
               </div>
@@ -473,9 +472,9 @@ export default function PengembalianPage() {
         </div>
 
         {/* ── Daftar Pengembalian Table ── */}
-        <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
-            <h2 className="text-base font-bold text-slate-900">Daftar Status Pengembalian</h2>
+        <div className={`bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-5 py-3.5 border-b border-slate-200/80 bg-slate-50/50">
+            <h2 className="text-sm font-bold text-slate-900 tracking-tight">Daftar Status Pengembalian</h2>
             <div className="flex items-center gap-2">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
               <select
@@ -658,8 +657,8 @@ export default function PengembalianPage() {
 
       {/* ── Modal Detail Pengembalian (Sama Seperti Peminjaman + Info Pengembalian) ── */}
       {selectedItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] my-auto animate-scale-in">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center">
@@ -827,8 +826,8 @@ export default function PengembalianPage() {
 
       {/* ── Modal Konfirmasi Pengembalian ── */}
       {confirmingId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 my-auto animate-scale-in">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="font-bold text-slate-800 text-base">Konfirmasi Barang Kembali</h3>
               <button

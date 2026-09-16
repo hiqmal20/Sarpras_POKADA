@@ -20,17 +20,47 @@ import {
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
 
-const navItems = [
-  { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/barang", label: "Barang Per Item", icon: Box },
-  { href: "/admin/paket", label: "Paket Barang", icon: Package },
-  { href: "/admin/manajemen_peminjaman", label: "Peminjaman", icon: BookOpen },
-  { href: "/admin/pengembalian", label: "Pengembalian", icon: RotateCcw },
-  { href: "/admin/manajemen_user", label: "Manage User", icon: Users },
-  { href: "/admin/rekap_laporan", label: "Laporan Kerusakan", icon: AlertTriangle },
-  { href: "/admin/kategori_barang", label: "Kategori Barang", icon: Tag },
-  { href: "/admin/messages", label: "Messages", icon: MessageSquare },
-  { href: "/admin/settings", label: "Pengaturan", icon: Settings },
+interface NavGroup {
+  title: string;
+  items: Array<{
+    href: string;
+    label: string;
+    icon: any;
+    isMessages?: boolean;
+  }>;
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: "Menu Utama",
+    items: [
+      { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/admin/messages", label: "Pesan & Live Chat", icon: MessageSquare, isMessages: true },
+    ],
+  },
+  {
+    title: "Inventaris & Aset",
+    items: [
+      { href: "/admin/barang", label: "Barang Per Item", icon: Box },
+      { href: "/admin/paket", label: "Paket Barang", icon: Package },
+      { href: "/admin/kategori_barang", label: "Kategori Barang", icon: Tag },
+    ],
+  },
+  {
+    title: "Operasional Sarpras",
+    items: [
+      { href: "/admin/manajemen_peminjaman", label: "Peminjaman", icon: BookOpen },
+      { href: "/admin/pengembalian", label: "Pengembalian", icon: RotateCcw },
+      { href: "/admin/rekap_laporan", label: "Laporan Kerusakan", icon: AlertTriangle },
+    ],
+  },
+  {
+    title: "Administrasi Sistem",
+    items: [
+      { href: "/admin/manajemen_user", label: "Manajemen User", icon: Users },
+      { href: "/admin/settings", label: "Pengaturan Sistem", icon: Settings },
+    ],
+  },
 ];
 
 interface SidebarProps {
@@ -57,7 +87,6 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
       try {
         const res = await api.chats.getAll();
         if (res.status === "success" && Array.isArray(res.data)) {
-          // Hitung murni chat dengan pesan unread
           const count = res.data.reduce((total: number, c: any) => total + (c.unread_count || 0), 0);
           setUnreadMsgCount(count);
         } else {
@@ -106,90 +135,154 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
 
   return (
     <aside
-      className={`bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0 transition-all duration-300 z-30 shrink-0 ${
+      className={`bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shrink-0 select-none ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      {/* Header / Logo */}
-      <div className="px-4 py-5 border-b border-slate-100 flex items-center justify-between">
-        {!collapsed && (
-          <div className="min-w-0 pr-2">
-            <h1 className="text-base font-bold text-[#0785BC] truncate tracking-tight">SARPRAS POKADA</h1>
-            <p className="text-[10px] text-slate-400 truncate">Internal Lending Platform</p>
+      {/* ── Header: Logo Resmi POKADA dari landing page ── */}
+      <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between bg-white">
+        {!collapsed ? (
+          <div className="flex items-center gap-2.5 min-w-0 pr-1">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-2xs shrink-0 bg-white">
+              <img
+                src="/images/pokada.jpg"
+                alt="Logo POKADA"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xs font-black tracking-tight text-slate-900 leading-tight truncate">
+                SARPRAS<span className="text-[#0785BC]">POKADA</span>
+              </h1>
+              <p className="text-[10px] text-slate-400 font-medium truncate leading-tight mt-0.5">
+                Politeknik Karya Husada
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-2xs bg-white">
+              <img
+                src="/images/pokada.jpg"
+                alt="Logo POKADA"
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
         )}
+
         <button
           onClick={onToggleCollapse}
-          className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors mx-auto"
-          title={collapsed ? "Perluas Sidebar" : "Kecilkan Sidebar"}
+          className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
+            collapsed ? "hidden" : "block"
+          }`}
+          title="Kecilkan Sidebar"
         >
-          {collapsed ? <PanelLeft className="w-5 h-5 text-[#0785BC]" /> : <PanelLeftClose className="w-5 h-5" />}
+          <PanelLeftClose className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-3 overflow-y-auto">
-        <ul className="space-y-1.5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            const isMessages = item.href === "/admin/messages";
-            const badgeCount = isMessages ? unreadMsgCount : 0;
+      {/* When collapsed, toggle button on top bar */}
+      {collapsed && (
+        <div className="pt-2 px-3 pb-1 flex justify-center">
+          <button
+            onClick={onToggleCollapse}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-slate-50 transition-colors"
+            title="Perluas Sidebar"
+          >
+            <PanelLeft className="w-4 h-4 text-[#0785BC]" />
+          </button>
+        </div>
+      )}
 
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  title={collapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 relative ${
-                    collapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-[#0785BC] text-white shadow-xs"
-                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className="w-4 h-4 shrink-0" />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                  {badgeCount > 0 && (
-                    <span
-                      className={`w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 ${
-                        collapsed ? "absolute -top-1 -right-1" : "ml-auto"
+      {/* ── Navigation List (Struktur Rapi ChatGPT/n8n dengan Warna Asli POKADA) ── */}
+      <nav className="flex-1 py-3 px-3 overflow-y-auto space-y-4">
+        {navGroups.map((group) => (
+          <div key={group.title}>
+            {!collapsed && (
+              <p className="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {group.title}
+              </p>
+            )}
+            <ul className="space-y-1">
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                const badgeCount = item.isMessages ? unreadMsgCount : 0;
+
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      title={collapsed ? item.label : undefined}
+                      className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                        collapsed ? "justify-center" : ""
+                      } ${
+                        isActive
+                          ? "bg-[#0785BC] text-white shadow-xs"
+                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                       }`}
                     >
-                      {badgeCount}
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                      <Icon
+                        className={`w-4 h-4 shrink-0 transition-colors ${
+                          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
+                        }`}
+                      />
+
+                      {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+
+                      {/* Badge count */}
+                      {badgeCount > 0 && (
+                        <span
+                          className={`h-4 min-w-4 px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 ${
+                            collapsed ? "absolute -top-1 -right-1" : ""
+                          }`}
+                        >
+                          {badgeCount}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      {/* Footer / User Info */}
-      <div className="p-3 border-t border-slate-100">
-        <div className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}>
-          {currentUser?.foto ? (
-            <img
-              src={currentUser.foto}
-              alt={displayName}
-              className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shrink-0">
-              {initials}
-            </div>
-          )}
+      {/* ── Footer: Profil Pengguna Kampus ── */}
+      <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+        <Link
+          href="/admin/profile"
+          className={`flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white hover:shadow-2xs transition-all ${
+            collapsed ? "justify-center" : ""
+          }`}
+          title={collapsed ? displayName : "Buka Profil Saya"}
+        >
+          <div className="relative shrink-0">
+            {currentUser?.foto ? (
+              <img
+                src={currentUser.foto}
+                alt={displayName}
+                className="w-8 h-8 rounded-lg object-cover border border-slate-200"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-lg bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+                {initials}
+              </div>
+            )}
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+          </div>
+
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate">{displayName}</p>
+              <p className="text-xs font-bold text-slate-800 truncate leading-snug">{displayName}</p>
               <p className="text-[10px] text-slate-400 truncate">
-                {currentUser?.role === "Admin" ? "Administrator" : "Petugas"}
+                {currentUser?.role === "Admin" ? "Administrator Sarpras" : "Petugas Laboratorium"}
               </p>
             </div>
           )}
-        </div>
+        </Link>
       </div>
     </aside>
   );

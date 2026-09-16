@@ -182,7 +182,7 @@ export default function LandingPage() {
       category: "auditorium",
       categoryName: "Ruangan & Aula",
       stock: 2,
-      location: "Gedung Atlanta Lt. 2 POKADA",
+      location: "Gedung Atlanta Lt. 6 POKADA",
       image: "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=600&q=80",
       status: "Tersedia",
       code: "RNG-AULA-006",
@@ -226,7 +226,7 @@ export default function LandingPage() {
       step: 3,
       tag: "Approval Gate",
       title: "Persetujuan Petugas SARPRAS",
-      desc: "Petugas laboratorium / admin memverifikasi tujuan peminjaman melalui portal admin satu pintu.",
+      desc: "Admin memverifikasi tujuan peminjaman melalui portal admin satu pintu.",
       badge: "Notifikasi Real-Time",
       icon: ShieldCheck,
       color: "from-[#0785BC] to-teal-500",
@@ -247,7 +247,7 @@ export default function LandingPage() {
   const faqs = [
     {
       q: "Siapa saja yang berhak meminjam sarana & prasarana di POKADA?",
-      a: "Seluruh sivitas akademika aktif Politeknik Karya Husada (Mahasiswa DIII Keperawatan, STr Kebidanan, Profesi Bidan, STr MIK, serta Dosen & Staff) yang telah terdaftar dengan NIM/NIP valid.",
+      a: "Seluruh civitas akademika aktif Politeknik Karya Husada (Mahasiswa DIII Keperawatan, STr Kebidanan, Profesi Bidan, STr MIK, serta Dosen & Staff) yang telah terdaftar dengan NIM/NIP valid.",
     },
     {
       q: "Bagaimana jika barang yang ingin dipinjam adalah paket bundling?",
@@ -263,7 +263,7 @@ export default function LandingPage() {
     },
     {
       q: "Apa yang harus dilakukan jika terjadi kendala atau kerusakan alat?",
-      a: "Peminjam dapat langsung memanfaatkan menu 'Lapor Kerusakan' di portal akun. Petugas laboratorium akan segera memverifikasi kondisi awal dan tindak lanjut perbaikan.",
+      a: "Peminjam dapat langsung memanfaatkan menu 'Lapor Kerusakan' di portal akun. Admin akan segera memverifikasi kondisi awal dan tindak lanjut perbaikan.",
     },
   ];
 
@@ -591,9 +591,6 @@ export default function LandingPage() {
                       <span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" />
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
                     </div>
-                    <span className="text-[11px] font-mono font-bold text-slate-500 ml-2">
-                      pokada_sarpras_pipeline.n8n
-                    </span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
@@ -684,7 +681,7 @@ export default function LandingPage() {
                         Aset Siap: Tensimeter & Manekin CPR
                       </p>
                       <p className="text-[10px] text-slate-400 truncate">
-                        Lokasi: Gedung Atlanta POKADA Lt. 3
+                        Lokasi: Gedung Atlanta POKADA Lt. 6
                       </p>
                     </div>
                   </div>
@@ -709,7 +706,7 @@ export default function LandingPage() {
               Peminjaman Tanpa Kertas & Antrean
             </h2>
             <p className="text-slate-500 text-sm mt-2 leading-relaxed">
-              Didesain khusus untuk efisiensi dosen, mahasiswa, dan staf laboratorium di lingkungan Politeknik Karya Husada.
+              Didesain khusus untuk efisiensi dosen, mahasiswa, dan staf di lingkungan Politeknik Karya Husada.
             </p>
           </div>
 
@@ -867,7 +864,7 @@ export default function LandingPage() {
             <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-10 pointer-events-none bg-dot-grid-dark" />
             <div className="relative z-10 max-w-2xl space-y-4">
               <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-md inline-block">
-                Sivitas Akademika Politeknik Karya Husada
+                Civitas Akademika Politeknik Karya Husada
               </span>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight leading-tight">
                 Punya Kebutuhan Praktikum atau Acara Kampus?

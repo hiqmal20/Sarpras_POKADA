@@ -6,16 +6,16 @@ import {
   User,
   LogOut,
   Shield,
-  HelpCircle,
   X,
   Search,
   Package,
   CheckCircle2,
   AlertTriangle,
   RotateCcw,
+  ChevronRight,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
 import { getNotificationTargetUrl, getNotificationActionLabel } from "@/lib/notificationHelper";
@@ -39,13 +39,28 @@ interface NotificationItem {
   action_url?: string;
 }
 
+const routeBreadcrumbMap: Record<string, { section: string; title: string }> = {
+  "/admin/dashboard_admin": { section: "Menu Utama", title: "Dashboard" },
+  "/admin/messages": { section: "Menu Utama", title: "Pesan & Live Chat" },
+  "/admin/barang": { section: "Inventaris", title: "Barang Per Item" },
+  "/admin/paket": { section: "Inventaris", title: "Paket Barang" },
+  "/admin/kategori_barang": { section: "Inventaris", title: "Kategori Barang" },
+  "/admin/manajemen_peminjaman": { section: "Operasional Sarpras", title: "Peminjaman" },
+  "/admin/pengembalian": { section: "Operasional Sarpras", title: "Pengembalian" },
+  "/admin/rekap_laporan": { section: "Operasional Sarpras", title: "Laporan Kerusakan" },
+  "/admin/manajemen_user": { section: "Administrasi Sistem", title: "Manajemen Pengguna" },
+  "/admin/settings": { section: "Administrasi Sistem", title: "Pengaturan Sistem" },
+  "/admin/profile": { section: "Akun Petugas", title: "Profil Saya" },
+};
+
 export default function Navbar({
   showSearch = false,
   searchValue = "",
-  searchPlaceholder = "Cari data...",
+  searchPlaceholder = "Cari data sarpras...",
   onSearchChange,
 }: NavbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -70,7 +85,6 @@ export default function Navbar({
       try {
         const res = await api.notifications.getAll();
         if (res.status === "success" && Array.isArray(res.data)) {
-          // Ambil preferensi notifikasi dari Settings yang tersimpan
           let appSettings: any = null;
           try {
             const rawSettings = localStorage.getItem("appSettings");
@@ -78,16 +92,12 @@ export default function Navbar({
           } catch {}
 
           const notifConfig = appSettings?.notifications;
-
-          // Cek toggle push/badge notifikasi di settings
-          // Jika push/badge di-off kan, sembunyikan angka badge
           if (notifConfig && notifConfig.push === false) {
             setShowBadge(false);
           } else {
             setShowBadge(true);
           }
 
-          // Notifikasi tetap masuk ke daftar list agar admin bisa baca riwayatnya
           setNotifications(
             res.data.map((n: any) => ({
               id: n.id,
@@ -119,14 +129,12 @@ export default function Navbar({
     };
   }, []);
 
-  // Detect scroll untuk shadow & transisi
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 8);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
@@ -191,32 +199,32 @@ export default function Navbar({
   };
 
   const getNotifIcon = (type: string) => {
-    const iconClass = "w-8 h-8 rounded-xl flex items-center justify-center shrink-0";
+    const iconClass = "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border";
     switch (type) {
       case "peminjaman":
       case "borrowing":
         return (
-          <div className={`${iconClass} bg-blue-50 text-[#0785BC]`}>
+          <div className={`${iconClass} bg-sky-50 text-[#0785BC] border-sky-100`}>
             <Package className="w-4 h-4" />
           </div>
         );
       case "pengembalian":
       case "return":
         return (
-          <div className={`${iconClass} bg-emerald-50 text-emerald-600`}>
+          <div className={`${iconClass} bg-emerald-50 text-emerald-600 border-emerald-100`}>
             <RotateCcw className="w-4 h-4" />
           </div>
         );
       case "kerusakan":
       case "damage":
         return (
-          <div className={`${iconClass} bg-rose-50 text-rose-600`}>
+          <div className={`${iconClass} bg-rose-50 text-rose-600 border-rose-100`}>
             <AlertTriangle className="w-4 h-4" />
           </div>
         );
       default:
         return (
-          <div className={`${iconClass} bg-slate-50 text-slate-500`}>
+          <div className={`${iconClass} bg-slate-50 text-slate-500 border-slate-200`}>
             <Bell className="w-4 h-4" />
           </div>
         );
@@ -232,30 +240,44 @@ export default function Navbar({
     .join("")
     .toUpperCase() || "A";
 
+  const breadcrumb = routeBreadcrumbMap[pathname] || { section: "Admin", title: "Portal Sarpras" };
+
   return (
     <header
-      className={`h-16 bg-white border-b border-slate-100 flex items-center justify-between px-6 gap-4 sticky top-0 z-20 transition-all duration-200 ${
-        scrolled ? "shadow-sm" : "shadow-none"
+      className={`h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between px-6 gap-4 sticky top-0 z-20 transition-all duration-200 ${
+        scrolled ? "shadow-2xs border-slate-200" : ""
       }`}
     >
-      {/* Left Section: Search Bar */}
-      {showSearch ? (
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder={searchPlaceholder}
-            value={searchValue}
-            onChange={(e) => onSearchChange?.(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
-          />
+      {/* ── Left: Breadcrumb & Search Bar ── */}
+      <div className="flex items-center gap-4 min-w-0 flex-1">
+        <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 shrink-0 font-medium">
+          <span className="text-slate-500 font-semibold">{breadcrumb.section}</span>
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+          <span className="text-slate-900 font-bold">{breadcrumb.title}</span>
         </div>
-      ) : (
-        <div />
-      )}
 
-      {/* Right Section: Notifications, Settings & User */}
-      <div className="flex items-center gap-2 sm:gap-3">
+        {showSearch && (
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onChange={(e) => onSearchChange?.(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]/20 focus:border-[#0785BC] transition-all text-slate-800 placeholder-slate-400"
+            />
+          </div>
+        )}
+      </div>
+
+      {/* ── Right: Status Kampus, Notifikasi, Settings, Profil ── */}
+      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Status Sistem Kampus */}
+        <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-700">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Sistem Aktif</span>
+        </div>
+
         {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
           <button
@@ -263,25 +285,33 @@ export default function Navbar({
               setShowNotifDropdown(!showNotifDropdown);
               setShowProfileDropdown(false);
             }}
-            className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+            className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-colors"
+            title="Notifikasi"
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="w-4 h-4" />
             {showBadge && unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
                 {unreadCount}
               </span>
             )}
           </button>
 
-          {/* Notifications Dropdown Box */}
+          {/* Notifications Popover */}
           {showNotifDropdown && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 max-h-[480px] overflow-y-auto animate-fade-in">
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 max-h-[460px] overflow-y-auto animate-scale-in z-50">
               <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
-                <h3 className="font-bold text-xs text-slate-900">Notifikasi Sistem</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-bold text-xs text-slate-900">Notifikasi Sistem</h3>
+                  {unreadCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
+                      {unreadCount} baru
+                    </span>
+                  )}
+                </div>
                 {unreadCount > 0 && (
                   <button
                     onClick={handleMarkAllAsRead}
-                    className="text-xs text-[#0785BC] hover:underline font-medium"
+                    className="text-xs text-[#0785BC] hover:underline font-semibold"
                   >
                     Tandai dibaca
                   </button>
@@ -291,7 +321,7 @@ export default function Navbar({
               <div className="divide-y divide-slate-50">
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center text-slate-400 text-xs">
-                    <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-slate-200" />
+                    <CheckCircle2 className="w-7 h-7 mx-auto mb-1.5 text-slate-300" />
                     <p>Tidak ada notifikasi baru</p>
                   </div>
                 ) : (
@@ -299,15 +329,15 @@ export default function Navbar({
                     <div
                       key={notif.id}
                       onClick={() => handleNotificationClick(notif)}
-                      className={`px-4 py-3 hover:bg-blue-50/50 cursor-pointer transition-all group ${
-                        !notif.read && !notif.is_read ? "bg-blue-50/30" : ""
+                      className={`px-4 py-3 hover:bg-slate-50 cursor-pointer transition-all group ${
+                        !notif.read && !notif.is_read ? "bg-sky-50/40" : ""
                       }`}
                     >
-                      <div className="flex gap-3">
+                      <div className="flex gap-2.5">
                         {getNotifIcon(notif.type)}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-1">
-                            <p className="font-semibold text-xs text-slate-900 leading-snug group-hover:text-[#0785BC] transition-colors">
+                            <p className="font-semibold text-xs text-slate-900 leading-snug group-hover:text-[#0785BC] transition-colors truncate">
                               {notif.title}
                             </p>
                             <button
@@ -322,28 +352,14 @@ export default function Navbar({
                               <X className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                          <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
                             {notif.message}
                           </p>
-                          <div className="flex items-center justify-between mt-2 text-[10px]">
+                          <div className="flex items-center justify-between mt-1.5 text-[10px]">
                             <span className="text-slate-400">{notif.time}</span>
-                            <div className="flex items-center gap-2">
-                              {!notif.read && !notif.is_read && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleMarkAsRead(notif.id);
-                                  }}
-                                  className="text-[#0785BC] font-semibold hover:underline"
-                                >
-                                  Tandai dibaca
-                                </button>
-                              )}
-                              <span className="text-[#0785BC] font-semibold flex items-center gap-0.5 group-hover:underline">
-                                {getNotificationActionLabel(notif.type)} &rarr;
-                              </span>
-                            </div>
+                            <span className="text-[#0785BC] font-semibold flex items-center gap-0.5 group-hover:underline">
+                              {getNotificationActionLabel(notif.type)} &rarr;
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -355,22 +371,23 @@ export default function Navbar({
           )}
         </div>
 
-        {/* Settings Button */}
+        {/* Settings button */}
         <Link
           href="/admin/settings"
-          className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
+          className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-colors"
+          title="Pengaturan"
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="w-4 h-4" />
         </Link>
 
-        {/* Profile Dropdown */}
+        {/* User Dropdown */}
         <div className="relative" ref={profileRef}>
           <button
             onClick={() => {
               setShowProfileDropdown(!showProfileDropdown);
               setShowNotifDropdown(false);
             }}
-            className="flex items-center gap-2.5 pl-2 hover:bg-slate-50 rounded-xl transition-colors py-1 pr-1"
+            className="flex items-center gap-2 pl-2 pr-2.5 py-1 hover:bg-slate-50 rounded-xl transition-colors"
           >
             {currentUser?.foto ? (
               <img
@@ -379,7 +396,7 @@ export default function Navbar({
                 className="w-8 h-8 rounded-full object-cover border border-slate-200"
               />
             ) : (
-              <div className="w-8 h-8 rounded-full bg-[#0785BC] text-white font-bold text-xs flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full bg-[#0785BC] text-white font-bold text-xs flex items-center justify-center shadow-2xs">
                 {initials}
               </div>
             )}
@@ -392,7 +409,7 @@ export default function Navbar({
           </button>
 
           {showProfileDropdown && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 animate-fade-in">
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-1.5 animate-scale-in z-50">
               <div className="px-4 py-2.5 border-b border-slate-100">
                 <p className="font-bold text-xs text-slate-900">{displayName}</p>
                 <p className="text-[11px] text-slate-400 truncate">{currentUser?.email || "admin@pokada.com"}</p>
@@ -401,6 +418,7 @@ export default function Navbar({
               <div className="py-1 text-xs">
                 <Link
                   href="/admin/profile"
+                  onClick={() => setShowProfileDropdown(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <User className="w-3.5 h-3.5 text-slate-400" />
@@ -409,6 +427,7 @@ export default function Navbar({
 
                 <Link
                   href="/admin/settings"
+                  onClick={() => setShowProfileDropdown(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <Settings className="w-3.5 h-3.5 text-slate-400" />
@@ -417,6 +436,7 @@ export default function Navbar({
 
                 <Link
                   href="/admin/settings?tab=security"
+                  onClick={() => setShowProfileDropdown(false)}
                   className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <Shield className="w-3.5 h-3.5 text-slate-400" />

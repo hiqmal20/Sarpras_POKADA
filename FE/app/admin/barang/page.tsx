@@ -313,27 +313,33 @@ export default function BarangPage() {
     <AdminLayout
       showSearch
       searchValue={searchQuery}
-      searchPlaceholder="Cari barang..."
+      searchPlaceholder="Cari barang berdasarkan nama, kode, lokasi..."
       onSearchChange={setSearchQuery}
     >
       <div className="space-y-6">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Barang Per Item</h1>
-            <p className="text-sm text-slate-500 mt-1">Kelola barang satuan dan inventaris</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Katalog Inventaris Barang</h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                {items.length} ITEMS
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Kelola seluruh data aset fisik, kuantitas stok satuan, dan status operasional.</p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-3.5 py-2.5 bg-white border border-slate-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
-              Ekspor Inventaris
+              Ekspor Data
             </button>
             <button
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#0785BC] text-white text-xs font-semibold rounded-xl hover:bg-[#0672a0] active:scale-95 transition-all shadow-sm"
+              className="flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs"
             >
               <Plus className="w-4 h-4" />
               Tambah Barang
@@ -341,81 +347,81 @@ export default function BarangPage() {
           </div>
         </div>
 
-        {/* ── Stat Cards Real Data (Modern Design) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+        {/* ── Stat Cards (n8n Node Style) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 mb-2">
-                  Total Inventaris
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200 mb-1.5">
+                  TOTAL ASET
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Aset Fisik</p>
+                <p className="text-xs font-medium text-slate-500">Total Jenis & Unit</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[#0785BC] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Package className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
+                <Package className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-slate-900 tabular-nums">
-                {loading ? "..." : items.length} <span className="text-xs text-slate-400 font-semibold">jenis ({totalStockCount} unit)</span>
+              <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">
+                {loading ? "..." : items.length} <span className="text-xs text-slate-500 font-normal">jenis ({totalStockCount} unit)</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Seluruh varian barang terdaftar</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Seluruh unit fisik tercatat di sistem</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 mb-2">
-                  Ready to Use
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1.5">
+                  AVAILABLE
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Stok Siap Pinjam</p>
+                <p className="text-xs font-medium text-slate-500">Stok Siap Pinjam</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <CheckCircle2 className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-emerald-600 tabular-nums">
-                {loading ? "..." : totalAvailableCount} <span className="text-xs text-emerald-700/60 font-semibold">unit tersedia</span>
+              <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
+                {loading ? "..." : totalAvailableCount} <span className="text-xs text-emerald-700/60 font-normal">unit tersedia</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Dapat dipinjam mahasiswa / dosen</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Dapat langsung dipinjam civitas kampus</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100 mb-2">
-                  Perlu Perhatian
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 mb-1.5">
+                  ATTENTION
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Perbaikan / Rusak</p>
+                <p className="text-xs font-medium text-slate-500">Perlu Penanganan</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <AlertTriangle className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-rose-600 tabular-nums">
-                {loading ? "..." : damagedItemCount} <span className="text-xs text-rose-700/60 font-semibold">item bermasalah</span>
+              <p className="text-2xl font-black text-rose-600 tabular-nums tracking-tight">
+                {loading ? "..." : damagedItemCount} <span className="text-xs text-rose-700/60 font-normal">item terkendala</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Kondisi rusak ringan / berat</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Kondisi rusak ringan atau dalam perbaikan</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-slate-200/80 bg-slate-50/50">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Daftar Inventaris Barang</h2>
-              <p className="text-xs text-slate-400">Total {filteredItems.length} unit terdaftar</p>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Daftar Inventaris Barang</h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">Menampilkan {filteredItems.length} barang terdaftar</p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-medium">Kategori:</span>
+              <span className="text-xs text-slate-500 font-medium">Filter Kategori:</span>
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
               >
                 <option value="all">Semua Kategori</option>
                 {categories.map((cat) => (
@@ -428,16 +434,16 @@ export default function BarangPage() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50/75 border-b border-slate-100">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50/80 border-b border-slate-200/80 font-mono text-[10px] text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Kode</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Nama Barang</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Kategori</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Stok / Tersedia</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Kondisi</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Aksi</th>
+                  <th className="px-4 py-2.5 text-left">Kode</th>
+                  <th className="px-4 py-2.5 text-left">Nama Barang</th>
+                  <th className="px-4 py-2.5 text-left">Kategori</th>
+                  <th className="px-4 py-2.5 text-left">Stok / Tersedia</th>
+                  <th className="px-4 py-2.5 text-left">Kondisi</th>
+                  <th className="px-4 py-2.5 text-left">Status</th>
+                  <th className="px-4 py-2.5 text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -557,8 +563,8 @@ export default function BarangPage() {
 
       {/* Modal Form Tambah / Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col border border-slate-100">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-slate-200 my-auto animate-scale-in">
             {/* Header */}
             <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -871,8 +877,8 @@ export default function BarangPage() {
 
       {/* ── Modern Detail Modal Barang ── */}
       {showDetail && selectedItem && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden border border-slate-100 shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] my-auto animate-scale-in">
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
               <div className="flex items-center gap-3">

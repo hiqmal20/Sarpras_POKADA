@@ -185,36 +185,41 @@ export default function ProfilePage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Profil Saya</h1>
-            <p className="text-sm text-slate-500 mt-0.5">
-              Kelola informasi profil dan riwayat aktivitas Anda
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Profil Pengguna</h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                ADMIN ACCOUNT
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Kelola informasi identitas akun, kredensial, dan riwayat aktivitas operasional.
             </p>
           </div>
           
           {!isEditing ? (
             <button
               onClick={() => setIsEditing(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0785BC] text-white font-medium rounded-lg hover:bg-[#0672a0] transition-colors"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs self-start sm:self-auto"
             >
-              <Edit className="w-4 h-4" />
+              <Edit className="w-3.5 h-3.5" />
               Edit Profil
             </button>
           ) : (
             <div className="flex gap-2">
               <button
                 onClick={handleCancel}
-                className="inline-flex items-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 font-medium rounded-lg hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 active:scale-95 transition-all"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
                 Batal
               </button>
               <button
                 onClick={handleSave}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#0785BC] text-white font-medium rounded-lg hover:bg-[#0672a0] transition-colors"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs"
               >
-                <Save className="w-4 h-4" />
+                <Save className="w-3.5 h-3.5" />
                 Simpan
               </button>
             </div>
@@ -223,16 +228,16 @@ export default function ProfilePage() {
 
         {/* Success Message */}
         {saved && (
-          <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700">
-            <Save className="w-5 h-5" />
-            <span className="font-medium">Profil berhasil diperbarui!</span>
+          <div className="flex items-center gap-2 p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold">
+            <Save className="w-4 h-4" />
+            <span>Profil berhasil diperbarui!</span>
           </div>
         )}
 
         {/* Profile Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           {/* Header Background */}
-          <div className="h-32 bg-gradient-to-r from-[#0785BC] to-blue-600"></div>
+          <div className="h-28 bg-gradient-to-r from-[#0785BC] to-[#0B3B60]"></div>
           
           {/* Profile Content */}
           <div className="px-8 pb-8">

@@ -378,20 +378,25 @@ export default function ManajemenUserPage() {
         {/* Page header */}
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Manajemen Pengguna</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Kelola data pengguna, peran akses, dan status akun platform.</p>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manajemen Pengguna</h1>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                USER DIRECTORY
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Kelola data pengguna, peran akses, dan status akun platform.</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs"
             >
-              <FileSpreadsheet className="w-4 h-4 text-[#0785BC]" />
-              Ekspor / Impor Data
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
+              Ekspor Data
             </button>
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs"
             >
               <Plus className="w-4 h-4" />
               Tambah Pengguna
@@ -399,71 +404,71 @@ export default function ManajemenUserPage() {
           </div>
         </div>
 
-        {/* ── Stat Cards (Modern Design) ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4.5">
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+        {/* ── Stat Cards (n8n Node Style) ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 mb-2">
-                  Total Member
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200 mb-1.5">
+                  MEMBERS
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Pengguna</p>
+                <p className="text-xs font-medium text-slate-500">Total Pengguna</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-[#0785BC] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <Users className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-slate-900 tabular-nums">
-                {loading ? "..." : allUsersStats.total || total} <span className="text-xs text-slate-400 font-semibold">akun terdaftar</span>
+              <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">
+                {loading ? "..." : allUsersStats.total || total} <span className="text-xs text-slate-500 font-normal">akun terdaftar</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Mahasiswa, Dosen, & Staf</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Mahasiswa, Dosen, & Staf Kampus</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 mb-2">
-                  Privileged
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1.5">
+                  PRIVILEGED
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Admin & Petugas</p>
+                <p className="text-xs font-medium text-slate-500">Admin & Petugas</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <UserCheck className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <UserCheck className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-emerald-600 tabular-nums">
-                {loading ? "..." : allUsersStats.admins} <span className="text-xs text-emerald-700/60 font-semibold">operator aktif</span>
+              <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
+                {loading ? "..." : allUsersStats.admins} <span className="text-xs text-emerald-700/60 font-normal">operator aktif</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Mengelola operasional sarpras</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Mengelola hak akses operasional sarpras</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 p-5 flex flex-col justify-between">
+          <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-100 mb-2">
-                  Akses Dinonaktifkan
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 mb-1.5">
+                  DEACTIVATED
                 </span>
-                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Akun Nonaktif</p>
+                <p className="text-xs font-medium text-slate-500">Akun Nonaktif</p>
               </div>
-              <div className="w-11 h-11 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                <UserX className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <UserX className="w-4 h-4" />
               </div>
             </div>
             <div className="mt-3">
-              <p className="text-3xl font-extrabold text-rose-600 tabular-nums">
-                {loading ? "..." : allUsersStats.inactive} <span className="text-xs text-rose-700/60 font-semibold">akun terkunci</span>
+              <p className="text-2xl font-black text-rose-600 tabular-nums tracking-tight">
+                {loading ? "..." : allUsersStats.inactive} <span className="text-xs text-rose-700/60 font-normal">akun terkunci</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Dibekukan atau dinonaktifkan</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Dibekukan atau dinonaktifkan</p>
             </div>
           </div>
         </div>
 
         {/* ── User Directory ── */}
-        <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
+        <div className={`bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
             <div>
               <h2 className="text-base font-bold text-slate-900">Daftar Pengguna</h2>
@@ -624,8 +629,8 @@ export default function ManajemenUserPage() {
 
       {/* Modal Tambah / Edit User */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 my-auto animate-scale-in">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h2 className="text-base font-bold text-slate-900">
                 {editingUser ? "Edit Pengguna" : "Tambah Pengguna Baru"}

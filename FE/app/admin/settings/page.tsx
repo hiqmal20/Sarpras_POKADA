@@ -250,39 +250,45 @@ export default function SettingsPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Pengaturan</h1>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Kelola preferensi dan pengaturan akun Anda
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pengaturan Sistem & Akun</h1>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
+              CONFIGURATION
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Kelola preferensi akun, integrasi notifikasi, hak akses, dan privasi sistem platform.
           </p>
         </div>
 
         {/* Success Message */}
         {saved && (
-          <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-semibold">
+          <div className="flex items-center gap-2 p-3.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-700 text-xs font-semibold">
             <Check className="w-4 h-4" />
-            <span>Pengaturan berhasil disimpan!</span>
+            <span>Pengaturan berhasil disimpan dan disinkronkan!</span>
           </div>
         )}
 
         {/* Settings Container */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="flex flex-col md:flex-row">
             {/* Sidebar Tabs */}
-            <div className="w-full md:w-60 border-b md:border-b-0 md:border-r border-slate-100 p-4 bg-slate-50/50">
+            <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-slate-200/80 p-3 bg-slate-50/50">
               <nav className="space-y-1">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as SettingsTab)}
-                      className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
-                        activeTab === tab.id
-                          ? "bg-[#0785BC] text-white shadow-xs"
-                          : "text-slate-600 hover:bg-white hover:text-slate-900"
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        isActive
+                          ? "bg-[#0785BC] text-white shadow-xs font-semibold"
+                          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
                       {tab.label}
                     </button>
                   );
