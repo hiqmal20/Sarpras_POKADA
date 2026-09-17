@@ -21,7 +21,7 @@ const verifyChatAccess = async (chatId, userId, userRole) => {
   }
 };
 
-exports.findAllChats = async ({ user_id, admin_id, status }) => {
+exports.findAllChats = async ({ user_id, admin_id, status }, currentUserId) => {
   let query = supabase
     .from('chats')
     .select(`
@@ -35,10 +35,41 @@ exports.findAllChats = async ({ user_id, admin_id, status }) => {
   if (admin_id) query = query.eq('admin_id', admin_id);
   if (status) query = query.eq('status', status);
 
-  const { data, error } = await query;
+  const { data: chats, error } = await query;
   if (error) throw error;
+  if (!chats || chats.length === 0) return [];
 
-  return data;
+  const chatIds = chats.map((c) => c.id);
+  const { data: messages } = await supabase
+    .from('chat_messages')
+    .select('id, chat_id, sender_id, message, created_at, is_read')
+    .in('chat_id', chatIds)
+    .order('created_at', { ascending: false });
+
+  const messagesByChat = new Map();
+  (messages || []).forEach((m) => {
+    if (!messagesByChat.has(m.chat_id)) {
+      messagesByChat.set(m.chat_id, []);
+    }
+    messagesByChat.get(m.chat_id).push(m);
+  });
+
+  const viewerId = currentUserId || user_id;
+
+  return chats.map((c) => {
+    const chatMsgs = messagesByChat.get(c.id) || [];
+    const latestMsg = chatMsgs[0] || null;
+    const unreadCount = chatMsgs.filter(
+      (m) => !m.is_read && (viewerId ? m.sender_id !== viewerId : true)
+    ).length;
+
+    return {
+      ...c,
+      last_message: latestMsg ? latestMsg.message : (c.subject || ''),
+      last_message_at: latestMsg ? latestMsg.created_at : c.updated_at,
+      unread_count: unreadCount
+    };
+  });
 };
 
 exports.findChatMessages = async (chatId, userId, userRole) => {
@@ -194,5 +225,11 @@ exports.deleteChat = async (chatId, userId, userRole) => {
   const { error: messagesError } = await supabase.from('chat_messages').delete().eq('chat_id', chatId);
   if (messagesError) throw messagesError;
   const { error } = await supabase.from('chats').delete().eq('id', chatId);
+  if (error) throw error;
+};
+
+exports.clearChatMessages = async (chatId, userId, userRole) => {
+  await verifyChatAccess(chatId, userId, userRole);
+  const { error } = await supabase.from('chat_messages').delete().eq('chat_id', chatId);
   if (error) throw error;
 };

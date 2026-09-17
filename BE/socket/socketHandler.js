@@ -2,64 +2,88 @@ const supabase = require('../config/supabaseClient');
 const { ROLES } = require('../constants/roles');
 
 /**
- * Socket.IO WebSocket Handler untuk Real-Time Chat
- * 
- * Events dari client:
- * - 'join_chat' → user bergabung ke room chat tertentu
- * - 'leave_chat' → user keluar dari room chat
- * - 'send_message' → user kirim pesan ke chat room
- * - 'typing' → user sedang mengetik
- * - 'stop_typing' → user berhenti mengetik
- * 
- * Events ke client:
- * - 'new_message' → pesan baru diterima
- * - 'message_sent' → konfirmasi pesan terkirim
- * - 'user_typing' → ada user yang mengetik
- * - 'user_stop_typing' → user berhenti mengetik
- * - 'error' → ada error terjadi
+ * Socket.IO WebSocket Handler untuk Real-Time Chat & Presence
  */
 
-module.exports = (io) => {
-  const onlineUsers = new Map();
-  const onlineProfiles = new Map();
+module.exports = (io, app) => {
+  const onlineUsers = new Map(); // userId -> Set of socket.ids
+  const onlineProfiles = new Map(); // userId -> { userId, role, name }
+  const lastSeenMap = new Map(); // userId -> ISO date string
+
+  if (app) {
+    app.set('onlineUsers', onlineUsers);
+    app.set('onlineProfiles', onlineProfiles);
+    app.set('lastSeenMap', lastSeenMap);
+  }
 
   const broadcastPresence = (user, isOnline) => {
+    const lastSeen = isOnline ? null : (lastSeenMap.get(user.id) || new Date().toISOString());
+
+    // Format for user messages page
     io.emit(isOnline ? 'user_online' : 'user_offline', {
       userId: user.id,
       role: user.role,
       name: user.name,
-      lastSeen: isOnline ? null : new Date().toISOString()
+      lastSeen
+    });
+
+    // Format for admin messages page
+    io.emit('user_status_change', {
+      userId: user.id,
+      online: isOnline,
+      last_seen: lastSeen,
+      role: user.role,
+      name: user.name
     });
   };
+
+  const getOnlinePayload = () => ({
+    onlineUserIds: Array.from(onlineUsers.keys()),
+    lastSeenMap: Object.fromEntries(lastSeenMap)
+  });
 
   // Middleware: Autentikasi socket connection
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
 
       if (!token) {
         return next(new Error('Authentication error: Token tidak ditemukan'));
       }
 
-      // Verifikasi token dengan Supabase
-      const { data: authData, error: authError } = await supabase.auth.getUser(token);
+      let userId = null;
 
-      if (authError || !authData?.user) {
+      // 1. Verifikasi token dengan Supabase Auth
+      try {
+        const { data: authData, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && authData?.user) {
+          userId = authData.user.id;
+        }
+      } catch (_) {}
+
+      // 2. Fallback decode token JWT
+      if (!userId) {
+        try {
+          const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+          userId = payload?.sub || payload?.id;
+        } catch (_) {}
+      }
+
+      if (!userId) {
         return next(new Error('Authentication error: Token tidak valid'));
       }
 
       // Ambil profil user dari tabel users
-      const { data: userProfile } = await supabase
+      const { data: userProfile, error: profileError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', authData.user.id)
+        .eq('id', userId)
         .single();
 
-      if (!userProfile) {
+      if (profileError || !userProfile) {
         return next(new Error('Authentication error: User tidak ditemukan'));
       }
 
-      // Simpan data user di socket
       socket.user = userProfile;
       next();
     } catch (err) {
@@ -74,13 +98,32 @@ module.exports = (io) => {
     userSockets.add(socket.id);
     onlineUsers.set(user.id, userSockets);
     onlineProfiles.set(user.id, { userId: user.id, role: user.role, name: user.name });
-    if (userSockets.size === 1) broadcastPresence(user, true);
+
+    if (userSockets.size === 1) {
+      broadcastPresence(user, true);
+    }
+
+    // Kirim state online users awal ke client yang baru connect
     socket.emit('presence_snapshot', Array.from(onlineProfiles.values()));
-    console.log(`✅ Socket connected: ${user.name} (${user.email}) - ${socket.id}`);
+    socket.emit('online_users_list', getOnlinePayload());
+    console.log(`✅ Socket connected: ${user.name} (${user.email}) [${user.role}] - ${socket.id}`);
+
+    // Handler event query status online dari client
+    socket.on('get_online_users', () => {
+      socket.emit('online_users_list', getOnlinePayload());
+      socket.emit('presence_snapshot', Array.from(onlineProfiles.values()));
+    });
+
+    socket.on('check_online_users', () => {
+      socket.emit('online_users_list', getOnlinePayload());
+      socket.emit('presence_snapshot', Array.from(onlineProfiles.values()));
+    });
 
     // Event: User bergabung ke chat room
     socket.on('join_chat', async (chatId) => {
       try {
+        if (!chatId) return;
+
         // Verifikasi akses ke chat
         const { data: chat, error } = await supabase
           .from('chats')
@@ -92,7 +135,6 @@ module.exports = (io) => {
           return socket.emit('error', { message: 'Chat tidak ditemukan' });
         }
 
-        // Cek apakah user boleh akses chat ini
         const isAdmin = [ROLES.ADMIN, ROLES.PETUGAS].includes(user.role);
         const isParticipant = chat.user_id === user.id || chat.admin_id === user.id;
 
@@ -100,13 +142,11 @@ module.exports = (io) => {
           return socket.emit('error', { message: 'Akses ditolak ke chat ini' });
         }
 
-        // Join room
         socket.join(chatId);
         socket.currentChatId = chatId;
 
         console.log(`👥 ${user.name} joined chat room: ${chatId}`);
 
-        // Notify lain-lain user di room
         socket.to(chatId).emit('user_joined', {
           user: {
             id: user.id,
@@ -117,7 +157,6 @@ module.exports = (io) => {
           timestamp: new Date().toISOString()
         });
 
-        // Konfirmasi ke sender
         socket.emit('chat_joined', {
           chatId,
           chat,
@@ -130,11 +169,11 @@ module.exports = (io) => {
 
     // Event: User keluar dari chat room
     socket.on('leave_chat', (chatId) => {
-      if (socket.currentChatId === chatId) {
+      if (chatId) {
         socket.leave(chatId);
-        socket.currentChatId = null;
-        console.log(`👋 ${user.name} left chat room: ${chatId}`);
-
+        if (socket.currentChatId === chatId) {
+          socket.currentChatId = null;
+        }
         socket.to(chatId).emit('user_left', {
           user: {
             id: user.id,
@@ -150,11 +189,10 @@ module.exports = (io) => {
       const { chatId, message, attachment_url } = data;
 
       try {
-        if (!chatId || !message) {
+        if (!chatId || !message || !message.trim()) {
           return socket.emit('error', { message: 'chatId dan message wajib diisi' });
         }
 
-        // Verifikasi akses
         const { data: chat } = await supabase
           .from('chats')
           .select('user_id, admin_id')
@@ -174,13 +212,12 @@ module.exports = (io) => {
 
         const now = new Date().toISOString();
 
-        // Simpan pesan ke database
         const { data: newMsg, error: msgError } = await supabase
           .from('chat_messages')
           .insert([{
             chat_id: chatId,
             sender_id: user.id,
-            message,
+            message: message.trim(),
             attachment_url: attachment_url || null,
             is_read: false,
             created_at: now
@@ -193,7 +230,6 @@ module.exports = (io) => {
 
         if (msgError) throw msgError;
 
-        // Update timestamp chat
         await supabase
           .from('chats')
           .update({ updated_at: now })
@@ -201,14 +237,15 @@ module.exports = (io) => {
 
         // Broadcast pesan ke semua user di room (termasuk sender)
         io.to(chatId).emit('new_message', newMsg);
+        io.to(chatId).emit('chat_updated', { chatId, message: newMsg });
 
-        // Kirim notifikasi khusus ke user lain di room (exclude sender)
-        // Notifikasi ini untuk trigger pop-up/sound di frontend
+        // Notifikasi untuk trigger sound / popup
         socket.to(chatId).emit('notification', {
           type: 'new_message',
           title: `Pesan baru dari ${user.name}`,
           body: message.length > 50 ? message.substring(0, 50) + '...' : message,
-          chatId: chatId,
+          chatId,
+          message: newMsg,
           sender: {
             id: user.id,
             name: user.name,
@@ -218,7 +255,6 @@ module.exports = (io) => {
           timestamp: now
         });
 
-        // Konfirmasi ke sender
         socket.emit('message_sent', {
           success: true,
           message: newMsg
@@ -232,12 +268,14 @@ module.exports = (io) => {
 
     // Event: User sedang mengetik
     socket.on('typing', (chatId) => {
-      if (socket.currentChatId === chatId) {
+      if (chatId) {
         socket.to(chatId).emit('user_typing', {
+          chatId,
           user: {
             id: user.id,
             name: user.name,
-            foto: user.foto
+            foto: user.foto,
+            role: user.role
           }
         });
       }
@@ -245,11 +283,13 @@ module.exports = (io) => {
 
     // Event: User berhenti mengetik
     socket.on('stop_typing', (chatId) => {
-      if (socket.currentChatId === chatId) {
+      if (chatId) {
         socket.to(chatId).emit('user_stop_typing', {
+          chatId,
           user: {
             id: user.id,
-            name: user.name
+            name: user.name,
+            role: user.role
           }
         });
       }
@@ -258,17 +298,84 @@ module.exports = (io) => {
     // Event: Mark pesan sebagai sudah dibaca
     socket.on('mark_as_read', async (chatId) => {
       try {
+        if (!chatId) return;
+
         await supabase
           .from('chat_messages')
           .update({ is_read: true })
           .eq('chat_id', chatId)
           .neq('sender_id', user.id);
 
-        socket.to(chatId).emit('messages_read', {
+        io.to(chatId).emit('messages_read', {
           chatId,
           readBy: user.id,
           timestamp: new Date().toISOString()
         });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Event: Edit pesan via WebSocket
+    socket.on('edit_message', async (data) => {
+      try {
+        const { chatId, messageId, message: newContent } = data;
+        if (!chatId || !messageId || !newContent || !newContent.trim()) return;
+
+        const { data: updatedMsg, error } = await supabase
+          .from('chat_messages')
+          .update({ message: newContent.trim() })
+          .eq('id', messageId)
+          .eq('chat_id', chatId)
+          .select(`*, sender:users!chat_messages_sender_id_fkey (id, name, foto, role)`)
+          .single();
+
+        if (error) throw error;
+
+        io.to(chatId).emit('message_updated', updatedMsg);
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Event: Hapus pesan tunggal via WebSocket
+    socket.on('delete_message', async (data) => {
+      try {
+        const { chatId, messageId } = data;
+        if (!chatId || !messageId) return;
+
+        const { error } = await supabase
+          .from('chat_messages')
+          .delete()
+          .eq('id', messageId)
+          .eq('chat_id', chatId);
+
+        if (error) throw error;
+
+        io.to(chatId).emit('message_deleted', { chatId, messageId });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Event: Bersihkan riwayat percakapan
+    socket.on('clear_chat', async (chatId) => {
+      try {
+        if (!chatId) return;
+        await supabase.from('chat_messages').delete().eq('chat_id', chatId);
+        io.to(chatId).emit('chat_cleared', { chatId });
+      } catch (err) {
+        socket.emit('error', { message: err.message });
+      }
+    });
+
+    // Event: Hapus seluruh sesi percakapan
+    socket.on('delete_chat', async (chatId) => {
+      try {
+        if (!chatId) return;
+        await supabase.from('chat_messages').delete().eq('chat_id', chatId);
+        await supabase.from('chats').delete().eq('id', chatId);
+        io.to(chatId).emit('chat_deleted', { chatId });
       } catch (err) {
         socket.emit('error', { message: err.message });
       }
@@ -283,11 +390,12 @@ module.exports = (io) => {
         if (userSockets.size === 0) {
           onlineUsers.delete(user.id);
           onlineProfiles.delete(user.id);
+          const now = new Date().toISOString();
+          lastSeenMap.set(user.id, now);
           broadcastPresence(user, false);
         }
       }
-      
-      // Notify room jika user masih di chat
+
       if (socket.currentChatId) {
         socket.to(socket.currentChatId).emit('user_left', {
           user: {

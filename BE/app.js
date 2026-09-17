@@ -45,7 +45,7 @@ const io = new Server(server, {
 });
 
 // Setup Socket.IO handlers
-setupSocketHandlers(io);
+setupSocketHandlers(io, app);
 
 // Make io accessible in other files
 app.set('io', io);

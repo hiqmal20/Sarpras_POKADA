@@ -72,7 +72,7 @@ export default function UserSidebar({
         const res = await api.chats.getAll();
         if (res.status === "success" && Array.isArray(res.data)) {
           const count = res.data.filter(
-            (c: any) => (c.unread_count && c.unread_count > 0) || c.status === "Open"
+            (c: any) => Boolean(c.unread_count && c.unread_count > 0)
           ).length;
           setUnreadMsgCount(count);
         }
@@ -81,11 +81,17 @@ export default function UserSidebar({
       }
     }
 
+    const handleMessagesRead = () => {
+      setUnreadMsgCount(0);
+    };
+
     loadChatCount();
     const interval = setInterval(loadChatCount, 10000);
+    window.addEventListener("messages-read", handleMessagesRead);
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener("messages-read", handleMessagesRead);
       window.removeEventListener("user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
     };

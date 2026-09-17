@@ -8,12 +8,14 @@ export const getSocketUrl = (): string => {
   if (process.env.NEXT_PUBLIC_SOCKET_URL) {
     return process.env.NEXT_PUBLIC_SOCKET_URL;
   }
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "");
+  }
   if (typeof window !== "undefined" && window.location.hostname) {
     const protocol = window.location.protocol === "https:" ? "https:" : "http:";
     return `${protocol}//${window.location.hostname}:5000`;
   }
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-  return apiUrl.replace(/\/api\/?$/, "");
+  return "http://localhost:5000";
 };
 
 const rejoinChatRooms = (): void => {

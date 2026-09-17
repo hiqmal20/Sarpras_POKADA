@@ -10,6 +10,8 @@ import {
   RotateCcw,
   Check,
   CheckCheck,
+  Pencil,
+  X,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
@@ -51,6 +53,8 @@ export default function MessagesPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
 
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
@@ -414,6 +418,45 @@ export default function MessagesPage() {
       }
     };
 
+    const handleUserOnline = (data: { userId?: string }) => {
+      if (data?.userId) {
+        setOnlineUserIds((prev) => new Set(prev).add(String(data.userId)));
+      }
+    };
+
+    const handleUserOffline = (data: { userId?: string; lastSeen?: string }) => {
+      if (data?.userId) {
+        const idStr = String(data.userId);
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(idStr);
+          return next;
+        });
+        if (data.lastSeen) {
+          setLastSeenMap((prev) => ({ ...prev, [idStr]: String(data.lastSeen) }));
+        }
+      }
+    };
+
+    const handlePresenceSnapshot = (users: { userId?: string; id?: string }[]) => {
+      if (Array.isArray(users)) {
+        const ids = users.map((u) => String(u.userId || u.id)).filter(Boolean);
+        setOnlineUserIds((prev) => new Set([...prev, ...ids]));
+      }
+    };
+
+    const handleMessageUpdated = (data: any) => {
+      if (!data) return;
+      const msgId = String(data.id || data.messageId || "");
+      const newText = data.message || data.text || "";
+      setMessages((prev) => prev.map((m) => (m.id === msgId ? { ...m, text: newText } : m)));
+    };
+
+    const handleMessageDeleted = (data: { chatId?: string; messageId?: string }) => {
+      if (!data?.messageId) return;
+      setMessages((prev) => prev.filter((m) => m.id !== String(data.messageId)));
+    };
+
     const requestOnlineUsers = () => {
       if (socket.connected) {
         socket.emit("get_online_users");
@@ -457,6 +500,11 @@ export default function MessagesPage() {
     socket.on("messages_read", handleMessagesRead);
     socket.on("online_users_list", handleOnlineUsersList);
     socket.on("user_status_change", handleUserStatusChange);
+    socket.on("user_online", handleUserOnline);
+    socket.on("user_offline", handleUserOffline);
+    socket.on("presence_snapshot", handlePresenceSnapshot);
+    socket.on("message_updated", handleMessageUpdated);
+    socket.on("message_deleted", handleMessageDeleted);
     socket.on("user_typing", handleUserTyping);
     socket.on("user_stop_typing", handleUserStopTyping);
     socket.on("chat_cleared", handleChatCleared);
@@ -475,6 +523,11 @@ export default function MessagesPage() {
       socket.off("messages_read", handleMessagesRead);
       socket.off("online_users_list", handleOnlineUsersList);
       socket.off("user_status_change", handleUserStatusChange);
+      socket.off("user_online", handleUserOnline);
+      socket.off("user_offline", handleUserOffline);
+      socket.off("presence_snapshot", handlePresenceSnapshot);
+      socket.off("message_updated", handleMessageUpdated);
+      socket.off("message_deleted", handleMessageDeleted);
       socket.off("user_typing", handleUserTyping);
       socket.off("user_stop_typing", handleUserStopTyping);
       socket.off("chat_cleared", handleChatCleared);
@@ -562,6 +615,49 @@ export default function MessagesPage() {
       });
     } catch (err: any) {
       alert("Gagal menghapus percakapan: " + (err.message || err));
+    }
+  };
+
+  const handleSaveEditMessage = async (msg: Message) => {
+    if (!selectedConversation || !editingText.trim()) return;
+    const newText = editingText.trim();
+    try {
+      const res = await api.chats.updateMessage(selectedConversation.id, msg.id, newText);
+      if (res.status === "success") {
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, text: newText } : m)));
+        const socket = getSocket();
+        if (socket?.connected) {
+          socket.emit("edit_message", {
+            chatId: selectedConversation.id,
+            messageId: msg.id,
+            message: newText,
+          });
+        }
+      }
+    } catch (err: any) {
+      alert("Gagal mengedit pesan: " + (err.message || err));
+    } finally {
+      setEditingMessageId(null);
+      setEditingText("");
+    }
+  };
+
+  const handleDeleteSingleMessage = async (messageId: string) => {
+    if (!selectedConversation || !confirm("Hapus pesan ini?")) return;
+    try {
+      const res = await api.chats.deleteMessage(selectedConversation.id, messageId);
+      if (res.status === "success") {
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+        const socket = getSocket();
+        if (socket?.connected) {
+          socket.emit("delete_message", {
+            chatId: selectedConversation.id,
+            messageId,
+          });
+        }
+      }
+    } catch (err: any) {
+      alert("Gagal menghapus pesan: " + (err.message || err));
     }
   };
 
@@ -845,7 +941,72 @@ export default function MessagesPage() {
                               : "bg-white text-slate-800 border border-slate-200/80 shadow-2xs rounded-bl-none"
                           }`}
                         >
-                          <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                          {editingMessageId === msg.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                className="min-w-44 rounded-lg px-2.5 py-1 text-xs text-slate-900 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-white"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveEditMessage(msg);
+                                  if (e.key === "Escape") {
+                                    setEditingMessageId(null);
+                                    setEditingText("");
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEditMessage(msg)}
+                                title="Simpan perubahan"
+                                className="p-1 hover:bg-white/20 rounded transition-colors text-white"
+                              >
+                                <CheckCheck className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMessageId(null);
+                                  setEditingText("");
+                                }}
+                                title="Batal"
+                                className="p-1 hover:bg-white/20 rounded transition-colors text-white/80"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                          )}
+
+                          {msg.senderRole === "admin" &&
+                            editingMessageId !== msg.id &&
+                            typeof msg.id === "string" &&
+                            !msg.id.startsWith("temp-") && (
+                              <div className="mt-1 flex justify-end gap-2 text-sky-200/80">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingMessageId(msg.id);
+                                    setEditingText(msg.text);
+                                  }}
+                                  title="Edit pesan"
+                                  className="hover:text-white transition-colors"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSingleMessage(msg.id)}
+                                  title="Hapus pesan"
+                                  className="hover:text-rose-200 transition-colors"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+
                           <div
                             className={`flex items-center gap-1 mt-1 font-mono text-[9px] ${
                               msg.senderRole === "admin" ? "text-sky-100 justify-end" : "text-slate-400 justify-start"
@@ -855,9 +1016,9 @@ export default function MessagesPage() {
                             {msg.senderRole === "admin" && (
                               <span title={msg.isRead ? "Dibaca" : "Terkirim"}>
                                 {msg.isRead ? (
-                                  <CheckCheck className="w-3 h-3 text-cyan-200 stroke-[2.5]" />
+                                  <CheckCheck className="w-3.5 h-3.5 text-cyan-200 stroke-[2.5]" />
                                 ) : (
-                                  <Check className="w-3 h-3 text-sky-200/80 stroke-[2]" />
+                                  <Check className="w-3.5 h-3.5 text-sky-200/80 stroke-[2]" />
                                 )}
                               </span>
                             )}
