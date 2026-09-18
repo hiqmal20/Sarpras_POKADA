@@ -119,7 +119,7 @@ export default function UserSidebar({
     };
     window.addEventListener("messages-read", handleMessagesRead);
 
-    const interval = setInterval(loadChatCount, 10000);
+    const interval = setInterval(loadChatCount, 30000);
 
     const socket = getSocket();
     if (socket) {

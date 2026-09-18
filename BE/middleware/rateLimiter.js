@@ -14,8 +14,8 @@ const authLimiter = rateLimit({
 
 // General API rate limiter - Proteksi DDoS / Spam request
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 menit
-  max: 200, // Maksimal 200 request per IP
+  windowMs: 60 * 1000, // 1 menit
+  max: 300, // Maksimal 300 request per IP per menit (longgar untuk polling realtime FE)
   standardHeaders: true,
   legacyHeaders: false,
   message: {

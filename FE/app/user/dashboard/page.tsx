@@ -267,10 +267,10 @@ export default function UserDashboardPage() {
     window.addEventListener("user-updated", syncUser);
     window.addEventListener("storage", syncUser);
 
-    // Polling real-time updates every 8 seconds (like admin)
+    // Polling real-time updates every 30 seconds (like admin)
     const interval = setInterval(() => {
       loadDashboardData();
-    }, 8000);
+    }, 30000);
 
     return () => {
       clearInterval(interval);

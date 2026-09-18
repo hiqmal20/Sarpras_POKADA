@@ -120,7 +120,7 @@ export default function Navbar({
     }
     loadNotifications();
 
-    const interval = setInterval(loadNotifications, 8000);
+    const interval = setInterval(loadNotifications, 30000);
 
     return () => {
       clearInterval(interval);

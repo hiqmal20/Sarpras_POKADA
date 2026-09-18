@@ -247,7 +247,7 @@ export default function UserMessagesPage() {
 
     const interval = setInterval(() => {
       fetchMessages(true);
-    }, 3000);
+    }, 10000);
 
     return () => clearInterval(interval);
   }, [activeId, fetchMessages]);

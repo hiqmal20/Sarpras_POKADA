@@ -73,7 +73,7 @@ export default function UserReturnPage() {
   useEffect(() => {
     setRequests(loadRequests());
     load();
-    const timer = setInterval(load, 8000);
+    const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
   }, []);
 
