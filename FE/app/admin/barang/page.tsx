@@ -205,6 +205,20 @@ export default function BarangPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      alert("Nama barang wajib diisi.");
+      return;
+    }
+    if (!formData.code.trim()) {
+      alert("Kode inventaris barang wajib diisi.");
+      return;
+    }
+    if (!formData.category_id || formData.category_id.trim() === "") {
+      alert("Kategori barang belum dipilih. Silakan pilih kategori barang terlebih dahulu sebelum menyimpan.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -215,20 +229,17 @@ export default function BarangPage() {
         : formData.status;
 
       const payload: any = {
-        name: formData.name,
-        code: formData.code,
+        name: formData.name.trim(),
+        code: formData.code.trim().toUpperCase(),
+        category_id: formData.category_id,
         stock: numStock,
         available_stock: numAvail,
         condition: formData.condition,
         status: finalStatus,
-        description: formData.description,
-        location: formData.location,
+        description: formData.description?.trim() || "",
+        location: formData.location?.trim() || "",
         image_url: imagePreview || undefined,
       };
-
-      if (formData.category_id) {
-        payload.category_id = formData.category_id;
-      }
 
       if (editingId) {
         const res = await api.items.update(editingId, payload);
@@ -237,7 +248,7 @@ export default function BarangPage() {
           setShowModal(false);
           resetForm();
         } else {
-          alert("Gagal memperbarui barang: " + (res.message || "Error"));
+          alert("Gagal memperbarui barang: " + (res.message || "Terjadi kesalahan"));
         }
       } else {
         const res = await api.items.create(payload);
@@ -246,7 +257,7 @@ export default function BarangPage() {
           setShowModal(false);
           resetForm();
         } else {
-          alert("Gagal menambah barang: " + (res.message || "Error"));
+          alert("Gagal menambah barang: " + (res.message || "Terjadi kesalahan"));
         }
       }
     } catch (err: any) {
@@ -732,17 +743,27 @@ export default function BarangPage() {
                           Kategori Barang *
                         </label>
                         <select
+                          required
                           value={formData.category_id}
                           onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                          className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all"
+                          className={`w-full px-3.5 py-2.5 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium transition-all ${
+                            !formData.category_id
+                              ? "border-amber-300 text-slate-500 bg-amber-50/20"
+                              : "border-slate-200 text-slate-800"
+                          }`}
                         >
-                          <option value="">Pilih Kategori...</option>
+                          <option value="">-- Pilih Kategori Barang --</option>
                           {categories.map((c) => (
-                            <option key={c.id} value={c.id}>
+                            <option key={c.id} value={c.id} className="text-slate-800">
                               {c.name}
                             </option>
                           ))}
                         </select>
+                        {!formData.category_id && (
+                          <p className="text-[10px] text-amber-600 mt-1 font-medium">
+                            * Wajib dipilih agar data barang terhubung ke kategori yang tepat
+                          </p>
+                        )}
                       </div>
                     </div>
 

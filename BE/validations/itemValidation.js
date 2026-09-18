@@ -1,7 +1,11 @@
 const Joi = require('joi');
 
 const createItemSchema = Joi.object({
-  category_id: Joi.string().uuid().allow(null, ''),
+  category_id: Joi.string().uuid().required().messages({
+    'string.empty': 'Kategori barang wajib dipilih',
+    'any.required': 'Kategori barang wajib dipilih',
+    'string.guid': 'ID Kategori barang tidak valid'
+  }),
   name: Joi.string().trim().min(2).max(150).required().messages({
     'string.empty': 'Nama barang wajib diisi'
   }),

@@ -65,3 +65,13 @@ exports.importPackages = async (req, res, next) => {
     next(err);
   }
 };
+
+// Adjust package stock (+ or -)
+exports.adjustPackageStock = async (req, res, next) => {
+  try {
+    const data = await packageService.adjustPackageStock(req.params.id, req.body);
+    return sendSuccess(res, 'Stok paket berhasil diperbarui', data, 200);
+  } catch (err) {
+    next(err);
+  }
+};

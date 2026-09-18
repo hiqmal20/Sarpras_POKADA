@@ -559,11 +559,28 @@ export const api = {
             });
           }
         }
-        const enriched = pkgs.map((p: any) => ({
-          ...p,
-          is_available: true,
-          packages_items: itemsMap[p.id] || [],
-        }));
+        const enriched = pkgs.map((p: any) => {
+          const pItems = itemsMap[p.id] || [];
+          let maxStock = pItems.length > 0 ? Infinity : 0;
+          let availStock = pItems.length > 0 ? Infinity : 0;
+          pItems.forEach((pi: any) => {
+            const needed = Number(pi.quantity || 1);
+            const t = Number(pi.items?.stock || 0);
+            const a = Number(pi.items?.available_stock ?? t);
+            if (Math.floor(t / needed) < maxStock) maxStock = Math.floor(t / needed);
+            if (Math.floor(a / needed) < availStock) availStock = Math.floor(a / needed);
+          });
+          if (maxStock === Infinity) maxStock = 0;
+          if (availStock === Infinity) availStock = 0;
+
+          return {
+            ...p,
+            stock: maxStock,
+            available_stock: availStock,
+            is_available: availStock > 0 && p.status !== "Nonaktif" && p.status !== "Dalam Pemeliharaan",
+            packages_items: pItems,
+          };
+        });
         return { status: "success", message: "Paket dari Supabase", data: enriched, total: enriched.length };
       }
       return res;
@@ -582,14 +599,26 @@ export const api = {
             .eq("package_id", id);
 
           const itemsList = pItems || [];
-          const isAvail = itemsList.every((pi: any) => (pi.items?.available_stock ?? 0) >= (pi.quantity || 1) && pi.items?.status === "Tersedia");
+          let maxStock = itemsList.length > 0 ? Infinity : 0;
+          let availStock = itemsList.length > 0 ? Infinity : 0;
+          itemsList.forEach((pi: any) => {
+            const needed = Number(pi.quantity || 1);
+            const t = Number(pi.items?.stock || 0);
+            const a = Number(pi.items?.available_stock ?? t);
+            if (Math.floor(t / needed) < maxStock) maxStock = Math.floor(t / needed);
+            if (Math.floor(a / needed) < availStock) availStock = Math.floor(a / needed);
+          });
+          if (maxStock === Infinity) maxStock = 0;
+          if (availStock === Infinity) availStock = 0;
 
           return {
             status: "success",
             message: "Paket dari Supabase",
             data: {
               ...pkg,
-              is_available: isAvail,
+              stock: maxStock,
+              available_stock: availStock,
+              is_available: availStock > 0 && pkg.status !== "Nonaktif" && pkg.status !== "Dalam Pemeliharaan",
               packages_items: itemsList,
             },
           };
@@ -598,6 +627,40 @@ export const api = {
         console.error("Supabase package detail error:", err);
       }
       return res;
+    },
+
+    adjustStock: async (id: string, payload: { action: "add" | "reduce"; quantity: number }): Promise<ApiResponse<any>> => {
+      const res = await apiFetch<any>(`/packages/${id}/stock`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      if (res.status === "success") return res;
+
+      // Fallback direct Supabase
+      try {
+        const { data: pItems } = await supabase.from("packages_items").select("item_id, quantity").eq("package_id", id);
+        if (pItems && pItems.length > 0) {
+          for (const pi of pItems) {
+            const { data: item } = await supabase.from("items").select("stock, available_stock").eq("id", pi.item_id).single();
+            if (item) {
+              const delta = (Number(pi.quantity) || 1) * payload.quantity;
+              const curStock = Number(item.stock || 0);
+              const curAvail = Number(item.available_stock ?? curStock);
+              const newStock = payload.action === "add" ? curStock + delta : Math.max(0, curStock - delta);
+              const newAvail = payload.action === "add" ? curAvail + delta : Math.max(0, curAvail - delta);
+              await supabase.from("items").update({
+                stock: newStock,
+                available_stock: newAvail,
+                status: newAvail > 0 ? "Tersedia" : "Stok Kosong",
+                update_at: new Date().toISOString(),
+              }).eq("id", pi.item_id);
+            }
+          }
+        }
+        return { status: "success", message: "Stok paket berhasil disesuaikan di Supabase", data: null };
+      } catch (err: any) {
+        return { status: "error", message: err.message || "Gagal menyesuaikan stok paket" };
+      }
     },
 
     create: async (payload: {

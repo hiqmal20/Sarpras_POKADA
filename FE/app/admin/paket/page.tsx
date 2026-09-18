@@ -80,6 +80,8 @@ interface PackageData {
     }>;
   } | null;
   packages_items?: PackageItemDetail[];
+  stock?: number;
+  available_stock?: number;
   created_at?: string;
 }
 
@@ -186,6 +188,79 @@ export default function PaketPage() {
       }
     } catch (err: any) {
       alert("Terjadi kesalahan: " + (err?.message || "Error"));
+    }
+  };
+
+  // Modal Kelola / Tambah / Kurangi Stok Paket
+  const [packageStockModal, setPackageStockModal] = useState<{
+    open: boolean;
+    package_id?: string;
+    package_name?: string;
+    current_stock: number;
+    current_avail: number;
+    action: "add" | "reduce";
+    quantity: number;
+    items: PackageItemDetail[];
+  }>({
+    open: false,
+    current_stock: 0,
+    current_avail: 0,
+    action: "add",
+    quantity: 1,
+    items: [],
+  });
+
+  const handleOpenPackageStock = (pkg: PackageData) => {
+    setPackageStockModal({
+      open: true,
+      package_id: pkg.id,
+      package_name: pkg.name,
+      current_stock: pkg.stock ?? 0,
+      current_avail: pkg.available_stock ?? (pkg.is_available ? 1 : 0),
+      action: "add",
+      quantity: 1,
+      items: pkg.packages_items || [],
+    });
+  };
+
+  const handleSavePackageStock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!packageStockModal.package_id) return;
+    const qty = Number(packageStockModal.quantity) || 1;
+    if (qty <= 0) {
+      alert("Masukkan jumlah paket yang valid (minimal 1).");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const res = await api.packages.adjustStock(packageStockModal.package_id, {
+        action: packageStockModal.action,
+        quantity: qty,
+      });
+
+      if (res.status === "success") {
+        alert(
+          `Stok "${packageStockModal.package_name}" berhasil ${
+            packageStockModal.action === "add" ? "ditambahkan +" : "dikurangi -"
+          }${qty} set paket! Stok komponen barang gudang otomatis disinkronkan.`
+        );
+        setPackageStockModal((prev) => ({ ...prev, open: false }));
+        await fetchData();
+        if (selectedPackage && selectedPackage.id === packageStockModal.package_id) {
+          const updated = await api.packages.getById(packageStockModal.package_id);
+          if (updated.status === "success" && updated.data) {
+            setSelectedPackage(updated.data);
+            setRichPackageDetail(updated.data);
+          }
+        }
+      } else {
+        alert("Gagal menyesuaikan stok paket: " + (res.message || "Error"));
+      }
+    } catch (err: any) {
+      alert("Terjadi kesalahan: " + (err.message || err));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -775,15 +850,25 @@ export default function PaketPage() {
                         </p>
                       </td>
                       <td className="px-5 py-3.5">
-                        {pkg.is_available ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700">
-                            <CheckCircle2 className="w-3 h-3" /> Siap Dipinjam
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700">
-                            <AlertCircle className="w-3 h-3" /> Stok Terbatas
-                          </span>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-800">
+                              {pkg.available_stock ?? (pkg.is_available ? 1 : 0)} Paket
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              / {pkg.stock ?? 0} total
+                            </span>
+                          </div>
+                          {pkg.is_available && (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 w-fit">
+                              <CheckCircle2 className="w-2.5 h-2.5" /> Siap Dipinjam
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 w-fit">
+                              <AlertCircle className="w-2.5 h-2.5" /> Stok Kosong
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5">
                         <button
@@ -817,6 +902,17 @@ export default function PaketPage() {
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenPackageStock(pkg);
+                            }}
+                            className="p-1.5 text-slate-500 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Kelola Stok Paket (+ / - Paket)"
+                          >
+                            <Layers className="w-4 h-4 text-[#0785BC]" />
+                          </button>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1411,12 +1507,16 @@ export default function PaketPage() {
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100">
-                  <div className="flex items-center gap-2 text-emerald-600 mb-1">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Kesiapan</span>
+                  <div className="flex items-center justify-between text-emerald-600 mb-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">Stok Paket</span>
+                    <Layers className="w-4 h-4" />
                   </div>
-                  <p className="text-xs font-extrabold text-emerald-700 mt-1">
-                    {(richPackageDetail?.is_available ?? selectedPackage.is_available) ? "Lengkap" : "Stok Kurang"}
+                  <p className="text-base font-extrabold text-emerald-700 mt-0.5">
+                    {richPackageDetail?.available_stock ?? selectedPackage.available_stock ?? (selectedPackage.is_available ? 1 : 0)}{" "}
+                    <span className="text-xs font-normal text-emerald-600">Siap Pinjam</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Total Kapasitas: {richPackageDetail?.stock ?? selectedPackage.stock ?? 0} Paket
                   </p>
                 </div>
 
@@ -1444,6 +1544,26 @@ export default function PaketPage() {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              {/* Quick Action: Kelola Stok Paket */}
+              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#0785BC]" />
+                    <p className="text-xs font-bold text-slate-800">Manajemen Stok Paket Sarpras</p>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Tambah atau kurangi kapasitas paket secara langsung. Perubahan akan otomatis menyinkronkan stok seluruh komponen barang.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenPackageStock(richPackageDetail || selectedPackage)}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold rounded-xl active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer"
+                >
+                  <Layers className="w-3.5 h-3.5" /> Kelola Stok (+ / - Paket)
+                </button>
               </div>
 
               {/* Warning Alert if Unavailable / Empty Items */}
@@ -1730,6 +1850,162 @@ export default function PaketPage() {
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-sm"
                 >
                   Simpan & Tambah Stok
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Dialog Manajemen Stok Paket (Tambah / Kurangi Stok Paket) ── */}
+      {packageStockModal.open && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto animate-scale-in">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0785BC] flex items-center justify-center">
+                  <Layers className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">Kelola Stok Paket</h3>
+                  <p className="text-[11px] text-slate-400">Atur kapasitas ketersediaan set paket</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPackageStockModal((prev) => ({ ...prev, open: false }))}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Info Paket Saat Ini */}
+            <div className="p-3.5 bg-slate-50 border border-slate-200/60 rounded-2xl text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Nama Paket:</span>
+                <span className="font-bold text-slate-800">{packageStockModal.package_name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Stok Siap Pinjam:</span>
+                <span className="font-bold text-emerald-600">{packageStockModal.current_avail} Paket</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Total Kapasitas Gudang:</span>
+                <span className="font-bold text-slate-700">{packageStockModal.current_stock} Paket</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleSavePackageStock} className="space-y-4 text-xs">
+              {/* Pilihan Aksi: Tambah atau Kurang */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1.5">Pilih Aksi Penyesuaian</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPackageStockModal((prev) => ({ ...prev, action: "add" }))}
+                    className={`py-2 px-3 rounded-xl font-bold border text-center transition-all flex items-center justify-center gap-1.5 ${
+                      packageStockModal.action === "add"
+                        ? "bg-emerald-50 border-emerald-500 text-emerald-700 shadow-2xs"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span>+ Tambah Stok</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPackageStockModal((prev) => ({ ...prev, action: "reduce" }))}
+                    className={`py-2 px-3 rounded-xl font-bold border text-center transition-all flex items-center justify-center gap-1.5 ${
+                      packageStockModal.action === "reduce"
+                        ? "bg-rose-50 border-rose-500 text-rose-700 shadow-2xs"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <span>- Kurangi Stok</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Jumlah Paket */}
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">
+                  Jumlah Set Paket yang Ingin {packageStockModal.action === "add" ? "Ditambahkan" : "Dikurangi"}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={packageStockModal.quantity}
+                    onChange={(e) =>
+                      setPackageStockModal({
+                        ...packageStockModal,
+                        quantity: Math.max(1, parseInt(e.target.value) || 1),
+                      })
+                    }
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-slate-800 bg-white"
+                  />
+                  <span className="text-slate-500 font-medium shrink-0">Paket</span>
+                </div>
+                <div className="flex gap-1.5 mt-2">
+                  {[1, 2, 5, 10].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setPackageStockModal((prev) => ({ ...prev, quantity: preset }))}
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] rounded-lg text-[10px] font-bold text-slate-600 transition-colors"
+                    >
+                      {preset} Paket
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dampak Perubahan Barang Komponen */}
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1.5">
+                <p className="font-bold text-slate-700 text-[11px]">
+                  Dampak pada stok barang fisik ({packageStockModal.action === "add" ? "+" : "-"}{packageStockModal.quantity} Paket):
+                </p>
+                <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+                  {(packageStockModal.items || []).map((pi: any, idx: number) => {
+                    const delta = (Number(pi.quantity) || 1) * packageStockModal.quantity;
+                    const sign = packageStockModal.action === "add" ? "+" : "-";
+                    return (
+                      <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600 py-0.5 border-b border-slate-200/50 last:border-b-0">
+                        <span className="truncate max-w-[180px]">
+                          • {pi.items?.name || "Barang"}
+                        </span>
+                        <span className={`font-bold ${packageStockModal.action === "add" ? "text-emerald-600" : "text-rose-600"}`}>
+                          {sign}{delta} unit
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setPackageStockModal((prev) => ({ ...prev, open: false }))}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 font-bold rounded-xl text-xs"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className={`px-4 py-2 text-white font-bold rounded-xl text-xs transition-colors shadow-sm disabled:opacity-60 ${
+                    packageStockModal.action === "add"
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-rose-600 hover:bg-rose-700"
+                  }`}
+                >
+                  {saving
+                    ? "Menyinkronkan..."
+                    : packageStockModal.action === "add"
+                    ? "Simpan & Tambah Stok"
+                    : "Simpan & Kurangi Stok"}
                 </button>
               </div>
             </form>

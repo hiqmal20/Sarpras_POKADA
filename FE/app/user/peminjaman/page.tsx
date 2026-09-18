@@ -99,6 +99,7 @@ export default function UserCatalogPage() {
   const [detailTab, setDetailTab] = useState<DetailTab>("item");
 
   const [selectedPkg, setSelectedPkg] = useState<any>(null);
+  const [packageQty, setPackageQty] = useState(1);
   const [extraItems, setExtraItems] = useState<any[]>([]);
   const [borrowDate, setBorrowDate] = useState("");
   const [returnDate, setReturnDate] = useState("");
@@ -209,7 +210,10 @@ export default function UserCatalogPage() {
     setFeedback(null);
     setSubmitting(true);
     const packageItems = (selectedPkg.packages_items || [])
-      .map((row: any) => ({ item_id: row.item_id || row.items?.id, quantity: row.quantity || 1 }))
+      .map((row: any) => ({
+        item_id: row.item_id || row.items?.id,
+        quantity: (Number(row.quantity) || 1) * packageQty,
+      }))
       .filter((row: any) => row.item_id);
     const extras = extraItems.map((it: any) => ({ item_id: it.id, quantity: 1 }));
     const uniqueItems = [...packageItems, ...extras].filter(
@@ -224,7 +228,7 @@ export default function UserCatalogPage() {
       return;
     }
     const result = await api.borrowings.create({
-      purpose: `[Paket: ${selectedPkg.name}] ${purpose.trim()}`,
+      purpose: `[Paket: ${selectedPkg.name} (${packageQty} Set)] ${purpose.trim()}`,
       borrow_date: borrowDate,
       return_date: returnDate,
       items: validItems,
@@ -233,6 +237,7 @@ export default function UserCatalogPage() {
     if (result.status === "success") {
       setFeedback({ type: "success", text: "Pengajuan peminjaman paket berhasil dikirim dan menunggu persetujuan admin." });
       setSelectedPkg(null);
+      setPackageQty(1);
       setExtraItems([]);
       setBorrowDate("");
       setReturnDate("");
@@ -485,9 +490,22 @@ export default function UserCatalogPage() {
                         ) : (
                           <Layers className="w-10 h-10 text-slate-300" />
                         )}
-                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
-                          Per Paket
-                        </span>
+                        <div className="absolute top-3 left-3 flex gap-1.5 items-center">
+                          <span className="px-2.5 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
+                            Per Paket
+                          </span>
+                          <span
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm ${
+                              (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
+                                ? "bg-emerald-500 text-white"
+                                : "bg-rose-500 text-white"
+                            }`}
+                          >
+                            {(pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
+                              ? `Stok: ${pkg.available_stock ?? 1} Paket`
+                              : "Habis"}
+                          </span>
+                        </div>
                       </div>
                       <div className="p-4 flex flex-1 flex-col">
                         <p className="text-[10px] uppercase font-bold text-violet-600">Paket Barang</p>
@@ -497,14 +515,23 @@ export default function UserCatalogPage() {
                         </p>
                         <button
                           type="button"
+                          disabled={(pkg.available_stock ?? (pkg.is_available ? 1 : 0)) <= 0}
                           onClick={() => {
                             setSelectedPkg(pkg);
+                            setPackageQty(1);
                             setExtraItems([]);
                             setFeedback(null);
                           }}
-                          className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2.5 transition-colors cursor-pointer"
+                          className={`mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl text-white text-xs font-bold py-2.5 transition-colors cursor-pointer ${
+                            (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
+                              ? "bg-[#0785BC] hover:bg-[#0672a0]"
+                              : "bg-slate-300 cursor-not-allowed"
+                          }`}
                         >
-                          Ajukan Pinjam Paket <ChevronRight className="w-4 h-4" />
+                          {(pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
+                            ? "Ajukan Pinjam Paket"
+                            : "Stok Paket Kosong"}{" "}
+                          <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
@@ -584,6 +611,62 @@ export default function UserCatalogPage() {
                     <span>{feedback.text}</span>
                   </div>
                 )}
+                {/* Pilihan Jumlah Set Paket */}
+                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800">Jumlah Paket yang Dipinjam</label>
+                    <span className="text-[11px] font-bold text-[#0785BC] bg-white px-2.5 py-0.5 rounded-full border border-blue-200">
+                      Tersedia: {selectedPkg.available_stock ?? (selectedPkg.is_available ? 1 : 0)} Paket
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPackageQty((prev) => Math.max(1, prev - 1))}
+                      disabled={packageQty <= 1}
+                      className="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-40 shadow-2xs"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(1, selectedPkg.available_stock ?? 1)}
+                      value={packageQty}
+                      onChange={(e) => {
+                        const val = Math.max(1, parseInt(e.target.value) || 1);
+                        const maxVal = Math.max(1, selectedPkg.available_stock ?? 1);
+                        setPackageQty(Math.min(val, maxVal));
+                      }}
+                      className="w-20 text-center font-bold text-slate-900 border border-slate-200 rounded-xl py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPackageQty((prev) =>
+                          Math.min(Math.max(1, selectedPkg.available_stock ?? 1), prev + 1)
+                        )
+                      }
+                      disabled={packageQty >= (selectedPkg.available_stock ?? 1)}
+                      className="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-40 shadow-2xs"
+                    >
+                      +
+                    </button>
+                    <span className="text-xs font-semibold text-slate-600">Set Paket</span>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-blue-100 text-[11px] text-slate-600 space-y-1">
+                    <p className="font-semibold text-slate-700">Rincian Komponen ({packageQty} Set):</p>
+                    {(selectedPkg.packages_items || []).map((pi: any, idx: number) => (
+                      <p key={idx} className="flex items-center justify-between text-slate-600">
+                        <span>• {pi.items?.name || "Barang"}</span>
+                        <span className="font-semibold text-slate-800">
+                          {(Number(pi.quantity) || 1) * packageQty} unit ({Number(pi.quantity) || 1} unit/set)
+                        </span>
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-600">Tambahkan barang lain (opsional)</label>
                   <select

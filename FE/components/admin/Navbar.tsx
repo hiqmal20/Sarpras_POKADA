@@ -98,8 +98,21 @@ export default function Navbar({
             setShowBadge(true);
           }
 
+          let items = res.data;
+          if (notifConfig) {
+            if (notifConfig.borrowing === false) {
+              items = items.filter((n: any) => n.type !== "peminjaman");
+            }
+            if (notifConfig.return === false) {
+              items = items.filter((n: any) => n.type !== "pengembalian");
+            }
+            if (notifConfig.damage === false) {
+              items = items.filter((n: any) => n.type !== "laporan" && n.type !== "kerusakan");
+            }
+          }
+
           setNotifications(
-            res.data.map((n: any) => ({
+            items.map((n: any) => ({
               id: n.id,
               title: n.title,
               message: n.message,
@@ -121,9 +134,11 @@ export default function Navbar({
     loadNotifications();
 
     const interval = setInterval(loadNotifications, 8000);
+    window.addEventListener("settings-updated", loadNotifications);
 
     return () => {
       clearInterval(interval);
+      window.removeEventListener("settings-updated", loadNotifications);
       window.removeEventListener("user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
     };

@@ -7,18 +7,34 @@ const AppError = require('../utils/appError');
  * memiliki available_stock >= quantity yang dibutuhkan.
  */
 const checkPackageAvailability = (pkgItems, activeDamagesMap = {}) => {
-  if (!pkgItems || pkgItems.length === 0) return { isAvailable: false, unavailableItems: [] };
+  if (!pkgItems || pkgItems.length === 0) return { isAvailable: false, unavailableItems: [], stock: 0, available_stock: 0 };
+
+  let maxStock = Infinity;
+  let availableStock = Infinity;
 
   const unavailableItems = pkgItems.filter(pi => {
     const item = pi.items;
     if (!item) return true;
     const avail = Number(item.available_stock !== undefined && item.available_stock !== null ? item.available_stock : item.stock || 0);
+    const total = Number(item.stock || 0);
     const needed = Number(pi.quantity || 1);
+
+    const possibleFromTotal = Math.floor(total / needed);
+    const possibleFromAvail = (item.status === 'Dalam Pemeliharaan' && avail <= 0) ? 0 : Math.floor(avail / needed);
+
+    if (possibleFromTotal < maxStock) maxStock = possibleFromTotal;
+    if (possibleFromAvail < availableStock) availableStock = possibleFromAvail;
+
     return avail < needed || (item.status === 'Dalam Pemeliharaan' && avail <= 0);
   });
 
+  if (maxStock === Infinity || pkgItems.length === 0) maxStock = 0;
+  if (availableStock === Infinity || pkgItems.length === 0) availableStock = 0;
+
   return {
-    isAvailable: unavailableItems.length === 0,
+    isAvailable: unavailableItems.length === 0 && availableStock > 0,
+    stock: maxStock,
+    available_stock: availableStock,
     unavailableItems: unavailableItems.map(pi => {
       const activeDmg = activeDamagesMap[pi.item_id];
       const damageReason = activeDmg ? `sebagian unit sedang dalam perbaikan: "${activeDmg.title}"` : null;
@@ -109,6 +125,8 @@ exports.findAllPackages = async ({ status, search }) => {
       status: pkg.status || 'Aktif',
       effective_status: effectiveStatus,
       is_available: isAvailable,
+      stock: availability.stock,
+      available_stock: isUnderRepair || isManuallyInactive ? 0 : availability.available_stock,
       damage_reason: damageReason,
       has_empty_item: !availability.isAvailable,
       unavailable_items: availability.isAvailable ? [] : availability.unavailableItems,
@@ -183,6 +201,8 @@ exports.findPackageById = async (id) => {
     status: pkg.status || 'Aktif',
     effective_status: effectiveStatus,
     is_available: isAvailable,
+    stock: availability.stock,
+    available_stock: isUnderRepair || isManuallyInactive ? 0 : availability.available_stock,
     damage_reason: damageReason,
     has_empty_item: !availability.isAvailable,
     unavailable_items: availability.isAvailable ? [] : availability.unavailableItems,
@@ -454,4 +474,81 @@ exports.importPackagesFromCSV = async (csvBuffer) => {
   }
 
   return results;
+};
+
+/**
+ * Menambah atau mengurangi stok paket secara proporsional.
+ * Mengubah stock dan available_stock pada seluruh item komponen di dalam paket.
+ */
+exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 }) => {
+  const numQty = Number(quantity);
+  if (!numQty || numQty <= 0) {
+    throw new AppError('Jumlah perubahan stok paket harus lebih dari 0', 400);
+  }
+
+  const { data: pkgItems, error: itemsError } = await supabase
+    .from('packages_items')
+    .select('item_id, quantity')
+    .eq('package_id', packageId);
+
+  if (itemsError || !pkgItems || pkgItems.length === 0) {
+    throw new AppError('Paket tidak ditemukan atau belum memiliki komponen barang', 404);
+  }
+
+  const now = new Date().toISOString();
+
+  // Validasi jika pengurangan: pastikan stok barang mencukupi
+  if (action === 'reduce') {
+    for (const pi of pkgItems) {
+      const { data: item } = await supabase
+        .from('items')
+        .select('name, available_stock, stock')
+        .eq('id', pi.item_id)
+        .single();
+
+      const deductAmount = (Number(pi.quantity) || 1) * numQty;
+      const currentAvail = Number(item?.available_stock !== undefined && item?.available_stock !== null ? item.available_stock : item?.stock || 0);
+      if (currentAvail < deductAmount) {
+        throw new AppError(`Stok barang "${item?.name || 'Komponen'}" tidak mencukupi untuk dikurangi sebanyak ${deductAmount} unit (tersedia: ${currentAvail})`, 400);
+      }
+    }
+  }
+
+  // Update stok masing-masing barang komponen secara proporsional
+  for (const pi of pkgItems) {
+    const { data: item } = await supabase
+      .from('items')
+      .select('stock, available_stock, status')
+      .eq('id', pi.item_id)
+      .single();
+
+    if (item) {
+      const delta = (Number(pi.quantity) || 1) * numQty;
+      const curStock = Number(item.stock || 0);
+      const curAvail = Number(item.available_stock !== undefined && item.available_stock !== null ? item.available_stock : curStock);
+
+      let newStock, newAvail;
+      if (action === 'add') {
+        newStock = curStock + delta;
+        newAvail = curAvail + delta;
+      } else {
+        newStock = Math.max(0, curStock - delta);
+        newAvail = Math.max(0, curAvail - delta);
+      }
+
+      const newStatus = newAvail > 0 ? 'Tersedia' : 'Stok Kosong';
+
+      await supabase
+        .from('items')
+        .update({
+          stock: newStock,
+          available_stock: newAvail,
+          status: newStatus,
+          update_at: now
+        })
+        .eq('id', pi.item_id);
+    }
+  }
+
+  return exports.findPackageById(packageId);
 };

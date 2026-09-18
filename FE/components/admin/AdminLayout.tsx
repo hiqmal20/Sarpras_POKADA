@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import api from "@/lib/api";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -28,6 +29,48 @@ export default function AdminLayout({
         setCollapsed(saved === "true");
       }
     } catch {}
+  }, []);
+
+  // Idle Session Timeout Enforcer
+  useEffect(() => {
+    let timeoutId: any = null;
+
+    const resetIdleTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+
+      let minutes = 30;
+      try {
+        const raw = localStorage.getItem("appSettings");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.security?.sessionTimeout) {
+            minutes = Number(parsed.security.sessionTimeout) || 30;
+          }
+        }
+      } catch {}
+
+      const ms = minutes * 60 * 1000;
+      timeoutId = setTimeout(() => {
+        alert(`Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`);
+        try {
+          api.auth.logout();
+        } catch {}
+        localStorage.clear();
+        window.location.href = "/auth/login?reason=timeout";
+      }, ms);
+    };
+
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+    events.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
+    window.addEventListener("settings-updated", resetIdleTimer);
+
+    resetIdleTimer();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+      window.removeEventListener("settings-updated", resetIdleTimer);
+    };
   }, []);
 
   const handleToggleCollapse = () => {

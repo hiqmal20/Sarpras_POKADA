@@ -12,6 +12,7 @@ router.use(requireAuth);
 router.get('/', packageController.getAllPackages);
 router.get('/:id', packageController.getPackageById);
 router.post('/import', requireRole(ROLES.ADMIN, ROLES.PETUGAS), uploadCSV.single('file'), packageController.importPackages);
+router.post('/:id/stock', requireRole(ROLES.ADMIN, ROLES.PETUGAS), packageController.adjustPackageStock);
 router.post('/', requireRole(ROLES.ADMIN, ROLES.PETUGAS), validateRequest(createPackageSchema), packageController.createPackage);
 router.put('/:id', requireRole(ROLES.ADMIN, ROLES.PETUGAS), validateRequest(updatePackageSchema), packageController.updatePackage);
 router.delete('/:id', requireRole(ROLES.ADMIN), packageController.deletePackage);

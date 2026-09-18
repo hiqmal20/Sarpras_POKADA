@@ -558,7 +558,7 @@ export default function LandingPage() {
                   onClick={() => handleScrollTo("alur-kerja")}
                   className="px-6 py-3 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
                 >
-                  Lihat Alur Kerja n8n
+                  Lihat Cara Kerja
                 </button>
               </div>
 
