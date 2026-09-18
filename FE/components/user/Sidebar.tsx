@@ -40,8 +40,8 @@ const navGroups: NavGroup[] = [
   {
     title: "Pinjam & Kembali",
     items: [
-      { href: "/user/peminjaman", label: "Katalog Barang", icon: PackageSearch, matchPrefix: true },
-      { href: "/user/item_catalog", label: "Peminjaman Saya", icon: ClipboardList, matchPrefix: true },
+      { href: "/user/item_catalog", label: "Katalog Barang", icon: PackageSearch, matchPrefix: true },
+      { href: "/user/peminjaman", label: "Peminjaman Saya", icon: ClipboardList, matchPrefix: true },
       { href: "/user/pengembalian", label: "Pengembalian", icon: PackageCheck },
     ],
   },

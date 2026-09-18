@@ -158,7 +158,7 @@ export default function BorrowingDetailPage() {
 
     <div className="flex items-center justify-between gap-3 rounded-2xl bg-white border border-slate-200/70 px-4 py-3.5 shadow-sm">
       <Link href="/user/riwayat_peminjaman" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0785BC] transition-colors">Lihat Riwayat Saya</Link>
-      <Link href="/user/peminjaman" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold transition-colors">Pinjam Lagi <ChevronRight className="w-3.5 h-3.5" /></Link>
+      <Link href="/user/item_catalog" className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold transition-colors">Pinjam Lagi <ChevronRight className="w-3.5 h-3.5" /></Link>
     </div>
   </div></UserLayout>;
 }
