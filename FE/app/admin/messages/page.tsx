@@ -249,7 +249,7 @@ export default function MessagesPage() {
 
     const interval = setInterval(() => {
       fetchMsgs(false);
-    }, 2000);
+    }, 10000);
 
     const handleFocus = () => fetchMsgs(false);
     window.addEventListener("focus", handleFocus);

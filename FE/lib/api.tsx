@@ -60,6 +60,11 @@ export const setCurrentUser = (user: any): void => {
   }
 };
 
+export const isPrivilegedUser = (): boolean => {
+  const r = getCurrentUser()?.role;
+  return r === "Admin" || r === "Petugas";
+};
+
 function toQueryString(params?: Record<string, any>): string {
   if (!params) return "";
   const clean: Record<string, string> = {};
@@ -134,7 +139,7 @@ async function apiFetch<T>(
             // Retry request dengan token yang sudah diperbarui
             return apiFetch<T>(endpoint, options, true);
           }
-        } catch (_) {
+        } catch {
           // Abaikan jika network error
         } finally {
           isRefreshing = false;
@@ -242,6 +247,7 @@ export const api = {
       const q = toQueryString(params);
       const res = await apiFetch<any[]>(`/users${q}`, { method: "GET" });
       if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) return res;
+      if (!isPrivilegedUser()) return res;
 
       // Direct Supabase query
       let query = supabase.from("users").select("*", { count: "exact" }).order("created_at", { ascending: false });
@@ -260,6 +266,8 @@ export const api = {
     getById: async (id: string) => {
       const res = await apiFetch<any>(`/users/${id}`, { method: "GET" });
       if (res.status === "success" && res.data) return res;
+      const me = getCurrentUser();
+      if (me?.id !== id && !isPrivilegedUser()) return res;
       const { data, error } = await supabase.from("users").select("*").eq("id", id).single();
       if (!error && data) return { status: "success", message: "Data dari Supabase", data };
       return res;
@@ -276,6 +284,7 @@ export const api = {
     }) => {
       const res = await apiFetch<any>("/users", { method: "POST", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       // Direct Supabase insert
       const insertPayload = {
         name: payload.name,
@@ -294,7 +303,14 @@ export const api = {
     update: async (id: string, payload: any) => {
       const res = await apiFetch<any>(`/users/${id}`, { method: "PUT", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
-      const { data, error } = await supabase.from("users").update({ ...payload, update_at: new Date().toISOString() }).eq("id", id).select().single();
+      const me = getCurrentUser();
+      if (me?.id !== id && !isPrivilegedUser()) return res;
+      const safePayload = { ...payload };
+      if (!isPrivilegedUser()) {
+        delete safePayload.role;
+        delete safePayload.status;
+      }
+      const { data, error } = await supabase.from("users").update({ ...safePayload, update_at: new Date().toISOString() }).eq("id", id).select().single();
       if (!error && data) return { status: "success", message: "User diupdate di Supabase", data };
       return res;
     },
@@ -312,6 +328,11 @@ export const api = {
         const data = await res.json();
         if (data.status === "success" && data.data?.foto) return data;
       } catch {}
+
+      const me = getCurrentUser();
+      if (me?.id !== id && !isPrivilegedUser()) {
+        return { status: "fail", message: "Akses ditolak" };
+      }
 
       // Direct upload ke Supabase Storage
       try {
@@ -337,8 +358,9 @@ export const api = {
     },
 
     delete: async (id: string) => {
-      const res = await apiFetch<any>(`/users/${id}`, { method: "DELETE" });
+      const res = await apiFetch(`/users/${id}`, { method: "DELETE" });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       const { error } = await supabase.from("users").delete().eq("id", id);
       if (!error) return { status: "success", message: "User dihapus dari Supabase" };
       return res;
@@ -378,6 +400,7 @@ export const api = {
     create: async (payload: { name: string; description?: string }) => {
       const res = await apiFetch<any>("/categories", { method: "POST", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       const { data, error } = await supabase.from("categories").insert([payload]).select().single();
       if (!error && data) return { status: "success", message: "Kategori disimpan di Supabase", data };
       return res;
@@ -386,6 +409,7 @@ export const api = {
     update: async (id: string, payload: { name?: string; description?: string }) => {
       const res = await apiFetch<any>(`/categories/${id}`, { method: "PUT", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       const { data, error } = await supabase.from("categories").update(payload).eq("id", id).select().single();
       if (!error && data) return { status: "success", message: "Kategori diupdate di Supabase", data };
       return res;
@@ -394,6 +418,7 @@ export const api = {
     delete: async (id: string) => {
       const res = await apiFetch(`/categories/${id}`, { method: "DELETE" });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       const { error } = await supabase.from("categories").delete().eq("id", id);
       if (!error) return { status: "success", message: "Kategori dihapus dari Supabase" };
       return res;
@@ -493,6 +518,7 @@ export const api = {
     create: async (payload: any) => {
       const res = await apiFetch<any>("/items", { method: "POST", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
 
       const numStock = Number(payload.stock) || 0;
       const numAvail = payload.available_stock !== undefined && payload.available_stock !== null ? Number(payload.available_stock) : numStock;
@@ -514,6 +540,7 @@ export const api = {
     update: async (id: string, payload: any) => {
       const res = await apiFetch<any>(`/items/${id}`, { method: "PUT", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
 
       const updateData: any = { ...payload, update_at: new Date().toISOString() };
       if (payload.stock !== undefined) updateData.stock = Number(payload.stock);
@@ -534,6 +561,7 @@ export const api = {
     delete: async (id: string) => {
       const res = await apiFetch(`/items/${id}`, { method: "DELETE" });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       const { error } = await supabase.from("items").delete().eq("id", id);
       if (!error) return { status: "success", message: "Barang dihapus dari Supabase" };
       return res;
@@ -560,6 +588,7 @@ export const api = {
           }
         }
         const enriched = pkgs.map((p: any) => {
+<<<<<<< HEAD
           const pItems = itemsMap[p.id] || [];
           let maxStock = pItems.length > 0 ? Infinity : 0;
           let availStock = pItems.length > 0 ? Infinity : 0;
@@ -579,6 +608,21 @@ export const api = {
             available_stock: availStock,
             is_available: availStock > 0 && p.status !== "Nonaktif" && p.status !== "Dalam Pemeliharaan",
             packages_items: pItems,
+=======
+          const rows = itemsMap[p.id] || [];
+          const unavailable = rows.filter((pi: any) => {
+            const avail = Number(pi.items?.available_stock ?? pi.items?.stock ?? 0);
+            return avail < Number(pi.quantity || 1) || String(pi.items?.status || "").toLowerCase() !== "tersedia";
+          });
+          const statusLower = String(p.status || "").toLowerCase();
+          const inactive = ["nonaktif", "non-aktif", "tidak aktif", "maintenance", "pemeliharaan"].some((s) => statusLower.includes(s));
+          return {
+            ...p,
+            is_available: rows.length > 0 && unavailable.length === 0 && !inactive,
+            has_empty_item: unavailable.length > 0,
+            unavailable_items: unavailable.map((pi: any) => ({ item_id: pi.item_id, name: pi.items?.name })),
+            packages_items: rows,
+>>>>>>> bbea84d81705740fbddaec0eba66c231198d5d55
           };
         });
         return { status: "success", message: "Paket dari Supabase", data: enriched, total: enriched.length };
@@ -672,6 +716,7 @@ export const api = {
     }) => {
       const res = await apiFetch<any>("/packages", { method: "POST", body: JSON.stringify(payload) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
 
       // Supabase direct fallback
       const { data: pkg, error: pErr } = await supabase.from("packages").insert([{
@@ -726,6 +771,7 @@ export const api = {
         body: JSON.stringify(payload),
       });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
 
       const { data, error } = await supabase
         .from("packages")
@@ -781,6 +827,7 @@ export const api = {
     delete: async (id: string) => {
       const res = await apiFetch(`/packages/${id}`, { method: "DELETE" });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       await supabase.from("packages_items").delete().eq("package_id", id);
       const { error } = await supabase.from("packages").delete().eq("id", id);
       if (!error) return { status: "success", message: "Paket dihapus dari Supabase" };
@@ -810,10 +857,15 @@ export const api = {
        if (res.status === "success" && Array.isArray(res.data)) return res;
 
        let query = supabase.from("borrowings").select("*, users(*)", { count: "exact" }).order("created_at", { ascending: false });
-       const currentUser = getCurrentUser();
-       if (params?.user_id || currentUser?.role === "Mahasiswa" || currentUser?.role === "Peminjam") {
-         query = query.eq("user_id", params?.user_id || currentUser?.id);
-       }
+      const currentUser = getCurrentUser();
+      const requesterRole = currentUser?.role || "";
+      const isPrivilegedReader = requesterRole === "Admin" || requesterRole === "Petugas";
+      if (!isPrivilegedReader) {
+        if (!currentUser?.id) return res;
+        query = query.eq("user_id", currentUser.id);
+      } else if (params?.user_id) {
+        query = query.eq("user_id", params.user_id);
+      }
        if (params?.status && params.status !== "undefined") query = query.ilike("status", `%${params.status}%`);
        if (params?.page && params?.limit) {
          const from = (params.page - 1) * params.limit;
@@ -862,6 +914,7 @@ export const api = {
         body: JSON.stringify(payload),
       });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
       const { data, error } = await supabase.from("borrowings").update({ status: payload.status, admin_note: payload.admin_notes }).eq("id", id).select().single();
       if (!error && data) return { status: "success", message: "Status diupdate di Supabase", data };
       return res;
@@ -936,6 +989,7 @@ export const api = {
       };
       const res = await apiFetch<any>("/returns", { method: "POST", body: JSON.stringify(normalized) });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
 
       const { data, error } = await supabase.from("returns").insert([{
         borrowing_id: payload.borrowing_id,
@@ -959,6 +1013,11 @@ export const api = {
       if (res.status === "success" && Array.isArray(res.data)) return res;
 
       let query = supabase.from("damage_reports").select("*, users(*), items(*), packages(*)", { count: "exact" }).order("created_at", { ascending: false });
+      if (!isPrivilegedUser()) {
+        const uid = getCurrentUser()?.id;
+        if (!uid) return res;
+        query = query.eq("user_id", uid);
+      }
       if (params?.status && params.status !== "undefined") query = query.ilike("status", `%${params.status}%`);
       if (params?.fine_status && params.fine_status !== "undefined" && params.fine_status !== "all") {
         query = query.eq("fine_status", params.fine_status);
@@ -994,8 +1053,9 @@ export const api = {
       if (res.status === "success") return res;
 
       const user = getCurrentUser();
+      const privileged = isPrivilegedUser();
       const insertPayload: any = {
-        user_id: payload.user_id || user?.id || null,
+        user_id: privileged ? payload.user_id || user?.id || null : user?.id || null,
         item_id: payload.item_id || null,
         package_id: payload.package_id || null,
         borrowing_id: payload.borrowing_id || null,
@@ -1005,9 +1065,9 @@ export const api = {
         damage_type: payload.damage_type || (payload.package_id ? "per_package" : "per_item"),
         image_url: payload.image_url || payload.photo_url || null,
         status: "Menunggu Review",
-        fine_amount: Number(payload.fine_amount) || 0,
-        fine_reason: payload.fine_reason || "",
-        fine_status: Number(payload.fine_amount) > 0 ? "Belum Dibayar" : "Tidak Ada Denda",
+        fine_amount: privileged ? Number(payload.fine_amount) || 0 : 0,
+        fine_reason: privileged ? payload.fine_reason || "" : "",
+        fine_status: "Tidak Ada Denda",
         created_at: new Date().toISOString(),
       };
       const { data, error } = await supabase.from("damage_reports").insert([insertPayload]).select("*, users(*), items(*), packages(*)").single();
@@ -1036,6 +1096,7 @@ export const api = {
         body: JSON.stringify(bodyPayload),
       });
       if (res.status === "success") return res;
+      if (!isPrivilegedUser()) return res;
 
       // Supabase direct fallback
       const updateData: any = {};
@@ -1204,7 +1265,9 @@ export const api = {
       const res = await apiFetch<any[]>("/notifications", { method: "GET" });
       if (res.status === "success" && Array.isArray(res.data)) return res;
 
-      const { data, error } = await supabase.from("notifications").select("*").order("created_at", { ascending: false }).limit(30);
+      const me = getCurrentUser();
+      if (!me?.id) return res;
+      const { data, error } = await supabase.from("notifications").select("*").eq("user_id", me.id).order("created_at", { ascending: false }).limit(30);
       if (!error && data) return { status: "success", message: "Notifikasi dari Supabase", data };
       return res;
     },
@@ -1212,21 +1275,29 @@ export const api = {
     markAsRead: async (id: string) => {
       const res = await apiFetch(`/notifications/${id}/read`, { method: "PATCH" });
       if (res.status === "success") return res;
-      await supabase.from("notifications").update({ is_read: true }).eq("id", id);
+      const me = getCurrentUser();
+      let query = supabase.from("notifications").update({ is_read: true }).eq("id", id);
+      if (me?.id) query = query.eq("user_id", me.id);
+      await query;
       return { status: "success", message: "Notifikasi dibaca" };
     },
 
     markAllAsRead: async () => {
       const res = await apiFetch("/notifications/read-all", { method: "POST" });
       if (res.status === "success") return res;
-      await supabase.from("notifications").update({ is_read: true }).neq("id", "0");
+      const me = getCurrentUser();
+      if (!me?.id) return res;
+      await supabase.from("notifications").update({ is_read: true }).eq("user_id", me.id).eq("is_read", false);
       return { status: "success", message: "Semua notifikasi dibaca" };
     },
 
     delete: async (id: string) => {
       const res = await apiFetch(`/notifications/${id}`, { method: "DELETE" });
       if (res.status === "success") return res;
-      await supabase.from("notifications").delete().eq("id", id);
+      const me = getCurrentUser();
+      let query = supabase.from("notifications").delete().eq("id", id);
+      if (me?.id) query = query.eq("user_id", me.id);
+      await query;
       return { status: "success", message: "Notifikasi dihapus" };
     },
   },

@@ -1,9 +1,50 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Package, CheckCircle2, AlertTriangle, Loader2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  Package,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  X,
+  CalendarDays,
+  Clock,
+  ChevronRight,
+  RotateCcw,
+  ShieldCheck,
+  MessageSquare,
+  IdCard,
+} from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
+
+interface ReturnRequest {
+  borrowing_id: string;
+  borrow_code: string;
+  planned_date: string;
+  condition: string;
+  note: string;
+  created_at: string;
+}
+
+const LS_KEY = "return_requests_v1";
+
+function loadRequests(): ReturnRequest[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+function isOverdue(b: any) {
+  if (!b.planned_return_date) return false;
+  return new Date(b.planned_return_date).getTime() < Date.now() - 12 * 60 * 60 * 1000;
+}
 
 export default function UserReturnPage() {
   const [borrowings, setBorrowings] = useState<any[]>([]);
@@ -11,65 +52,144 @@ export default function UserReturnPage() {
   const [selected, setSelected] = useState<any>(null);
   const [condition, setCondition] = useState("Baik");
   const [notes, setNotes] = useState("");
+  const [planDate, setPlanDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [sending, setSending] = useState(false);
+  const [requests, setRequests] = useState<ReturnRequest[]>([]);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const load = async () => {
     const res = await api.borrowings.getAll({ limit: 50 });
     if (res.status === "success" && Array.isArray(res.data)) {
-      setBorrowings(
-        res.data.filter((b: any) => {
-          const s = (b.status || "").toLowerCase();
-          return (
-            s.includes("dipinjam") ||
-            s.includes("setuju") ||
-            s.includes("approved") ||
-            s.includes("aktif")
-          );
-        })
-      );
+      const active = res.data.filter((b: any) => {
+        const s = (b.status || "").toLowerCase();
+        return s.includes("dipinjam") || s.includes("setuju") || s.includes("approved") || s.includes("aktif");
+      });
+      setBorrowings(active);
+      setSelected((prev: any) => (prev ? active.find((b: any) => b.id === prev.id) || null : prev));
     }
     setLoading(false);
   };
 
   useEffect(() => {
+    setRequests(loadRequests());
     load();
-    const timer = setInterval(load, 8000);
+    const timer = setInterval(load, 30000);
     return () => clearInterval(timer);
   }, []);
+
+  const stats = useMemo(() => {
+    const late = borrowings.filter(isOverdue).length;
+    const requestedIds = new Set(requests.map((r) => r.borrowing_id));
+    const waiting = borrowings.filter((b) => requestedIds.has(b.id)).length;
+    return { active: borrowings.length, late, waiting };
+  }, [borrowings, requests]);
+
+  async function notifyPetugas(b: any, payload: { planned: string; cond: string; note: string }) {
+    const text =
+      `Pengajuan Siap Kembali\n` +
+      `Kode: ${b.borrow_code || "-"}\n` +
+      `Barang: ${(b.borrowings_items?.[0]?.items?.name) || b.purpose || "-"}\n` +
+      `Rencana kembali: ${payload.planned}\n` +
+      `Kondisi menurut peminjam: ${payload.cond}\n` +
+      (payload.note ? `Catatan: ${payload.note}\n` : "") +
+      `Mohon verifikasi fisik di loket (REQ-RET-02).`;
+    try {
+      const list = await api.chats.getAll();
+      let chatId: string | null = null;
+      if (list.status === "success" && Array.isArray(list.data) && list.data.length > 0) {
+        chatId = list.data[0].id;
+      } else {
+        const created = await api.chats.create({ subject: "Pengajuan Pengembalian Barang" });
+        if (created.status === "success" && created.data?.id) chatId = created.data.id;
+      }
+      if (chatId) await api.chats.sendMessage(chatId, { message: text });
+    } catch {
+      // offline: pengajuan lokal tetap tersimpan
+    }
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selected) return;
     setSending(true);
     setFeedback(null);
-    const res = await api.returns.create({
+    const payload = { planned: planDate, cond: condition, note: notes.trim() };
+    await notifyPetugas(selected, payload);
+    const entry: ReturnRequest = {
       borrowing_id: selected.id,
-      condition,
-      note: notes.trim(),
-      notes: notes.trim(),
-    });
+      borrow_code: selected.borrow_code || "-",
+      planned_date: payload.planned,
+      condition: payload.cond,
+      note: payload.note,
+      created_at: new Date().toISOString(),
+    };
+    const next = [entry, ...requests.filter((r) => r.borrowing_id !== selected.id)];
+    setRequests(next);
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+    } catch {}
     setSending(false);
-    if (res.status === "success") {
-      setFeedback({ type: "success", text: "Pengajuan pengembalian berhasil dicatat." });
-      setSelected(null);
-      setNotes("");
-      load();
-    } else {
-      setFeedback({ type: "error", text: res.message || "Pengembalian gagal diproses." });
-    }
+    setNotes("");
+    setFeedback({
+      type: "success",
+      text: `Pengajuan terkirim ke petugas. Bawa KTM + kode ${selected.borrow_code || ""} ke loket untuk verifikasi fisik. Status Selesai hanya diterbitkan petugas.`,
+    });
   };
 
   return (
     <UserLayout showSearch={false}>
-      <div className="max-w-6xl mx-auto space-y-6 pb-12">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Pengembalian Barang</h1>
-          <p className="text-sm text-slate-500 mt-1">Pilih peminjaman aktif yang ingin Anda kembalikan.</p>
+      <div className="max-w-6xl mx-auto space-y-6 pb-10">
+        <div className="relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(16,185,129,0.55)] bg-gradient-to-br from-[#0785BC] via-[#0aa5e0] to-[#10b981]">
+          <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-white/15" />
+          <div className="absolute right-28 top-1/2 -translate-y-1/2 hidden md:block w-32 h-32 rounded-full bg-white/10" />
+          <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-white text-[#0785BC] flex items-center justify-center shrink-0 shadow-lg">
+              <RotateCcw className="w-6 h-6" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Sarpras Pokada</p>
+              <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">Pengembalian Barang</h1>
+              <p className="text-sm text-white/85 mt-1 max-w-xl">
+                Ajukan kesiapan kembali di sini, lalu selesaikan verifikasi fisik di loket. Status Selesai hanya diterbitkan petugas (REQ-RET-02).
+              </p>
+            </div>
+            <div className="flex gap-2 shrink-0 text-xs font-bold">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
+                <Package className="w-3.5 h-3.5 text-[#0785BC]" /> {stats.active} Aktif
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
+                <Clock className="w-3.5 h-3.5" /> {stats.late} Terlambat
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
+                <ShieldCheck className="w-3.5 h-3.5" /> {stats.waiting} Diajukan
+              </span>
+            </div>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-white/70 via-white/30 to-transparent" />
         </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { n: "1", t: "Pilih peminjaman aktif", icon: Package },
+            { n: "2", t: "Isi kesiapan & kondisi", icon: CalendarDays },
+            { n: "3", t: "Kirim ke petugas", icon: MessageSquare },
+            { n: "4", t: "Verifikasi di loket", icon: IdCard },
+          ].map((s) => {
+            const Icon = s.icon;
+            return (
+              <div key={s.n} className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-3.5 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-xl bg-[#0785BC]/10 text-[#0785BC] text-xs font-extrabold flex items-center justify-center shrink-0">{s.n}</span>
+                <Icon className="w-4 h-4 text-slate-400 shrink-0" />
+                <p className="text-xs font-bold text-slate-700 leading-snug">{s.t}</p>
+              </div>
+            );
+          })}
+        </div>
+
         {feedback && (
           <div
-            className={`p-4 rounded-xl border text-sm flex items-center justify-between gap-2 ${
+            className={`p-4 rounded-2xl border text-sm flex items-center justify-between gap-2 ${
               feedback.type === "success"
                 ? "bg-emerald-50 border-emerald-200 text-emerald-700"
                 : "bg-rose-50 border-rose-200 text-rose-700"
@@ -86,20 +206,28 @@ export default function UserReturnPage() {
             <button
               type="button"
               onClick={() => setFeedback(null)}
-              className="text-slate-400 hover:text-slate-600"
+              className="text-slate-400 hover:text-slate-600 cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
         {loading ? (
-          <Loader2 className="w-7 h-7 text-[#0785BC] animate-spin" />
+          <div className="bg-white rounded-2xl border border-slate-200/70 p-14 text-center">
+            <Loader2 className="w-7 h-7 text-[#0785BC] animate-spin mx-auto" />
+            <p className="text-xs text-slate-400 mt-3">Memuat peminjaman aktif...</p>
+          </div>
         ) : (
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="space-y-3">
+          <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
+            <div className="space-y-3 min-w-0">
+              <h2 className="text-[13px] font-extrabold text-slate-900">
+                Peminjaman Aktif <span className="text-slate-400 font-semibold">({borrowings.length})</span>
+              </h2>
               {borrowings.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center text-slate-400">
-                  Tidak ada barang yang perlu dikembalikan.
+                <div className="bg-white rounded-2xl border border-slate-200/70 p-10 text-center">
+                  <Package className="w-9 h-9 mx-auto text-slate-200 mb-3" />
+                  <p className="text-sm font-bold text-slate-600">Tidak ada barang yang perlu dikembalikan.</p>
+                  <p className="text-xs text-slate-400 mt-1">Peminjaman aktif Anda akan tampil di sini.</p>
                 </div>
               ) : (
                 borrowings.map((b) => {
@@ -108,66 +236,147 @@ export default function UserReturnPage() {
                   const title = firstItem?.name
                     ? `${firstItem.name}${extraCount > 0 ? ` + ${extraCount} item lain` : ""}`
                     : b.purpose || "Barang Peminjaman";
+                  const requested = requests.some((r) => r.borrowing_id === b.id);
+                  const late = isOverdue(b);
                   return (
                     <button
                       key={b.id}
-                      onClick={() => setSelected(b)}
-                      className={`w-full text-left bg-white rounded-2xl border p-5 flex gap-4 items-center transition-all cursor-pointer ${
+                      onClick={() => { setSelected(b); setFeedback(null); }}
+                      className={`w-full text-left bg-white rounded-2xl border p-4 flex gap-3.5 items-center transition-all cursor-pointer hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] ${
                         selected?.id === b.id
-                          ? "border-[#0785BC] ring-2 ring-[#0785BC]/10"
-                          : "border-slate-100 hover:border-[#0785BC]/40"
+                          ? "border-[#0785BC] ring-2 ring-[#0785BC]/15"
+                          : "border-slate-200/70 hover:border-[#0785BC]/40"
                       }`}
                     >
-                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-[#0785BC] flex items-center justify-center shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
                         <Package className="w-5 h-5" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold text-slate-800 truncate">{title}</p>
-                        <p className="text-xs text-slate-400 mt-1">
+                        <p className="text-[13px] font-bold text-slate-900 truncate">{title}</p>
+                        <p className="text-[11px] text-slate-400 mt-1 truncate">
                           {b.borrow_code} · Dipinjam {b.borrow_date ? new Date(b.borrow_date).toLocaleDateString("id-ID") : "-"}
                         </p>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {late && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
+                              <AlertTriangle className="w-3 h-3" /> Terlambat — hubungi petugas
+                            </span>
+                          )}
+                          {requested && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Clock className="w-3 h-3" /> Menunggu verifikasi loket
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
                     </button>
                   );
                 })
               )}
+
+              {requests.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200/70 p-4">
+                  <h3 className="text-[13px] font-extrabold text-slate-900 mb-3">Pengajuan Saya</h3>
+                  <div className="space-y-2">
+                    {requests.map((r) => {
+                      const stillActive = borrowings.some((b) => b.id === r.borrowing_id);
+                      return (
+                        <div key={r.borrowing_id} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50/80 border border-slate-100 p-3">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-slate-800 font-mono truncate">{r.borrow_code}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                              Rencana: {r.planned_date} · Kondisi: {r.condition}
+                            </p>
+                          </div>
+                          {stillActive ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                              <Clock className="w-3 h-3" /> Menunggu verifikasi
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                              <CheckCircle2 className="w-3 h-3" /> Selesai oleh petugas
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            {selected && (
-              <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-5 h-fit">
-                <h2 className="font-bold text-slate-900">Form Pengembalian</h2>
-                <div className="rounded-xl bg-blue-50 p-3 text-xs text-[#0785BC]">
-                  <b>Peminjaman Terpilih:</b> {selected.borrow_code}
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-2">Kondisi Barang</label>
-                  <select
-                    value={condition}
-                    onChange={(e) => setCondition(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
+
+            <div className="space-y-4 min-w-0 lg:sticky lg:top-6">
+              {selected ? (
+                <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 space-y-4">
+                  <h2 className="text-[13px] font-extrabold text-slate-900">Form Kesiapan Kembali</h2>
+                  <div className="rounded-xl bg-[#0785BC]/5 border border-[#0785BC]/15 p-3 text-xs text-slate-600">
+                    <b className="text-slate-900 font-mono">{selected.borrow_code}</b>
+                    <span className="text-slate-400"> — pengajuan ini tidak langsung menyelesaikan status.</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Rencana Tanggal Kembali</label>
+                    <input
+                      type="date"
+                      value={planDate}
+                      onChange={(e) => setPlanDate(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Kondisi Menurut Anda</label>
+                    <select
+                      value={condition}
+                      onChange={(e) => setCondition(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
+                    >
+                      <option>Baik</option>
+                      <option>Rusak Ringan</option>
+                      <option>Rusak Berat</option>
+                    </select>
+                    <p className="text-[11px] text-slate-400 mt-1.5">Kondisi final ditentukan petugas saat cek fisik.</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Catatan untuk Petugas</label>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                      placeholder="Contoh: kabel sudah digulung, tas ada, siap dicek jam 10.00..."
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm resize-none placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
+                    />
+                  </div>
+                  <button
+                    disabled={sending}
+                    className="w-full rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-sm font-bold py-3 disabled:opacity-50 transition-colors cursor-pointer"
                   >
-                    <option>Baik</option>
-                    <option>Rusak Ringan</option>
-                    <option>Rusak Berat</option>
-                  </select>
+                    {sending ? "Mengirim..." : "Kirim Pengajuan ke Petugas"}
+                  </button>
+                </form>
+              ) : (
+                <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+                  <Package className="w-8 h-8 mx-auto text-slate-200 mb-2" />
+                  <p className="text-xs text-slate-400 font-medium">Pilih salah satu peminjaman aktif untuk mengajukan pengembalian.</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-2">Catatan</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={4}
-                    placeholder="Tambahkan catatan pengembalian..."
-                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm resize-none"
-                  />
+              )}
+
+              <div className="bg-slate-900 rounded-2xl p-5 text-white overflow-hidden relative">
+                <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10" />
+                <div className="relative">
+                  <h3 className="text-[13px] font-extrabold flex items-center gap-2">
+                    <IdCard className="w-4 h-4 text-emerald-300" /> Wajib di Loket
+                  </h3>
+                  <ul className="mt-2.5 space-y-1.5 text-xs text-white/80 leading-relaxed">
+                    <li>· Tunjukkan KTM / identitas + kode peminjaman.</li>
+                    <li>· Petugas cek kelengkapan & fungsi barang.</li>
+                    <li>· Status Selesai + stok pulih oleh petugas.</li>
+                  </ul>
+                  <Link href="/user/messages" className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100 transition-colors">
+                    <MessageSquare className="w-3.5 h-3.5 text-[#0785BC]" /> Chat Petugas
+                  </Link>
                 </div>
-                <button
-                  disabled={sending}
-                  className="w-full rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white font-semibold py-3 disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {sending ? "Mengirim..." : "Ajukan Pengembalian"}
-                </button>
-              </form>
-            )}
+              </div>
+            </div>
           </div>
         )}
       </div>

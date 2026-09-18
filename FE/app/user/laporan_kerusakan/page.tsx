@@ -140,28 +140,32 @@ export default function UserDamageReportsPage() {
   return (
     <UserLayout showSearch={false}>
       <div className="max-w-6xl mx-auto space-y-5 pb-10">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-7 md:px-8 text-white shadow-sm">
-          <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10" />
-          <div className="absolute right-24 bottom-[-3rem] w-32 h-32 rounded-full bg-white/10" />
+        <div className="relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(16,185,129,0.55)] bg-gradient-to-br from-[#0785BC] via-[#0aa5e0] to-[#10b981]">
+          <div className="absolute inset-0 bg-white/10 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_65%)]" />
+          <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-white/15" />
+          <div className="absolute right-28 top-1/2 -translate-y-1/2 hidden md:block w-32 h-32 rounded-full bg-white/10" />
+          <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
           <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0 backdrop-blur">
+            <div className="w-12 h-12 rounded-2xl bg-white text-[#0785BC] flex items-center justify-center shrink-0 shadow-lg">
               <Wrench className="w-6 h-6" />
             </div>
-            <div className="flex-1">
-              <h1 className="text-xl md:text-2xl font-extrabold tracking-tight">Laporan Kerusakan</h1>
-              <p className="text-sm text-white/80 mt-1">
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Sarpras Pokada</p>
+              <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">Laporan Kerusakan</h1>
+              <p className="text-sm text-white/85 mt-1 max-w-xl">
                 Laporkan kondisi barang yang rusak atau bermasalah agar segera ditindaklanjuti admin.
               </p>
             </div>
             <div className="flex gap-2 shrink-0 text-xs font-bold">
-              <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
                 {stats.total} Laporan
               </span>
-              <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
                 {stats.done} Selesai
               </span>
             </div>
           </div>
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-white/70 via-white/30 to-transparent" />
         </div>
 
         {feedback && (
@@ -227,7 +231,7 @@ export default function UserDamageReportsPage() {
               className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden lg:sticky lg:top-6"
             >
               <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
@@ -382,7 +386,7 @@ export default function UserDamageReportsPage() {
                         <div className="p-5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex items-start gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center shrink-0">
+                              <div className="w-10 h-10 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
                                 <AlertTriangle className="w-5 h-5" />
                               </div>
                               <div className="min-w-0">
