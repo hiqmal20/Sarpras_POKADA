@@ -10,6 +10,6 @@ router.use(requireAuth);
 
 router.get('/', requireRole(ROLES.ADMIN, ROLES.PETUGAS), returnController.getAllReturns);
 router.get('/:id', requireAuth, returnController.getReturnById);
-router.post('/', validateRequest(createReturnSchema), returnController.createReturn);
+router.post('/', requireRole(ROLES.ADMIN, ROLES.PETUGAS), validateRequest(createReturnSchema), returnController.createReturn);
 
 module.exports = router;

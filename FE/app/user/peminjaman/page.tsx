@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { isItemEmptyStock, isPackageEmptyStock, normalizeItem } from "@/lib/item";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,7 +17,6 @@ import {
   FlaskConical,
   Layers,
   LayoutGrid,
-  Loader2,
   Music,
   Package,
   Pencil,
@@ -26,7 +27,6 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
-import { normalizeItem } from "@/lib/item";
 
 type DetailTab = "item" | "paket";
 
@@ -90,6 +90,15 @@ function pkgMatches(pkg: any, cat: Catalog) {
 }
 
 export default function UserCatalogPage() {
+  return (
+    <Suspense fallback={<div className="max-w-6xl mx-auto p-12 text-center text-sm text-slate-400">Memuat katalog...</div>}>
+      <UserCatalogContent />
+    </Suspense>
+  );
+}
+
+function UserCatalogContent() {
+  const searchParams = useSearchParams();
   const [categories, setCategories] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
   const [packages, setPackages] = useState<any[]>([]);
@@ -105,6 +114,23 @@ export default function UserCatalogPage() {
   const [purpose, setPurpose] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  useEffect(() => {
+    const pkgId = searchParams.get("paket");
+    if (pkgId && packages.length > 0 && !selectedPkg) {
+      const found = packages.find((p: any) => String(p.id) === pkgId);
+      if (found) {
+        setSelectedPkg(found);
+        setExtraItems([]);
+        setFeedback(
+          isPackageEmptyStock(found)
+            ? { type: "error", text: "Paket ini sedang tidak tersedia karena salah satu isinya habis." }
+            : null
+        );
+        window.history.replaceState(null, "", "/user/peminjaman");
+      }
+    }
+  }, [searchParams, packages, selectedPkg]);
 
   useEffect(() => {
     async function load() {
@@ -172,34 +198,36 @@ export default function UserCatalogPage() {
     (c) => !q || c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
   );
 
-  const detailItems = useMemo(() => {
-    if (!selectedCatalog) return [];
-    return items.filter(
-      (it: any) =>
-        itemMatches(it, selectedCatalog) &&
-        (!q || it.name.toLowerCase().includes(q))
-    );
-  }, [items, selectedCatalog, q]);
+  const detailItems = !selectedCatalog
+    ? []
+    : items.filter(
+        (it: any) =>
+          itemMatches(it, selectedCatalog) &&
+          (!q || it.name.toLowerCase().includes(q))
+      );
 
-  const detailPackages = useMemo(() => {
-    if (!selectedCatalog) return [];
-    return packages.filter((p: any) => {
-      if (!pkgMatches(p, selectedCatalog)) return false;
-      if (!q) return true;
-      const isi = (p.packages_items || [])
-        .map((r: any) => r.items?.name || "")
-        .join(" ")
-        .toLowerCase();
-      return p.name.toLowerCase().includes(q) || isi.includes(q);
-    });
-  }, [packages, selectedCatalog, q]);
+  const detailPackages = !selectedCatalog
+    ? []
+    : packages.filter((p: any) => {
+        if (!pkgMatches(p, selectedCatalog)) return false;
+        if (!q) return true;
+        const isi = (p.packages_items || [])
+          .map((r: any) => r.items?.name || "")
+          .join(" ")
+          .toLowerCase();
+        return p.name.toLowerCase().includes(q) || isi.includes(q);
+      });
 
-  const availableItems = items.filter((it: any) => it.status === "available");
+  const availableItems = items.filter((it: any) => !isItemEmptyStock(it));
 
   async function submitPackage(event: React.FormEvent) {
     event.preventDefault();
     if (!selectedPkg || !borrowDate || !returnDate || !purpose.trim()) {
       setFeedback({ type: "error", text: "Lengkapi semua data peminjaman." });
+      return;
+    }
+    if (isPackageEmptyStock(selectedPkg)) {
+      setFeedback({ type: "error", text: "Paket ini sedang tidak tersedia karena salah satu isinya habis." });
       return;
     }
     if (returnDate < borrowDate) {
@@ -259,7 +287,7 @@ export default function UserCatalogPage() {
       onSearchChange={setSearch}
       searchPlaceholder="Cari katalog atau barang..."
     >
-      <div className="max-w-6xl mx-auto space-y-5 pb-10">
+      <div className="max-w-6xl mx-auto space-y-6 pb-10">
         {feedback && !selectedPkg && (
           <div
             className={`rounded-xl border p-4 text-sm flex items-center justify-between gap-2 ${
@@ -284,7 +312,7 @@ export default function UserCatalogPage() {
 
         {!selectedCatalog ? (
           <>
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#0785BC] to-[#0aa5e0] px-6 py-8 md:px-10 text-white shadow-sm">
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0785BC] to-[#0aa5e0] px-5 py-6 md:px-7 text-white shadow-sm">
               <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10" />
               <div className="absolute right-20 bottom-[-3rem] w-32 h-32 rounded-full bg-white/10" />
               <div className="relative">
@@ -302,12 +330,12 @@ export default function UserCatalogPage() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white rounded-3xl border border-slate-100 overflow-hidden">
-                    <div className="h-40 bg-slate-100 animate-pulse" />
-                    <div className="p-5 space-y-2">
-                      <div className="h-4 bg-slate-100 rounded animate-pulse w-2/3" />
+                  <div key={i} className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden">
+                    <div className="h-[148px] bg-slate-100 animate-pulse" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-3.5 bg-slate-100 rounded animate-pulse w-2/3" />
                       <div className="h-3 bg-slate-100 rounded animate-pulse" />
                       <div className="h-3 bg-slate-100 rounded animate-pulse w-1/2" />
                     </div>
@@ -315,13 +343,13 @@ export default function UserCatalogPage() {
                 ))}
               </div>
             ) : visibleCatalogs.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center">
-                <LayoutGrid className="w-10 h-10 mx-auto mb-3 text-slate-200" />
-                <p className="text-sm font-semibold text-slate-600">Belum ada katalog yang sesuai pencarian.</p>
+              <div className="bg-white rounded-2xl border border-slate-200/70 p-12 text-center">
+                <LayoutGrid className="w-9 h-9 mx-auto mb-3 text-slate-200" />
+                <p className="text-sm font-bold text-slate-600">Belum ada katalog yang sesuai pencarian.</p>
                 <p className="text-xs text-slate-400 mt-1">Coba kata kunci lain atau hubungi admin sarpras.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {visibleCatalogs.map((cat, idx) => {
                   const Icon = catalogIcon(cat.name);
                   return (
@@ -329,37 +357,37 @@ export default function UserCatalogPage() {
                       key={cat.id}
                       type="button"
                       onClick={() => openCatalog(cat)}
-                      className="group text-left bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer"
+                      className="group text-left bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all duration-200 cursor-pointer flex flex-col"
                     >
-                      <div className={`relative h-44 bg-gradient-to-br ${COVERS[idx % COVERS.length]} flex items-center justify-center overflow-hidden`}>
+                      <div className={`relative h-[148px] bg-gradient-to-br ${COVERS[idx % COVERS.length]} flex items-center justify-center overflow-hidden shrink-0`}>
                         {cat.image ? (
                           <>
                             <img src={cat.image} alt={cat.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
                           </>
                         ) : (
-                          <Icon className="w-16 h-16 text-white/90 group-hover:scale-110 transition-transform duration-300" />
+                          <Icon className="w-12 h-12 text-white/90 group-hover:scale-110 transition-transform duration-300" />
                         )}
-                        <span className="absolute top-4 left-4 rounded-full bg-white/95 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm">
+                        <span className="absolute top-2.5 left-2.5 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold text-slate-700 shadow-sm">
                           Katalog
                         </span>
-                        <span className="absolute bottom-4 left-4 rounded-full bg-black/35 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+                        <span className="absolute bottom-2.5 left-2.5 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
                           {cat.itemCount} Item • {cat.packageCount} Paket
                         </span>
                       </div>
-                      <div className="p-5">
-                        <h3 className="text-base font-extrabold text-slate-900 group-hover:text-[#0785BC] transition-colors">
+                      <div className="p-4 flex flex-col flex-1">
+                        <h3 className="text-[13px] font-extrabold leading-snug text-slate-900 group-hover:text-[#0785BC] transition-colors line-clamp-1">
                           {cat.name}
                         </h3>
-                        <p className="mt-1.5 text-xs leading-relaxed text-slate-500 line-clamp-2 min-h-[2rem]">
+                        <p className="mt-1 text-xs leading-relaxed text-slate-500 line-clamp-2 min-h-[2rem]">
                           {cat.description}
                         </p>
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                          <span className="text-xs font-semibold text-slate-400">
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <span className="text-[11px] font-semibold text-slate-400">
                             Klik untuk lihat isi
                           </span>
-                          <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0785BC] group-hover:gap-2 transition-all">
-                            Lihat Katalog <ArrowRight className="w-4 h-4" />
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0785BC] group-hover:gap-1.5 transition-all">
+                            Lihat <ArrowRight className="w-3.5 h-3.5" />
                           </span>
                         </div>
                       </div>
@@ -379,23 +407,23 @@ export default function UserCatalogPage() {
               <ArrowLeft className="w-4 h-4" /> Kembali ke Katalog
             </button>
 
-            <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
+            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
                 {(() => {
                   const Icon = catalogIcon(selectedCatalog.name);
-                  return <Icon className="w-7 h-7" />;
+                  return <Icon className="w-6 h-6" />;
                 })()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-[#0785BC]">Katalog</p>
-                <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 truncate">{selectedCatalog.name}</h1>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{selectedCatalog.description}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#0785BC]">Katalog</p>
+                <h1 className="text-lg font-extrabold tracking-tight text-slate-900 truncate">{selectedCatalog.name}</h1>
+                <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{selectedCatalog.description}</p>
               </div>
               <div className="flex gap-2 shrink-0">
-                <span className="rounded-full bg-blue-50 text-[#0785BC] px-3 py-1.5 text-xs font-bold">
+                <span className="rounded-full bg-blue-50 border border-blue-100 text-[#0785BC] px-2.5 py-1 text-[11px] font-bold">
                   {detailItems.length} Item
                 </span>
-                <span className="rounded-full bg-violet-50 text-violet-700 px-3 py-1.5 text-xs font-bold">
+                <span className="rounded-full bg-violet-50 border border-violet-100 text-violet-700 px-2.5 py-1 text-[11px] font-bold">
                   {detailPackages.length} Paket
                 </span>
               </div>
@@ -424,41 +452,56 @@ export default function UserCatalogPage() {
 
             {detailTab === "item" ? (
               detailItems.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center text-sm text-slate-400">
-                  <Package className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+                <div className="bg-white rounded-2xl border border-slate-200/70 p-12 text-center text-sm text-slate-400">
+                  <Package className="w-9 h-9 mx-auto mb-2 text-slate-200" />
                   Tidak ada barang per item dalam katalog ini.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {detailItems.map((it: any) => {
-                    const busy = it.status !== "available";
+                    const empty = isItemEmptyStock(it);
                     return (
-                      <div key={it.id} className="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
-                        <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
+                      <div key={it.id} className={`group bg-white rounded-2xl border overflow-hidden transition-all flex flex-col ${empty ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30"}`}>
+                        <div className="relative h-[148px] bg-slate-100 overflow-hidden shrink-0">
                           {it.image ? (
-                            <img src={it.image} alt={it.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            <img src={it.image} alt={it.name} className={`w-full h-full object-cover transition-transform duration-300 ${empty ? "grayscale opacity-60" : "group-hover:scale-105"}`} />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-10 h-10 text-slate-300" />
+                              <Package className="w-8 h-8 text-slate-300" />
                             </div>
                           )}
-                          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
+                          {empty && <div className="absolute inset-0 bg-slate-900/25" />}
+                          <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
                             Per Item
                           </span>
+                          {empty ? (
+                            <span className="absolute top-2.5 right-2.5 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md">Stok Habis</span>
+                          ) : (
+                            <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md">{it.stock} Tersedia</span>
+                          )}
+                          {empty && (
+                            <span className="absolute bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur">Tidak dapat dipinjam saat ini</span>
+                          )}
                         </div>
                         <div className="p-4 flex flex-1 flex-col">
-                          <p className="text-[10px] uppercase font-bold text-[#0785BC]">{selectedCatalog.name}</p>
-                          <h3 className="font-bold text-slate-800 mt-1 leading-snug">{it.name}</h3>
-                          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 flex-1">{it.description}</p>
-                          <p className={`mt-3 text-xs font-bold ${busy ? "text-amber-600" : "text-emerald-600"}`}>
-                            {busy ? "Stok Habis / Dipinjam" : `Tersedia: ${it.stock} Unit`}
+                          <p className="text-[10px] uppercase font-bold tracking-[0.08em] text-[#0785BC] truncate">{selectedCatalog.name}</p>
+                          <h3 className="text-[13px] font-extrabold text-slate-900 mt-1 leading-snug line-clamp-1">{it.name}</h3>
+                          <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">{it.description}</p>
+                          <p className={`mt-2.5 text-[11px] font-bold ${empty ? "text-rose-600" : "text-emerald-600"}`}>
+                            {empty ? "Stok Habis / Dipinjam" : `Tersedia: ${it.stock} Unit`}
                           </p>
-                          <Link
-                            href={`/user/item_catalog/${it.id}`}
-                            className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2.5 transition-colors"
-                          >
-                            Pinjam Barang <ChevronRight className="w-4 h-4" />
-                          </Link>
+                          {empty ? (
+                            <span className="mt-2.5 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold py-2 cursor-not-allowed">
+                              Stok Habis <ChevronRight className="w-3.5 h-3.5" />
+                            </span>
+                          ) : (
+                            <Link
+                              href={`/user/item_catalog/${it.id}`}
+                              className="mt-2.5 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2 transition-colors"
+                            >
+                              Pinjam Barang <ChevronRight className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
                         </div>
                       </div>
                     );
@@ -466,46 +509,62 @@ export default function UserCatalogPage() {
                 </div>
               )
             ) : detailPackages.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center text-sm text-slate-400">
-                <Layers className="w-10 h-10 mx-auto mb-2 text-slate-200" />
+              <div className="bg-white rounded-2xl border border-slate-200/70 p-12 text-center text-sm text-slate-400">
+                <Layers className="w-9 h-9 mx-auto mb-2 text-slate-200" />
                 Tidak ada paket barang dalam katalog ini.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {detailPackages.map((pkg: any) => {
                   const isi = (pkg.packages_items || [])
                     .map((r: any) => r.items?.name)
                     .filter(Boolean)
                     .join(", ");
+                  const empty = isPackageEmptyStock(pkg);
                   return (
-                    <div key={pkg.id} className="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
-                      <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden flex items-center justify-center">
+                    <div key={pkg.id} className={`group bg-white rounded-2xl border overflow-hidden transition-all flex flex-col ${empty ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30"}`}>
+                      <div className="relative h-[148px] bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
                         {pkg.image_url ? (
-                          <img src={pkg.image_url} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                          <img src={pkg.image_url} alt={pkg.name} className={`w-full h-full object-cover transition-transform duration-300 ${empty ? "grayscale opacity-60" : "group-hover:scale-105"}`} />
                         ) : (
-                          <Layers className="w-10 h-10 text-slate-300" />
+                          <Layers className="w-8 h-8 text-slate-300" />
                         )}
-                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
+                        {empty && <div className="absolute inset-0 bg-slate-900/25" />}
+                        <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
                           Per Paket
                         </span>
+                        {empty ? (
+                          <span className="absolute top-2.5 right-2.5 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md">Stok Habis</span>
+                        ) : (
+                          <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-md">Tersedia</span>
+                        )}
+                        {empty && (
+                          <span className="absolute bottom-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur">Salah satu isi paket habis</span>
+                        )}
                       </div>
                       <div className="p-4 flex flex-1 flex-col">
-                        <p className="text-[10px] uppercase font-bold text-violet-600">Paket Barang</p>
-                        <h3 className="font-bold text-slate-800 mt-1 leading-snug">{pkg.name}</h3>
-                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 flex-1">
+                        <p className="text-[10px] uppercase font-bold tracking-[0.08em] text-violet-600">Paket Barang</p>
+                        <h3 className="text-[13px] font-extrabold text-slate-900 mt-1 leading-snug line-clamp-1">{pkg.name}</h3>
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">
                           {isi ? `Isi: ${isi}` : pkg.description || "Paket fasilitas sarpras"}
                         </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSelectedPkg(pkg);
-                            setExtraItems([]);
-                            setFeedback(null);
-                          }}
-                          className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2.5 transition-colors cursor-pointer"
-                        >
-                          Ajukan Pinjam Paket <ChevronRight className="w-4 h-4" />
-                        </button>
+                        {empty ? (
+                          <span className="mt-2.5 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-slate-100 text-slate-400 text-xs font-bold py-2 cursor-not-allowed">
+                            Stok Habis <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedPkg(pkg);
+                              setExtraItems([]);
+                              setFeedback(null);
+                            }}
+                            className="mt-2.5 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2 transition-colors cursor-pointer"
+                          >
+                            Ajukan Pinjam Paket <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

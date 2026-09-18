@@ -59,7 +59,8 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
   const [hovered, setHovered] = useState<number | null>(null);
   const size = 180;
   const strokeWidth = 26;
-  const radius = (size - strokeWidth) / 2;
+  const pad = 6;
+  const radius = (size - strokeWidth) / 2 - pad;
   const center = size / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -86,19 +87,31 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
     );
   }
 
+  const GAP = data.filter((s) => s.value > 0).length > 1 ? 3 : 0;
+
   return (
     <div className="flex flex-col sm:flex-row items-center justify-center gap-6 py-2">
       {/* SVG Donut Circle */}
-      <div className="relative w-44 h-44 shrink-0 flex items-center justify-center">
-        <svg width={size} height={size} className="-rotate-90">
+      <div
+        className="relative shrink-0 flex items-center justify-center"
+        style={{ width: size, height: size }}
+      >
+        <svg width={size} height={size} className="-rotate-90 block overflow-visible">
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            fill="none"
+            stroke="#eef2f7"
+            strokeWidth={strokeWidth}
+          />
           {data.map((slice, i) => {
-            const ratio = slice.value / validTotal;
-            const strokeDasharray = `${ratio * circumference} ${circumference}`;
-             const accumulated = data.slice(0, i).reduce((sum, entry) => sum + entry.value / validTotal, 0);
-             const strokeDashoffset = -accumulated * circumference;
-
-
             if (slice.value === 0) return null;
+            const ratio = slice.value / validTotal;
+            const segLen = Math.max(ratio * circumference - GAP, 0.5);
+            const strokeDasharray = `${segLen} ${circumference - segLen}`;
+            const accumulated = data.slice(0, i).reduce((sum, entry) => sum + entry.value / validTotal, 0);
+            const strokeDashoffset = -accumulated * circumference + GAP / 2;
 
             return (
               <circle
@@ -111,6 +124,7 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
                 strokeWidth={hovered === i ? strokeWidth + 4 : strokeWidth}
                 strokeDasharray={strokeDasharray}
                 strokeDashoffset={strokeDashoffset}
+                strokeLinecap="butt"
                 className="transition-all duration-300 cursor-pointer"
                 onMouseEnter={() => setHovered(i)}
                 onMouseLeave={() => setHovered(null)}
@@ -530,18 +544,20 @@ export default function UserDashboardPage() {
                       typeof item.category === "object"
                         ? item.category?.name
                         : item.categories?.name || item.category || "Umum";
+                    const stockVal = Number(item.available_stock ?? item.stock ?? 0);
+                    const emptyDash = stockVal <= 0;
                     return (
                       <Link
                         key={item.id}
                         href={`/user/item_catalog/${item.id}`}
-                        className="group border border-slate-100 rounded-xl p-3 hover:border-[#0785BC]/30 hover:shadow-md transition-all flex flex-col"
+                        className={`group border rounded-xl p-3 transition-all flex flex-col ${emptyDash ? "border-rose-200 bg-rose-50/40" : "border-slate-100 hover:border-[#0785BC]/30 hover:shadow-md"}`}
                       >
                         <div className="relative aspect-square w-full rounded-lg bg-slate-50 mb-2 overflow-hidden flex items-center justify-center">
                           {item.image_url ? (
                             <img
                               src={item.image_url}
                               alt={item.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                              className={`w-full h-full object-cover transition-transform ${emptyDash ? "grayscale opacity-60" : "group-hover:scale-105"}`}
                             />
                           ) : (
                             <Box className="w-8 h-8 text-slate-300" />
@@ -549,18 +565,27 @@ export default function UserDashboardPage() {
                           <span className="absolute top-1.5 left-1.5 px-2 py-0.5 bg-white/90 backdrop-blur-xs rounded text-[9px] font-semibold text-slate-600">
                             {catName}
                           </span>
+                          {emptyDash && (
+                            <span className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-rose-600 rounded text-[9px] font-extrabold text-white shadow">
+                              Habis
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-xs font-bold text-slate-800 truncate group-hover:text-[#0785BC] transition-colors">
                           {item.name}
                         </h3>
                         <div className="flex items-center justify-between mt-auto pt-2 text-[10px] text-slate-400">
                           <span>Stok:</span>
-                          <span className="font-semibold text-emerald-600">
-                            {item.available_stock ?? item.stock ?? 1} Tersedia
-                          </span>
+                          {emptyDash ? (
+                            <span className="font-bold text-rose-600">Stok Habis</span>
+                          ) : (
+                            <span className="font-semibold text-emerald-600">
+                              {stockVal} Tersedia
+                            </span>
+                          )}
                          </div>
-                       </Link>
-                     );
+                        </Link>
+                      );
                    })
                 : Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="border border-slate-100 rounded-xl p-3 animate-pulse">

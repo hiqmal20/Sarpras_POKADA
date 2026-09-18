@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
 import { getNotificationTargetUrl, getNotificationActionLabel } from "@/lib/notificationHelper";
+import BorrowingDetailModal from "./BorrowingDetailModal";
 
 interface UserNavbarProps {
   /** Controlled search value — pass state + setter if you want two-way binding */
@@ -38,6 +39,8 @@ interface NotificationItem {
   read?: boolean;
   type: string;
   action_url?: string;
+  reference_id?: string;
+  reference_type?: string;
 }
 
 export default function UserNavbar({
@@ -54,6 +57,7 @@ export default function UserNavbar({
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [showBadge, setShowBadge] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [detailBorrowingId, setDetailBorrowingId] = useState<string | null>(null);
 
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -111,6 +115,8 @@ export default function UserNavbar({
               message: n.message,
               type: n.type || "sistem",
               action_url: n.action_url,
+              reference_id: n.reference_id,
+              reference_type: n.reference_type,
               is_read: n.is_read,
               read: n.is_read,
               created_at: n.created_at,
@@ -197,11 +203,54 @@ export default function UserNavbar({
     }
   };
 
-  const handleNotificationClick = (notif: NotificationItem) => {
+  const extractBorrowCode = (notif: NotificationItem): string | null => {
+    const combined = `${notif.title || ""} ${notif.message || ""}`;
+    const m = combined.match(/(PJ-\d{8}-[A-Z0-9]+|PJ-[A-Z0-9-]+)/i);
+    return m ? m[1] : null;
+  };
+
+  const handleNotificationClick = async (notif: NotificationItem) => {
     if (!notif.read && !notif.is_read) {
       handleMarkAsRead(notif.id);
     }
     setShowNotifDropdown(false);
+
+    const type = (notif.type || "").toLowerCase();
+    const isBorrowingType =
+      type === "peminjaman" ||
+      type === "borrowing" ||
+      type === "pengembalian" ||
+      type === "return";
+
+    if (isBorrowingType) {
+      let borrowingId =
+        notif.reference_type === "borrowing" && notif.reference_id
+          ? String(notif.reference_id)
+          : null;
+
+      if (!borrowingId) {
+        const code = extractBorrowCode(notif);
+        if (code) {
+          try {
+            const res = await api.borrowings.getAll({ limit: 100 });
+            if (res.status === "success" && Array.isArray(res.data)) {
+              const found = res.data.find(
+                (b: any) => (b.borrow_code || "").toLowerCase() === code.toLowerCase()
+              );
+              if (found) borrowingId = found.id;
+            }
+          } catch {
+            // fallback ke redirect bawah
+          }
+        }
+      }
+
+      if (borrowingId) {
+        setDetailBorrowingId(borrowingId);
+        return;
+      }
+    }
+
     const targetUrl = getNotificationTargetUrl(notif, false);
     router.push(targetUrl);
   };
@@ -495,6 +544,11 @@ export default function UserNavbar({
           )}
         </div>
       </div>
+
+      <BorrowingDetailModal
+        borrowingId={detailBorrowingId}
+        onClose={() => setDetailBorrowingId(null)}
+      />
     </header>
   );
 }

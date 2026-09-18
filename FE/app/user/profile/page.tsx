@@ -189,17 +189,14 @@ export default function UserProfilePage() {
 
     try {
       // 1. Update via Backend Auth Profile Endpoint
-      let savedSuccessfully = false;
       try {
-        const authRes = await api.auth.updateProfile(updatePayload);
-        if (authRes.status === "success") savedSuccessfully = true;
+        await api.auth.updateProfile(updatePayload);
       } catch {}
 
       // 2. Direct user update by ID
       if (user?.id) {
         try {
-          const userRes = await api.users.update(user.id, updatePayload);
-          if (userRes.status === "success") savedSuccessfully = true;
+          await api.users.update(user.id, updatePayload);
         } catch {}
       }
 
