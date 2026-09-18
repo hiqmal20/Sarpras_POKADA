@@ -21,6 +21,7 @@ import { UserLayout } from "@/components/user";
 
 interface Conversation {
   id: string;
+  adminId?: string;
   title: string;
   preview: string;
   time: string;
@@ -62,6 +63,8 @@ export default function UserMessagesPage() {
 
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
+  const convAdminRef = useRef<Record<string, string>>({});
+  const presenceSetRef = useRef<Set<string>>(new Set());
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -104,16 +107,15 @@ export default function UserMessagesPage() {
     try {
       const res = await api.chats.getAll();
       if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
+        const presenceSet = presenceSetRef.current;
         const mapped: Conversation[] = (res.data as any[]).map((c) => {
           const partner = c.admin || {};
-          if (c.is_partner_online) {
-            setAdminOnline(true);
-          }
-          if (c.partner_last_seen) {
-            setAdminLastSeen(c.partner_last_seen);
-          }
+          const adminId = String(partner.id || (c as any).admin_id || "");
+          if (adminId) convAdminRef.current[String(c.id)] = adminId;
+          const online = presenceSet.size > 0 ? presenceSet.has(adminId) : Boolean(c.is_partner_online);
           return {
             id: c.id,
+            adminId,
             title: partner.name || c.subject || "Admin Support Sarpras",
             preview: c.last_message || c.subject || "Percakapan aktif dengan Admin",
             time: c.last_message_at || c.updated_at
@@ -123,10 +125,18 @@ export default function UserMessagesPage() {
                 })
               : "Baru saja",
             unread: Boolean(c.unread_count && c.unread_count > 0),
-            isOnline: Boolean(c.is_partner_online),
+            isOnline: online,
             lastSeen: c.partner_last_seen || null,
           };
         });
+
+        // Sinkron banner chat aktif ke admin lawan bicara
+        const target = mapped.find((m) => m.id === activeIdRef.current) || mapped[0];
+        setAdminOnline(Boolean(target?.isOnline));
+        setAdminLastSeen(target?.lastSeen || null);
+        if (!activeIdRef.current) {
+          setActiveId(target.id);
+        }
 
         setConversations(mapped);
         mapped.forEach((conv) => joinChatRoom(conv.id));
@@ -166,6 +176,16 @@ export default function UserMessagesPage() {
     loadConversations();
   }, [loadConversations]);
 
+  // Sinkron banner Online/LastSeen mengikuti percakapan yang sedang dibuka
+  useEffect(() => {
+    if (!activeId) return;
+    const conv = conversations.find((c) => c.id === activeId);
+    if (conv) {
+      setAdminOnline(Boolean(conv.isOnline));
+      if (conv.lastSeen !== undefined) setAdminLastSeen(conv.lastSeen);
+    }
+  }, [activeId, conversations]);
+
   // Load messages from database for the active chat
   const fetchMessages = useCallback(
     async (isPolling = false) => {
@@ -180,11 +200,13 @@ export default function UserMessagesPage() {
 
           const mapped: Message[] = (res.data as any[]).map((m) => {
             const sender = m.sender || {};
-            const isMe = Boolean(
-              sender.id === userId ||
-              m.sender_id === userId ||
-              (sender.role !== "Admin" && sender.role !== "Petugas" && !sender.role)
-            );
+            const senderRole = String(sender.role || "");
+            const sid = String(sender.id || m.sender_id || "");
+            // Samakan dengan handler socket: senderId cocok = milik saya;
+            // bila kosong, tentukan dari role (Admin/Petugas = lawan bicara).
+            const isMe = sid
+              ? Boolean(userId && sid === String(userId))
+              : !["admin", "petugas"].includes(senderRole.toLowerCase());
 
             return {
               id: String(m.id),
@@ -213,7 +235,17 @@ export default function UserMessagesPage() {
                 message.id.startsWith("temp-") &&
                 !mapped.some((item) => item.text === message.text)
             );
-            return [...mapped, ...pending];
+            const next = [...mapped, ...pending];
+            const changed =
+              next.length !== previous.length ||
+              next.some(
+                (m, idx) =>
+                  !previous[idx] ||
+                  previous[idx].id !== m.id ||
+                  previous[idx].isRead !== m.isRead ||
+                  previous[idx].text !== m.text
+              );
+            return changed ? next : previous;
           });
         }
       } catch (err) {
@@ -264,10 +296,13 @@ export default function UserMessagesPage() {
       const user = currentUser || getCurrentUser();
       const userId = user?.id;
       const sender = msg.sender || {};
+      const senderRole = String(sender.role || "");
       const senderId = String(sender.id || msg.sender_id || "");
-      const isMe = Boolean(
-        userId && (senderId === userId || (sender.role !== "Admin" && sender.role !== "Petugas" && !sender.role))
-      );
+      // Pesan sendiri = senderId sama dengan id saya; bila senderId kosong,
+      // tentukan dari role (Admin/Petugas = lawan bicara, selain itu = saya).
+      const isMe = senderId
+        ? Boolean(userId && senderId === String(userId))
+        : !["admin", "petugas"].includes(senderRole.toLowerCase());
 
       if (incomingChatId === currentActiveId) {
         const formatted: Message = {
@@ -324,7 +359,11 @@ export default function UserMessagesPage() {
       );
     };
 
-    const handleMessagesRead = (data: { chatId: string }) => {
+    const handleMessagesRead = (data: { chatId: string; readBy?: string }) => {
+      // Abaikan echo dari diri sendiri (pengaman lapis kedua setelah BE memakai
+      // socket.to / except): event ini hanya valid bila readBy = lawan bicara.
+      const me = String(currentUser?.id || getCurrentUser()?.id || "");
+      if (data.readBy && me && String(data.readBy) === me) return;
       if (data.chatId === activeIdRef.current) {
         // Semua pesan milik user ditandai isRead: true (centang 2 biru/cyan)
         setMessages((prev) =>
@@ -384,30 +423,74 @@ export default function UserMessagesPage() {
       }
     };
 
-    const handlePresenceSnapshot = (users: { role?: string; userId?: string }[]) => {
+    const applyPresence = (adminId: string | undefined, online: boolean, lastSeen?: string | null) => {
+      if (!adminId) return;
+      const id = String(adminId);
+      if (online) presenceSetRef.current.add(id);
+      else presenceSetRef.current.delete(id);
+      setConversations((prev) =>
+        prev.map((c) =>
+          String(c.adminId || "") === id
+            ? { ...c, isOnline: online, lastSeen: lastSeen ?? c.lastSeen ?? null }
+            : c
+        )
+      );
+      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+      if (activeAdmin === id) {
+        setAdminOnline(online);
+        if (lastSeen) setAdminLastSeen(lastSeen);
+      }
+    };
+
+    const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
-        const hasAdmin = users.some((u) => u.role === "Admin" || u.role === "Petugas");
-        setAdminOnline(hasAdmin);
+        const adminIds = users
+          .filter((u) => u.role === "Admin" || u.role === "Petugas")
+          .map((u) => String((u as any).userId || (u as any).id || ""))
+          .filter(Boolean);
+        presenceSetRef.current = new Set(adminIds);
+        const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+        setConversations((prev) =>
+          prev.map((c) => ({ ...c, isOnline: adminIds.includes(String(c.adminId || "")) }))
+        );
+        if (activeAdmin) setAdminOnline(adminIds.includes(String(activeAdmin)));
       }
     };
 
-    const handleUserOnline = (data: { role?: string }) => {
+    const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
       if (data?.role === "Admin" || data?.role === "Petugas") {
-        setAdminOnline(true);
+        applyPresence(String((data as any).userId || (data as any).id || ""), true);
       }
     };
 
-    const handleUserOffline = (data: { role?: string; lastSeen?: string }) => {
+    const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
       if (data?.role === "Admin" || data?.role === "Petugas") {
-        setAdminOnline(false);
-        if (data.lastSeen) setAdminLastSeen(data.lastSeen);
+        applyPresence(String((data as any).userId || (data as any).id || ""), false, data.lastSeen || null);
       }
     };
 
-    const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string }) => {
+    const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
+      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || []).map(String);
+      presenceSetRef.current = new Set(ids);
+      if (!Array.isArray(data) && data?.lastSeenMap) {
+        Object.entries(data.lastSeenMap).forEach(([uid, seen]) => {
+          setConversations((prev) =>
+            prev.map((c) =>
+              String(c.adminId || "") === String(uid) ? { ...c, lastSeen: String(seen) } : c
+            )
+          );
+        });
+      }
+      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+      setConversations((prev) =>
+        prev.map((c) => ({ ...c, isOnline: ids.includes(String(c.adminId || "")) }))
+      );
+      if (activeAdmin) setAdminOnline(ids.includes(String(activeAdmin)));
+    };
+
+    const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
       if (data?.role === "Admin" || data?.role === "Petugas") {
-        setAdminOnline(Boolean(data.online));
-        if (data.last_seen) setAdminLastSeen(data.last_seen);
+        applyPresence(String((data as any).userId || (data as any).id || ""), Boolean(data.online), data.last_seen || null);
       }
     };
 
@@ -420,6 +503,7 @@ export default function UserMessagesPage() {
     socket.on("user_typing", handleUserTyping);
     socket.on("user_stop_typing", handleUserStopTyping);
     socket.on("presence_snapshot", handlePresenceSnapshot);
+    socket.on("online_users_list", handleOnlineUsersList);
     socket.on("user_online", handleUserOnline);
     socket.on("user_offline", handleUserOffline);
     socket.on("user_status_change", handleUserStatusChange);
@@ -438,6 +522,7 @@ export default function UserMessagesPage() {
       socket.off("user_typing", handleUserTyping);
       socket.off("user_stop_typing", handleUserStopTyping);
       socket.off("presence_snapshot", handlePresenceSnapshot);
+      socket.off("online_users_list", handleOnlineUsersList);
       socket.off("user_online", handleUserOnline);
       socket.off("user_offline", handleUserOffline);
       socket.off("user_status_change", handleUserStatusChange);
@@ -640,8 +725,9 @@ export default function UserMessagesPage() {
                       <Headphones className="w-5 h-5" />
                       <span
                         className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                          adminOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
+                          conv.isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
                         }`}
+                        title={conv.isOnline ? "Admin online" : "Admin offline"}
                       />
                     </div>
 
@@ -816,13 +902,29 @@ export default function UserMessagesPage() {
 
                           <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-white/80 font-mono">
                             <span>{m.time}</span>
-                            <span title={m.isRead ? "Dibaca oleh Admin" : "Terkirim"}>
-                              {m.isRead ? (
-                                <CheckCheck className="w-3.5 h-3.5 text-cyan-200 stroke-[2.5]" />
-                              ) : (
-                                <Check className="w-3.5 h-3.5 text-white/70 stroke-[2]" />
-                              )}
-                            </span>
+                            {(() => {
+                              const isTemp = typeof m.id === "string" && m.id.startsWith("temp-");
+                              const tick = m.isRead ? "read" : isTemp || !adminOnline ? "sent" : "delivered";
+                              return (
+                                <span
+                                  title={
+                                    tick === "read"
+                                      ? "Dibaca oleh Admin"
+                                      : tick === "delivered"
+                                        ? "Diterima (Admin sedang online)"
+                                        : "Terkirim"
+                                  }
+                                >
+                                  {tick === "read" ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-cyan-300 stroke-[2.5]" />
+                                  ) : tick === "delivered" ? (
+                                    <CheckCheck className="w-3.5 h-3.5 text-white/70 stroke-[2]" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5 text-white/70 stroke-[2]" />
+                                  )}
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

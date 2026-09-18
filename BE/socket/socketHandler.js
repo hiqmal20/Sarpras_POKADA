@@ -291,7 +291,10 @@ module.exports = (io, app) => {
           .eq('chat_id', chatId)
           .neq('sender_id', user.id);
 
-        io.to(chatId).emit('messages_read', {
+        // Broadcast ke room KECUALI pengirim (socket.to) agar tidak echo:
+        // tanpa ini, pesan milik pembaca ikut ditandai dibaca lalu terkoreksi
+        // saat sinkronisasi DB → terlihat seperti flicker ceklis 2 → 1.
+        socket.to(chatId).emit('messages_read', {
           chatId,
           readBy: user.id,
           timestamp: new Date().toISOString()

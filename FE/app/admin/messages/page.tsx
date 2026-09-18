@@ -124,6 +124,7 @@ export default function MessagesPage() {
       if (res.status === "success" && Array.isArray(res.data)) {
         const user = currentUser || getCurrentUser();
         const initialLastSeen: Record<string, string> = {};
+        const onlineIds: string[] = [];
         const mapped: Conversation[] = (res.data as any[]).map((c) => {
           const partner = (c.user && c.user.id !== user?.id ? c.user : c.admin) || c.user || c.admin || {};
           const resolvedUserId = String(partner.id || (c.user_id !== user?.id ? c.user_id : c.admin_id) || c.user_id || "");
@@ -132,7 +133,7 @@ export default function MessagesPage() {
             initialLastSeen[resolvedUserId] = partnerLastSeen;
           }
           if (c.is_partner_online && resolvedUserId) {
-            setOnlineUserIds((prev) => new Set(prev).add(resolvedUserId));
+            onlineIds.push(resolvedUserId);
           }
           return {
             id: c.id,
@@ -154,6 +155,11 @@ export default function MessagesPage() {
 
         if (Object.keys(initialLastSeen).length > 0) {
           setLastSeenMap((prev) => ({ ...prev, ...initialLastSeen }));
+        }
+
+        // Terapkan status online awal dari server (sebelumnya dikumpulkan tapi tak dipakai)
+        if (onlineIds.length > 0) {
+          setOnlineUserIds((prev) => new Set([...prev, ...onlineIds]));
         }
 
         setConversations(mapped);
@@ -367,7 +373,13 @@ export default function MessagesPage() {
       }
     };
 
-    const handleMessagesRead = (data: { chatId: string }) => {
+    const handleMessagesRead = (data: { chatId: string; readBy?: string }) => {
+      // Abaikan echo dari diri sendiri (pengaman lapis kedua setelah BE memakai
+      // socket.to / except): event ini hanya valid bila readBy = lawan bicara.
+      // Tanpa ini, pesan milik admin ikut ditandai dibaca lalu dikoreksi saat
+      // sinkronisasi DB → terlihat seperti flicker ceklis 2 → 1.
+      const me = String(getCurrentUser()?.id || "");
+      if (data.readBy && me && String(data.readBy) === me) return;
       setConversations((prev) =>
         prev.map((c) => (c.id === data.chatId ? { ...c, unread: false } : c))
       );
@@ -440,8 +452,9 @@ export default function MessagesPage() {
 
     const handlePresenceSnapshot = (users: { userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
+        // Replace (bukan merge) agar user yang sudah offline tidak nyangkut online
         const ids = users.map((u) => String(u.userId || u.id)).filter(Boolean);
-        setOnlineUserIds((prev) => new Set([...prev, ...ids]));
+        setOnlineUserIds(new Set(ids));
       }
     };
 
@@ -1014,13 +1027,32 @@ export default function MessagesPage() {
                           >
                             <span>{msg.timestamp}</span>
                             {msg.senderRole === "admin" && (
-                              <span title={msg.isRead ? "Dibaca" : "Terkirim"}>
-                                {msg.isRead ? (
-                                  <CheckCheck className="w-3.5 h-3.5 text-cyan-200 stroke-[2.5]" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 text-sky-200/80 stroke-[2]" />
-                                )}
-                              </span>
+                              (() => {
+                                const peerOnline = selectedConversation
+                                  ? onlineUserIds.has(selectedConversation.userId)
+                                  : false;
+                                const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
+                                const tick = msg.isRead ? "read" : isTemp || !peerOnline ? "sent" : "delivered";
+                                return (
+                                  <span
+                                    title={
+                                      tick === "read"
+                                        ? "Dibaca oleh pengguna"
+                                        : tick === "delivered"
+                                          ? "Diterima (pengguna sedang online)"
+                                          : "Terkirim"
+                                    }
+                                  >
+                                    {tick === "read" ? (
+                                      <CheckCheck className="w-3.5 h-3.5 text-cyan-300 stroke-[2.5]" />
+                                    ) : tick === "delivered" ? (
+                                      <CheckCheck className="w-3.5 h-3.5 text-sky-200/80 stroke-[2]" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5 text-sky-200/80 stroke-[2]" />
+                                    )}
+                                  </span>
+                                );
+                              })()
                             )}
                           </div>
                         </div>
