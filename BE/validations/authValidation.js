@@ -1,6 +1,8 @@
 const Joi = require('joi');
 const { ALL_ROLES } = require('../constants/roles');
 
+const PUBLIC_ROLES = ['Mahasiswa', 'Dosen', 'Staff'];
+
 const registerSchema = Joi.object({
   nomor_induk: Joi.string().trim().min(3).max(50).required().messages({
     'string.empty': 'Nomor Induk (NIM / NIP / ID Staff) wajib diisi',
@@ -21,7 +23,7 @@ const registerSchema = Joi.object({
     'string.max': 'Password maksimal 128 karakter',
     'string.pattern.name': 'Password harus mengandung huruf kecil, huruf besar, dan angka'
   }),
-  role: Joi.string().valid(...ALL_ROLES).default('Mahasiswa'),
+  role: Joi.string().valid(...PUBLIC_ROLES).default('Mahasiswa'),
   no_hp: Joi.string().allow('', null),
   foto: Joi.string().uri().allow('', null)
 });

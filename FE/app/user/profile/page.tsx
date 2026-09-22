@@ -283,7 +283,7 @@ export default function UserProfilePage() {
 
   return (
     <UserLayout showSearch={false}>
-      <div className="max-w-5xl mx-auto space-y-6 pb-16 animate-fade-in">
+      <div className="w-full min-w-0 space-y-6 pb-16 animate-fade-in">
         {/* ── Page Header ── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">

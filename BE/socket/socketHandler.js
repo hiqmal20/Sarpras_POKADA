@@ -51,27 +51,12 @@ module.exports = (io, app) => {
         return next(new Error('Authentication error: Token tidak ditemukan'));
       }
 
-      let userId = null;
-
       // 1. Verifikasi token dengan Supabase Auth
-      try {
-        const { data: authData, error: authError } = await supabase.auth.getUser(token);
-        if (!authError && authData?.user) {
-          userId = authData.user.id;
-        }
-      } catch (_) {}
-
-      // 2. Fallback decode token JWT
-      if (!userId) {
-        try {
-          const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-          userId = payload?.sub || payload?.id;
-        } catch (_) {}
-      }
-
-      if (!userId) {
+      const { data: authData, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !authData?.user) {
         return next(new Error('Authentication error: Token tidak valid'));
       }
+      const userId = authData.user.id;
 
       // Ambil profil user dari tabel users
       const { data: userProfile, error: profileError } = await supabase

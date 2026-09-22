@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import UserSidebar from "./Sidebar";
 import UserNavbar from "./Navbar";
+import api, { getAuthToken } from "@/lib/api";
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -21,7 +23,34 @@ export default function UserLayout({
   onSearchChange,
   fullWidth = false,
 }: UserLayoutProps) {
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      router.replace("/auth/login");
+      return;
+    }
+    api.auth.me().then((res) => {
+      if (res.status === "success" && res.data?.user) {
+        setAuthorized(true);
+      } else {
+        router.replace("/auth/login");
+      }
+    }).catch(() => {
+      router.replace("/auth/login");
+    });
+  }, [router]);
+
+  if (!authorized) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#eef2f9]">
+        <div className="w-8 h-8 border-4 border-[#0785BC] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen h-dvh min-w-0 overflow-hidden bg-[#eef2f9] text-slate-800">

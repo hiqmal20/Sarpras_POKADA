@@ -53,8 +53,8 @@ export default function BorrowingDetailPage() {
     return () => { active = false; };
   }, [id]);
 
-  if (loading) return <UserLayout showSearch={false}><div className="max-w-6xl mx-auto py-16 flex flex-col items-center gap-3"><Loader2 className="w-8 h-8 text-[#0785BC] animate-spin" /><p className="text-xs text-slate-400 font-medium">Memuat detail peminjaman...</p></div></UserLayout>;
-  if (!borrowing) return <UserLayout showSearch={false}><div className="max-w-6xl mx-auto py-16 text-center"><div className="bg-white rounded-2xl border border-slate-200/70 p-12"><Package className="w-9 h-9 mx-auto text-slate-200 mb-3" /><p className="text-sm font-bold text-slate-600">Data peminjaman tidak ditemukan.</p><Link href="/user/peminjaman" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#0785BC]">Kembali ke Peminjaman <ChevronRight className="w-3.5 h-3.5" /></Link></div></div></UserLayout>;
+  if (loading) return <UserLayout showSearch={false}><div className="w-full min-w-0 py-16 flex flex-col items-center gap-3"><Loader2 className="w-8 h-8 text-[#0785BC] animate-spin" /><p className="text-xs text-slate-400 font-medium">Memuat detail peminjaman...</p></div></UserLayout>;
+  if (!borrowing) return <UserLayout showSearch={false}><div className="w-full min-w-0 py-16 text-center"><div className="bg-white rounded-2xl border border-slate-200/70 p-12"><Package className="w-9 h-9 mx-auto text-slate-200 mb-3" /><p className="text-sm font-bold text-slate-600">Data peminjaman tidak ditemukan.</p><Link href="/user/peminjaman" className="mt-4 inline-flex items-center gap-1.5 text-xs font-bold text-[#0785BC]">Kembali ke Peminjaman <ChevronRight className="w-3.5 h-3.5" /></Link></div></div></UserLayout>;
 
   const itemRows = borrowing.borrowings_items || borrowing.borrowing_items || [];
   const itemNames = itemRows.map((row: any) => row.items?.name || row.item?.name).filter(Boolean).join(", ") || borrowing.purpose || "Barang peminjaman";
@@ -68,7 +68,7 @@ export default function BorrowingDetailPage() {
   const returnData = Array.isArray(borrowing.returns) ? borrowing.returns[0] : borrowing.returns || borrowing.return;
   const status = borrowing.status || "Pending";
 
-  return <UserLayout showSearch={false}><div className="max-w-6xl mx-auto space-y-6 pb-10">
+  return <UserLayout showSearch={false}><div className="w-full min-w-0 space-y-6 pb-10">
     <button type="button" onClick={() => window.history.back()} className="inline-flex items-center gap-2 text-[13px] font-bold text-slate-500 hover:text-[#0785BC] transition-colors cursor-pointer">
       <ArrowLeft className="w-4 h-4" /> Kembali
     </button>

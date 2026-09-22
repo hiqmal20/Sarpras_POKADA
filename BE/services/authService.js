@@ -18,6 +18,7 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
   const cleanNomorInduk = (nomor_induk || '').trim();
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanName = (name || '').trim();
+  const safeRole = ['Admin', 'Petugas'].includes(role) ? 'Mahasiswa' : (role || 'Mahasiswa');
 
   // 1. Cek apakah nomor_induk atau email sudah terdaftar di public.users
   const { data: existingUser } = await supabase
@@ -40,7 +41,7 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
     email: cleanEmail,
     password,
     email_confirm: true,
-    user_metadata: { name: cleanName, role, nomor_induk: cleanNomorInduk, no_hp }
+    user_metadata: { name: cleanName, role: safeRole, nomor_induk: cleanNomorInduk, no_hp }
   });
 
   let userId = null;
@@ -51,7 +52,7 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
       email: cleanEmail,
       password,
       options: {
-        data: { name: cleanName, role, nomor_induk: cleanNomorInduk, no_hp }
+        data: { name: cleanName, role: safeRole, nomor_induk: cleanNomorInduk, no_hp }
       }
     });
 
@@ -71,7 +72,7 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
     nomor_induk: cleanNomorInduk,
     name: cleanName,
     email: cleanEmail,
-    role,
+    role: safeRole,
     no_hp,
     foto,
     status: 'Aktif',

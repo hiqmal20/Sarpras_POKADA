@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import api from "@/lib/api";
+import api, { getAuthToken, getCurrentUser, isPrivilegedUser } from "@/lib/api";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -20,7 +21,31 @@ export default function AdminLayout({
   searchPlaceholder = "Cari data...",
   onSearchChange,
 }: AdminLayoutProps) {
+  const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      router.replace("/auth/login");
+      return;
+    }
+    api.auth.me().then((res) => {
+      if (res.status === "success" && res.data?.user) {
+        const u = res.data.user;
+        if (u.role !== "Admin" && u.role !== "Petugas") {
+          router.replace("/user/dashboard");
+        } else {
+          setAuthorized(true);
+        }
+      } else {
+        router.replace("/auth/login");
+      }
+    }).catch(() => {
+      router.replace("/auth/login");
+    });
+  }, [router]);
 
   useEffect(() => {
     try {
@@ -83,6 +108,14 @@ export default function AdminLayout({
     });
   };
 
+  if (!authorized) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="w-8 h-8 border-4 border-[#0785BC] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-[#f8fafc] text-slate-900">
       {/* Sleek ChatGPT / n8n Sidebar */}
@@ -102,8 +135,8 @@ export default function AdminLayout({
         />
 
         {/* Scrollable Canvas Workspace */}
-        <main className="flex-1 p-5 md:p-7 overflow-y-auto">
-          <div className="max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-7 overflow-y-auto">
+          <div className="w-full min-w-0">
             {children}
           </div>
         </main>

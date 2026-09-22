@@ -292,7 +292,7 @@ function UserCatalogContent() {
       onSearchChange={setSearch}
       searchPlaceholder="Cari katalog atau barang..."
     >
-      <div className="max-w-6xl mx-auto space-y-6 pb-10">
+      <div className="w-full min-w-0 space-y-6 pb-10">
         {feedback && !selectedPkg && (
           <div
             className={`rounded-xl border p-4 text-sm flex items-center justify-between gap-2 ${
@@ -462,7 +462,7 @@ function UserCatalogContent() {
                   Tidak ada barang per item dalam katalog ini.
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {detailItems.map((it: any) => {
                     const empty = isItemEmptyStock(it);
                     return (
@@ -519,7 +519,7 @@ function UserCatalogContent() {
                 Tidak ada paket barang dalam katalog ini.
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {detailPackages.map((pkg: any) => {
                   const isi = (pkg.packages_items || [])
                     .map((r: any) => r.items?.name)

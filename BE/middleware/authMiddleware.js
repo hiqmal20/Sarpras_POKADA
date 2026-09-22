@@ -22,46 +22,16 @@ const requireAuth = async (req, res, next) => {
     }
 
     // 1. Verifikasi token via Supabase Auth
-    let authUser = null;
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
 
-    if (authData?.user) {
-      authUser = authData.user;
-    } else {
-      // Fallback: decode JWT jika token expired atau auth API Supabase timeout
-      try {
-        const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
-        const userId = payload?.sub || payload?.id;
-
-        if (userId) {
-          const { data: dbUser } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-
-          if (dbUser) {
-            const userStatus = dbUser.status || 'Aktif';
-            if (userStatus === 'Nonaktif') {
-              return res.status(403).json({
-                status: 'fail',
-                message: 'Akun Anda sedang dinonaktifkan. Silakan hubungi Administrator SARPRAS.'
-              });
-            }
-            req.user = {
-              ...dbUser,
-              status: userStatus
-            };
-            return next();
-          }
-        }
-      } catch (_) {}
-
+    if (authError || !authData?.user) {
       return res.status(401).json({
         status: 'fail',
         message: 'Token tidak valid atau telah kadaluarsa. Silakan login kembali.'
       });
     }
+
+    const authUser = authData.user;
 
     // 2. Cek session timeout (24 jam)
     try {

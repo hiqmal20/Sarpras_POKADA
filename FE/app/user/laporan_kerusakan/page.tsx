@@ -139,7 +139,7 @@ export default function UserDamageReportsPage() {
 
   return (
     <UserLayout showSearch={false}>
-      <div className="max-w-6xl mx-auto space-y-5 pb-10">
+      <div className="w-full min-w-0 space-y-5 pb-10">
         <div className="relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(16,185,129,0.55)] bg-gradient-to-br from-[#0785BC] via-[#0aa5e0] to-[#10b981]">
           <div className="absolute inset-0 bg-white/10 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_65%)]" />
           <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-white/15" />

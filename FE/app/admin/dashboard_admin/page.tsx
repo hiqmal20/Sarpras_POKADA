@@ -180,7 +180,7 @@ function PieChart({
       </div>
 
       {/* ── Legend Breakdown Grid ── */}
-      <div className="grid grid-cols-2 gap-2.5 text-xs w-full max-w-sm shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs w-full sm:max-w-md flex-1">
         {data.map((slice, i) => {
           const pct = validTotal > 0 && slice.value > 0 ? Math.round((slice.value / validTotal) * 100) : 0;
           return (

@@ -344,7 +344,7 @@ export default function UserDashboardPage() {
 
   return (
     <UserLayout showSearch={true} searchPlaceholder="Cari barang untuk dipinjam...">
-      <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      <div className="space-y-6 w-full min-w-0 pb-10">
         {/* ── Hero Greeting ── */}
         <div className="rounded-3xl bg-gradient-to-r from-[#0785BC]/10 via-[#0785BC]/5 to-transparent border border-[#0785BC]/15 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>

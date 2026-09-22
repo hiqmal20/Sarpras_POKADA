@@ -133,12 +133,8 @@ export default function Navbar({
     }
     loadNotifications();
 
-<<<<<<< HEAD
-    const interval = setInterval(loadNotifications, 8000);
-    window.addEventListener("settings-updated", loadNotifications);
-=======
     const interval = setInterval(loadNotifications, 30000);
->>>>>>> bbea84d81705740fbddaec0eba66c231198d5d55
+    window.addEventListener("settings-updated", loadNotifications);
 
     return () => {
       clearInterval(interval);

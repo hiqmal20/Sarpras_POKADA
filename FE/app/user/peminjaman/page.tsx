@@ -266,20 +266,6 @@ function ItemCatalogContent() {
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-<<<<<<< HEAD
-  const [selectedCatalog, setSelectedCatalog] = useState<Catalog | null>(null);
-  const [detailTab, setDetailTab] = useState<DetailTab>("item");
-
-  const [selectedPkg, setSelectedPkg] = useState<any>(null);
-  const [packageQty, setPackageQty] = useState(1);
-  const [extraItems, setExtraItems] = useState<any[]>([]);
-  const [borrowDate, setBorrowDate] = useState("");
-  const [returnDate, setReturnDate] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
-=======
->>>>>>> bbea84d81705740fbddaec0eba66c231198d5d55
 
   useEffect(() => {
     const q = searchParams.get("q");
@@ -330,86 +316,9 @@ function ItemCatalogContent() {
     return pkg.name.toLowerCase().includes(qPkg) || isi.includes(qPkg);
   });
 
-<<<<<<< HEAD
-  const detailPackages = useMemo(() => {
-    if (!selectedCatalog) return [];
-    return packages.filter((p: any) => {
-      if (!pkgMatches(p, selectedCatalog)) return false;
-      if (!q) return true;
-      const isi = (p.packages_items || [])
-        .map((r: any) => r.items?.name || "")
-        .join(" ")
-        .toLowerCase();
-      return p.name.toLowerCase().includes(q) || isi.includes(q);
-    });
-  }, [packages, selectedCatalog, q]);
-
-  const availableItems = items.filter((it: any) => it.status === "available");
-
-  async function submitPackage(event: React.FormEvent) {
-    event.preventDefault();
-    if (!selectedPkg || !borrowDate || !returnDate || !purpose.trim()) {
-      setFeedback({ type: "error", text: "Lengkapi semua data peminjaman." });
-      return;
-    }
-    if (returnDate < borrowDate) {
-      setFeedback({ type: "error", text: "Tanggal pengembalian tidak boleh sebelum tanggal mulai." });
-      return;
-    }
-    setFeedback(null);
-    setSubmitting(true);
-    const packageItems = (selectedPkg.packages_items || [])
-      .map((row: any) => ({
-        item_id: row.item_id || row.items?.id,
-        quantity: (Number(row.quantity) || 1) * packageQty,
-      }))
-      .filter((row: any) => row.item_id);
-    const extras = extraItems.map((it: any) => ({ item_id: it.id, quantity: 1 }));
-    const uniqueItems = [...packageItems, ...extras].filter(
-      (it, idx, arr) => arr.findIndex((x) => x.item_id === it.item_id) === idx
-    );
-    const validItems = uniqueItems.filter((it) =>
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(it.item_id)
-    );
-    if (validItems.length === 0) {
-      setFeedback({ type: "error", text: "Paket ini belum memiliki item database yang valid." });
-      setSubmitting(false);
-      return;
-    }
-    const result = await api.borrowings.create({
-      purpose: `[Paket: ${selectedPkg.name} (${packageQty} Set)] ${purpose.trim()}`,
-      borrow_date: borrowDate,
-      return_date: returnDate,
-      items: validItems,
-    });
-    setSubmitting(false);
-    if (result.status === "success") {
-      setFeedback({ type: "success", text: "Pengajuan peminjaman paket berhasil dikirim dan menunggu persetujuan admin." });
-      setSelectedPkg(null);
-      setPackageQty(1);
-      setExtraItems([]);
-      setBorrowDate("");
-      setReturnDate("");
-      setPurpose("");
-    } else {
-      const errMsg =
-        result.errors?.map((e: any) => e.message).join(", ") ||
-        result.message ||
-        "Pengajuan peminjaman gagal dikirim.";
-      setFeedback({ type: "error", text: errMsg });
-    }
-  }
-
-  function openCatalog(cat: Catalog) {
-    setSelectedCatalog(cat);
-    setDetailTab("item");
-    setFeedback(null);
-  }
-=======
   const showItems = activeTab === "semua";
   const shownCount = showItems ? filtered.length : filteredPackages.length;
   const shownLabel = showItems ? "barang" : "paket";
->>>>>>> bbea84d81705740fbddaec0eba66c231198d5d55
 
   return (
     <UserLayout
@@ -418,7 +327,7 @@ function ItemCatalogContent() {
       onSearchChange={setSearch}
       searchPlaceholder="Cari barang untuk dipinjam..."
     >
-      <div className="max-w-6xl mx-auto space-y-6 pb-10">
+      <div className="w-full min-w-0 space-y-6 pb-10">
         <div className="relative overflow-hidden rounded-2xl bg-slate-900 px-5 py-6 md:px-7 text-white shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0B3B60] via-[#0785BC]/60 to-transparent" />
           <div className="absolute inset-0 bg-dot-grid-dark opacity-60" />
@@ -514,324 +423,6 @@ function ItemCatalogContent() {
                 <CardSkeleton key={i} />
               ))}
             </div>
-<<<<<<< HEAD
-
-            {detailTab === "item" ? (
-              detailItems.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center text-sm text-slate-400">
-                  <Package className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-                  Tidak ada barang per item dalam katalog ini.
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {detailItems.map((it: any) => {
-                    const busy = it.status !== "available";
-                    return (
-                      <div key={it.id} className="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
-                        <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden">
-                          {it.image ? (
-                            <img src={it.image} alt={it.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-10 h-10 text-slate-300" />
-                            </div>
-                          )}
-                          <span className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
-                            Per Item
-                          </span>
-                        </div>
-                        <div className="p-4 flex flex-1 flex-col">
-                          <p className="text-[10px] uppercase font-bold text-[#0785BC]">{selectedCatalog.name}</p>
-                          <h3 className="font-bold text-slate-800 mt-1 leading-snug">{it.name}</h3>
-                          <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 flex-1">{it.description}</p>
-                          <p className={`mt-3 text-xs font-bold ${busy ? "text-amber-600" : "text-emerald-600"}`}>
-                            {busy ? "Stok Habis / Dipinjam" : `Tersedia: ${it.stock} Unit`}
-                          </p>
-                          <Link
-                            href={`/user/item_catalog/${it.id}`}
-                            className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2.5 transition-colors"
-                          >
-                            Pinjam Barang <ChevronRight className="w-4 h-4" />
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )
-            ) : detailPackages.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center text-sm text-slate-400">
-                <Layers className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-                Tidak ada paket barang dalam katalog ini.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {detailPackages.map((pkg: any) => {
-                  const isi = (pkg.packages_items || [])
-                    .map((r: any) => r.items?.name)
-                    .filter(Boolean)
-                    .join(", ");
-                  return (
-                    <div key={pkg.id} className="group bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all flex flex-col">
-                      <div className="relative aspect-[16/10] bg-slate-100 overflow-hidden flex items-center justify-center">
-                        {pkg.image_url ? (
-                          <img src={pkg.image_url} alt={pkg.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                        ) : (
-                          <Layers className="w-10 h-10 text-slate-300" />
-                        )}
-                        <div className="absolute top-3 left-3 flex gap-1.5 items-center">
-                          <span className="px-2.5 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
-                            Per Paket
-                          </span>
-                          <span
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-sm ${
-                              (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
-                                ? "bg-emerald-500 text-white"
-                                : "bg-rose-500 text-white"
-                            }`}
-                          >
-                            {(pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
-                              ? `Stok: ${pkg.available_stock ?? 1} Paket`
-                              : "Habis"}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-4 flex flex-1 flex-col">
-                        <p className="text-[10px] uppercase font-bold text-violet-600">Paket Barang</p>
-                        <h3 className="font-bold text-slate-800 mt-1 leading-snug">{pkg.name}</h3>
-                        <p className="text-xs text-slate-500 mt-1.5 line-clamp-2 flex-1">
-                          {isi ? `Isi: ${isi}` : pkg.description || "Paket fasilitas sarpras"}
-                        </p>
-                        <button
-                          type="button"
-                          disabled={(pkg.available_stock ?? (pkg.is_available ? 1 : 0)) <= 0}
-                          onClick={() => {
-                            setSelectedPkg(pkg);
-                            setPackageQty(1);
-                            setExtraItems([]);
-                            setFeedback(null);
-                          }}
-                          className={`mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl text-white text-xs font-bold py-2.5 transition-colors cursor-pointer ${
-                            (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
-                              ? "bg-[#0785BC] hover:bg-[#0672a0]"
-                              : "bg-slate-300 cursor-not-allowed"
-                          }`}
-                        >
-                          {(pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0
-                            ? "Ajukan Pinjam Paket"
-                            : "Stok Paket Kosong"}{" "}
-                          <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-
-        {selectedPkg && (
-          <div
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-[2px] overflow-y-auto p-5 sm:p-8"
-            onMouseDown={(e) => {
-              if (e.target === e.currentTarget) setSelectedPkg(null);
-            }}
-          >
-            <div className="max-w-[1120px] mx-auto mb-7">
-              <button
-                type="button"
-                onClick={() => setSelectedPkg(null)}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-white hover:text-slate-200 transition-colors cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" /> Kembali ke Katalog
-              </button>
-            </div>
-            <div className="w-full max-w-[1120px] mx-auto grid grid-cols-1 lg:grid-cols-[352px_minmax(0,1fr)] gap-5 items-start">
-              <section className="bg-white rounded-3xl shadow-sm overflow-hidden">
-                <div className="h-[210px] bg-slate-100 flex items-center justify-center overflow-hidden">
-                  {selectedPkg.image_url ? (
-                    <img src={selectedPkg.image_url} alt={selectedPkg.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <Layers className="w-20 h-20 text-slate-300" />
-                  )}
-                </div>
-                <div className="p-7">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#0785BC]">Paket Barang</p>
-                  <h2 className="text-2xl font-bold text-slate-900 mt-2">{selectedPkg.name}</h2>
-                  <p className="text-sm text-slate-500 mt-3">
-                    {selectedPkg.description || "Paket fasilitas sarpras."}
-                  </p>
-                  <div className="mt-4 rounded-xl bg-slate-50 border border-slate-100 p-3">
-                    <p className="text-[11px] font-bold text-slate-500 mb-1">ISI PAKET</p>
-                    <p className="text-xs text-slate-600 leading-relaxed">
-                      {(selectedPkg.packages_items || []).map((r: any) => r.items?.name).filter(Boolean).join(", ") || "Daftar item paket"}
-                    </p>
-                  </div>
-                </div>
-              </section>
-              <form onSubmit={submitPackage} className="bg-white rounded-3xl shadow-sm p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-[#0785BC] uppercase">Borrow Summary</p>
-                    <h2 className="text-lg font-bold text-slate-900 mt-1">Ajukan Peminjaman Paket</h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPkg(null)}
-                    className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                {feedback && (
-                  <div
-                    className={`rounded-xl border p-3 text-xs flex gap-2 ${
-                      feedback.type === "success"
-                        ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                        : "bg-rose-50 border-rose-200 text-rose-700"
-                    }`}
-                  >
-                    {feedback.type === "success" ? (
-                      <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    ) : (
-                      <AlertTriangle className="w-4 h-4 shrink-0" />
-                    )}
-                    <span>{feedback.text}</span>
-                  </div>
-                )}
-                {/* Pilihan Jumlah Set Paket */}
-                <div className="p-4 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-800">Jumlah Paket yang Dipinjam</label>
-                    <span className="text-[11px] font-bold text-[#0785BC] bg-white px-2.5 py-0.5 rounded-full border border-blue-200">
-                      Tersedia: {selectedPkg.available_stock ?? (selectedPkg.is_available ? 1 : 0)} Paket
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setPackageQty((prev) => Math.max(1, prev - 1))}
-                      disabled={packageQty <= 1}
-                      className="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-40 shadow-2xs"
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      min={1}
-                      max={Math.max(1, selectedPkg.available_stock ?? 1)}
-                      value={packageQty}
-                      onChange={(e) => {
-                        const val = Math.max(1, parseInt(e.target.value) || 1);
-                        const maxVal = Math.max(1, selectedPkg.available_stock ?? 1);
-                        setPackageQty(Math.min(val, maxVal));
-                      }}
-                      className="w-20 text-center font-bold text-slate-900 border border-slate-200 rounded-xl py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setPackageQty((prev) =>
-                          Math.min(Math.max(1, selectedPkg.available_stock ?? 1), prev + 1)
-                        )
-                      }
-                      disabled={packageQty >= (selectedPkg.available_stock ?? 1)}
-                      className="w-9 h-9 rounded-xl bg-white border border-slate-200 font-bold text-slate-700 hover:bg-slate-100 active:scale-95 disabled:opacity-40 shadow-2xs"
-                    >
-                      +
-                    </button>
-                    <span className="text-xs font-semibold text-slate-600">Set Paket</span>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-blue-100 text-[11px] text-slate-600 space-y-1">
-                    <p className="font-semibold text-slate-700">Rincian Komponen ({packageQty} Set):</p>
-                    {(selectedPkg.packages_items || []).map((pi: any, idx: number) => (
-                      <p key={idx} className="flex items-center justify-between text-slate-600">
-                        <span>• {pi.items?.name || "Barang"}</span>
-                        <span className="font-semibold text-slate-800">
-                          {(Number(pi.quantity) || 1) * packageQty} unit ({Number(pi.quantity) || 1} unit/set)
-                        </span>
-                      </p>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600">Tambahkan barang lain (opsional)</label>
-                  <select
-                    onChange={(e) => {
-                      const item = availableItems.find((x: any) => x.id === e.target.value);
-                      if (item && !extraItems.some((x: any) => x.id === item.id))
-                        setExtraItems((cur) => [...cur, item]);
-                      e.target.value = "";
-                    }}
-                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm"
-                  >
-                    <option value="">Pilih barang tambahan...</option>
-                    {availableItems
-                      .filter((it: any) => !extraItems.some((x: any) => x.id === it.id))
-                      .map((it: any) => (
-                        <option key={it.id} value={it.id}>
-                          {it.name}
-                        </option>
-                      ))}
-                  </select>
-                  {extraItems.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {extraItems.map((it: any) => (
-                        <button
-                          key={it.id}
-                          type="button"
-                          onClick={() => setExtraItems((cur) => cur.filter((x: any) => x.id !== it.id))}
-                          className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs text-slate-700 cursor-pointer"
-                        >
-                          {it.name} ×
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <label className="block text-xs font-semibold text-slate-600">
-                  Tanggal Mulai
-                  <input
-                    required
-                    type="date"
-                    value={borrowDate}
-                    onChange={(e) => setBorrowDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 10)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm"
-                  />
-                </label>
-                <label className="block text-xs font-semibold text-slate-600">
-                  Tanggal Pengembalian
-                  <input
-                    required
-                    type="date"
-                    value={returnDate}
-                    onChange={(e) => setReturnDate(e.target.value)}
-                    min={borrowDate || new Date().toISOString().slice(0, 10)}
-                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm"
-                  />
-                </label>
-                <label className="block text-xs font-semibold text-slate-600">
-                  Tujuan Peminjaman
-                  <textarea
-                    required
-                    value={purpose}
-                    onChange={(e) => setPurpose(e.target.value)}
-                    rows={4}
-                    placeholder="Jelaskan keperluan peminjaman..."
-                    className="mt-1 w-full rounded-xl border border-slate-200 p-2.5 text-sm resize-none"
-                  />
-                </label>
-                <button
-                  disabled={submitting}
-                  className="w-full rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white py-3 text-sm font-bold disabled:opacity-50 transition-colors cursor-pointer"
-                >
-                  {submitting ? "Mengirim..." : "Ajukan Peminjaman"}
-                </button>
-              </form>
-=======
           ) : shownCount === 0 ? (
             <div className="bg-white rounded-2xl border border-slate-100 py-16 px-6 text-center">
               <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
@@ -845,16 +436,15 @@ function ItemCatalogContent() {
               <p className="text-xs text-slate-400 mt-1">
                 Coba kata kunci atau kategori lain.
               </p>
->>>>>>> bbea84d81705740fbddaec0eba66c231198d5d55
             </div>
           ) : showItems ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
               {filtered.map((item) => (
                 <ItemCard key={item.id} item={item} />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
               {filteredPackages.map((pkg) => (
                 <PackageCard key={pkg.id} pkg={pkg} />
               ))}

@@ -8,7 +8,7 @@ const { uploadCSV, uploadImage } = require('../middleware/uploadMiddleware');
 router.use(requireAuth);
 
 // Route spesifik harus di atas route dengan parameter (:id)
-router.get('/', userController.getAllUsers);
+router.get('/', requireRole('Admin', 'Petugas'), userController.getAllUsers);
 router.post('/', requireRole('Admin'), userController.createUser);
 
 // Import CSV — harus SEBELUM /:id agar tidak dianggap sebagai id
@@ -18,7 +18,15 @@ router.post('/import', requireRole('Admin'), uploadCSV.single('file'), userContr
 router.post('/:id/photo', uploadImage.single('photo'), userController.uploadPhoto);
 
 // Route dengan parameter
-router.get('/:id', userController.getUserById);
+router.get('/:id', (req, res, next) => {
+  if (['Admin', 'Petugas'].includes(req.user.role) || req.user.id === req.params.id) {
+    return next();
+  }
+  return res.status(403).json({
+    status: 'fail',
+    message: 'Akses ditolak: Anda tidak memiliki izin untuk melihat profil pengguna ini.'
+  });
+}, userController.getUserById);
 router.put('/:id', (req, res, next) => {
   if (req.user.role === 'Admin' || req.user.id === req.params.id) {
     return next();

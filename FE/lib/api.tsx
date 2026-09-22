@@ -207,6 +207,10 @@ export const api = {
       return res;
     },
 
+    me: async () => {
+      return apiFetch<{ user: any }>("/auth/me", { method: "GET" });
+    },
+
     updateProfile: async (payload: {
       name?: string;
       email?: string;
@@ -588,11 +592,10 @@ export const api = {
           }
         }
         const enriched = pkgs.map((p: any) => {
-<<<<<<< HEAD
-          const pItems = itemsMap[p.id] || [];
-          let maxStock = pItems.length > 0 ? Infinity : 0;
-          let availStock = pItems.length > 0 ? Infinity : 0;
-          pItems.forEach((pi: any) => {
+          const rows = itemsMap[p.id] || [];
+          let maxStock = rows.length > 0 ? Infinity : 0;
+          let availStock = rows.length > 0 ? Infinity : 0;
+          rows.forEach((pi: any) => {
             const needed = Number(pi.quantity || 1);
             const t = Number(pi.items?.stock || 0);
             const a = Number(pi.items?.available_stock ?? t);
@@ -602,27 +605,21 @@ export const api = {
           if (maxStock === Infinity) maxStock = 0;
           if (availStock === Infinity) availStock = 0;
 
-          return {
-            ...p,
-            stock: maxStock,
-            available_stock: availStock,
-            is_available: availStock > 0 && p.status !== "Nonaktif" && p.status !== "Dalam Pemeliharaan",
-            packages_items: pItems,
-=======
-          const rows = itemsMap[p.id] || [];
           const unavailable = rows.filter((pi: any) => {
             const avail = Number(pi.items?.available_stock ?? pi.items?.stock ?? 0);
             return avail < Number(pi.quantity || 1) || String(pi.items?.status || "").toLowerCase() !== "tersedia";
           });
           const statusLower = String(p.status || "").toLowerCase();
           const inactive = ["nonaktif", "non-aktif", "tidak aktif", "maintenance", "pemeliharaan"].some((s) => statusLower.includes(s));
+
           return {
             ...p,
-            is_available: rows.length > 0 && unavailable.length === 0 && !inactive,
+            stock: maxStock,
+            available_stock: availStock,
+            is_available: availStock > 0 && rows.length > 0 && unavailable.length === 0 && !inactive,
             has_empty_item: unavailable.length > 0,
             unavailable_items: unavailable.map((pi: any) => ({ item_id: pi.item_id, name: pi.items?.name })),
             packages_items: rows,
->>>>>>> bbea84d81705740fbddaec0eba66c231198d5d55
           };
         });
         return { status: "success", message: "Paket dari Supabase", data: enriched, total: enriched.length };
