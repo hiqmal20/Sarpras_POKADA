@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import UserSidebar from "./Sidebar";
 import UserNavbar from "./Navbar";
 import api, { getAuthToken } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -44,6 +45,18 @@ export default function UserLayout({
       router.replace("/auth/login");
     });
   }, [router]);
+
+  // Keep the authenticated user's socket alive across every user page.
+  // This makes the user presence visible to admin even when the user is
+  // currently on dashboard/catalog/settings instead of the chat page.
+  useEffect(() => {
+    if (!authorized || !getAuthToken()) return;
+    const socket = getSocket();
+    return () => {
+      // Do not disconnect here: the shared socket must survive navigation.
+      void socket;
+    };
+  }, [authorized]);
 
   if (!authorized) {
     return (
