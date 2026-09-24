@@ -1,9 +1,9 @@
 # Product Requirement Document (PRD) Komprehensif
 # SARPRAS POKADA (Sistem Manajemen Sarana & Prasarana Kampus)
 
-- **Versi Dokumen**: 2.0.0
-- **Status**: Ready for Implementation / Production Baseline
-- **Klasifikasi**: Dokumen Internal Kampus
+- **Versi Dokumen**: 2.1.0
+- **Status**: Production Baseline & Evaluation Ready
+- **Klasifikasi**: Dokumen Teknis & Produk Internal Kampus
 - **Terakhir Diperbarui**: September 2026
 
 ---
@@ -11,310 +11,210 @@
 ## 1. Executive Summary & Visi Produk
 
 ### 1.1 Latar Belakang
-Pengelolaan sarana dan prasarana (sarpras) di institusi pendidikan sering kali menghadapi hambatan:
-- Pencatatan peminjaman manual berbasis kertas rentan hilang atau rusak.
-- Informasi ketersediaan stok barang dan status pemeliharaan tidak transparan secara realtime.
-- Sengketa kondisi barang saat sebelum dan sesudah dipinjam akibat ketiadaan dokumentasi digital.
-- Kurangnya mekanisme kontrol batas waktu pengembalian serta pelacakan sirkulasi aset kampus.
+Pengelolaan sarana dan prasarana (sarpras) di lingkungan kampus POKADA membutuhkan tata kelola inventaris yang transparan, akuntabel, dan realtime. Praktik peminjaman manual berbasis kertas rentan terhadap kehilangan arsip, salah hitung stok, keterlambatan pengembalian tanpa sanksi yang jelas, serta sengketa kondisi fisik aset sebelum dan sesudah dipinjam.
 
 ### 1.2 Visi & Objektif Produk
-Membangun platform digital terpusat (*single source of truth*) untuk manajemen inventaris, sirkulasi peminjaman, pelaporan kerusakan, dan monitoring aset di lingkungan kampus POKADA.
+Menyediakan sistem operasional terpadu (*single source of truth*) berbasis web yang mencakup seluruh siklus hidup sirkulasi aset kampus: mulai dari penelusuran katalog, pengajuan peminjaman barang tunggal maupun paket, validasi bertingkat, monitoring pengembalian, pelaporan kerusakan dan penagihan denda, hingga rekapitulasi audit eksekutif.
 
 ### 1.3 Key Performance Indicators (KPI)
-- **Zero Loss Asset**: Penurunan angka kehilangan sarpras hingga 0% melalui validasi identitas dan audit trail.
-- **Cycle Time Reduction**: Memangkas waktu pengajuan hingga persetujuan peminjaman dari rata-rata 24 jam menjadi di bawah 15 menit.
-- **Data Accuracy**: Akurasi stok barang 100% realtime terintegrasi dengan database.
-- **Reporting Velocity**: Pembuatan rekapitulasi audit inventaris berkurang dari 3 hari menjadi 1 klik export data.
+- **Zero Lost Items**: Mengeliminasi aset hilang melalui identitas peminjam terverifikasi dan pencatatan audit trail lengkap.
+- **Approval Turnaround Time < 15 Menit**: Memangkas birokrasi persetujuan peminjaman dari manual 1x24 jam menjadi hitungan menit.
+- **100% Stock Synchronization**: Menghilangkan selisih stok fisik vs sistem dengan mekanisme reservasi stok otomatis.
+- **Instant Audit Export**: Pembuatan rekap sirkulasi barang dari 3 hari kerja menjadi satu kali klik ekspor data XLSX/CSV.
 
 ---
 
-## 2. Ruang Lingkup & Batasan Operasional (Scope & Constraints)
+## 2. Ruang Lingkup & Batasan Operasional
 
 ### 2.1 Ruang Lingkup (In-Scope)
-1. **Peminjaman Internal Kampus Saja (Strict On-Campus Scope)**:
-   - Penggunaan sarana dan prasarana **hanya diperbolehkan di dalam batas area kampus** (ruang kelas, laboratorium, auditorium, aula, area terbuka kampus).
-   - Formulir pengajuan wajib mencantumkan data lokasi spesifik penggunaan barang di kampus (contoh: Gedung A Lt. 2 R. 204).
-   - Pengeluaran aset melewati gerbang kampus dilarang keras tanpa otorisasi tertulis Surat Jalan khusus dari Biro Sarpras.
-2. **Kategori Pengguna**: Civitas akademika terdaftar aktif (Mahasiswa, Dosen, Staff Tenaga Kependidikan, Petugas Sarpras, Admin).
-3. **Mekanisme Bundling Paket**: Pembuatan grup item (misal: Paket Seminar/Sidang/Kuliah Umum).
-4. **Siklus Hidup Aset**: Pengadaan -> Inventarisasi -> Peminjaman -> Pengembalian -> Maintenance/Afkir.
-5. **Ticketing Kerusakan**: Pelaporan kerusakan barang fisik beserta bukti foto & status penanganan teknisi.
-6. **Real-Time Communication**: Live chat interaktif antar peminjam dan admin/petugas sarpras.
+1. **Peminjaman Internal Kampus (Strict On-Campus Scope)**:
+   - Peminjaman sarpras dikhususkan untuk kegiatan akademik, ormawa, dan operasional di dalam lingkungan kampus (ruang kelas, lab, auditorium, aula, area terbuka kampus).
+   - Formulir pengajuan wajib mencantumkan lokasi spesifik di kampus serta jadwal penggunaan.
+2. **Civitas Akademika Terdaftar**: Mahasiswa, Dosen, Staff Tenaga Kependidikan, Petugas Sarpras, dan Administrator.
+3. **Mekanisme Bundling Paket Sarpras**: Pengelompokan beberapa barang dalam 1 paket siap pakai (contoh: *Paket Sidang Skripsi*, *Paket Seminar Aula*).
+4. **Siklus Hidup Aset**: Pengadaan -> Inventarisasi -> Peminjaman -> Pengembalian -> Pelaporan Kerusakan / Pemeliharaan -> Pengembalian Stok.
+5. **Ticketing Kerusakan & Denda**: Pengajuan bukti kerusakan fisik barang/paket, investigasi petugas, penetapan nominal denda, dan verifikasi pembayaran.
+6. **Live Communication & Alerts**: Saluran chat langsung antara peminjam dan admin/petugas serta pusat notifikasi berarah langsung (*action redirect*).
 
 ### 2.2 Batasan (Out-of-Scope)
-1. Peminjaman sarpras untuk kepentingan komersial pribadi non-kampus.
-2. Integrasi gerbang fisik RFID/turnstile otomatis (pemeriksaan fisik tetap oleh Petugas Sarpras di pos inventaris).
-3. Sistem pembayaran sewa (seluruh operasional bersifat fasilitas dinas kampus non-transaksi finansial tunai).
+1. Peminjaman sarpras komersial untuk pihak luar kampus tanpa izin rektorat.
+2. Sistem gateway pembayaran perbankan/otomatis (seluruh denda dan penalti diproses via loket keuangan/petugas sarpras internal).
+3. Integrasi gerbang fisik RFID/turnstile otomatis.
 
 ---
 
-## 3. Matriks Peran & Hak Akses Pengguna (RBAC & Personas)
+## 3. Matriks Peran & Hak Akses Pengguna (RBAC)
 
-### 3.1 Ringkasan Hak Akses (Matrix)
-
-| Fitur / Modul | Mahasiswa | Dosen | Staff | Petugas Sarpras | Super Admin |
+| Modul / Fitur | Mahasiswa | Dosen | Staff | Petugas Sarpras | Admin |
 |---|:---:|:---:|:---:|:---:|:---:|
-| **Katalog Barang & Paket** | Baca | Baca | Baca | Kelola (CRUD) | Kelola (CRUD) |
-| **Pengajuan Peminjaman** | Buat, Baca Milik Sendiri | Buat, Baca Milik Sendiri | Buat, Baca Milik Sendiri | Buat (Mewakili) | Buat & Pantau Semua |
-| **Approval Peminjaman** | - | - | - | Review & Setujui | Override & Setujui |
-| **Serah Terima & Pengembalian** | Konfirmasi Terima | Konfirmasi Terima | Konfirmasi Terima | Eksekusi Fisik & Cek Stok | Eksekusi Fisik & Cek Stok |
-| **Lapor Kerusakan** | Buat Laporan | Buat Laporan | Buat Laporan | Tindak Lanjut Teknis | Manajemen Laporan |
-| **Manajemen User** | Edit Profil Sendiri | Edit Profil Sendiri | Edit Profil Sendiri | - | CRUD User & Role |
-| **Live Chat Konsultasi** | Chat ke Admin | Chat ke Admin | Chat ke Admin | Respon Chat User | Respon Semua Chat |
-| **Rekap Laporan & Export** | - | - | - | Baca Rekap | Export XLSX/JSON |
-
-### 3.2 Karakteristik Persona
-
-#### A. Mahasiswa
-- **Tujuan**: Meminjam proyektor, kabel extension, sound system portable, kamera dokumentasi untuk kegiatan perkuliahan, ormawa, atau ujian tugas akhir.
-- **Aturan Khusus**: Maksimal durasi pinjam 24 jam per transaksi kecuali ada surat persetujuan dosen pendamping; maksimal 2 item aktif bersamaan.
-
-#### B. Dosen
-- **Tujuan**: Meminjam perangkat laboratorium khusus, mic wireless, pointer presentasi, ruang kuliah pengganti.
-- **Aturan Khusus**: Prioritas approval lebih tinggi; batas kuota peminjaman hingga 5 item.
-
-#### C. Staff (Tenaga Kependidikan)
-- **Tujuan**: Meminjam sarana kebutuhan operasional administrasi kampus, rapat senat, atau acara dies natalis.
-- **Aturan Khusus**: Masa peminjaman dapat disesuaikan jadwal agenda kerja unit.
-
-#### D. Petugas Sarpras
-- **Tujuan**: Bertugas di gudang/pos sarpras; memeriksa fisik barang sebelum keluar dan sesudah kembali; mencatat nomor seri & kondisi.
-- **Tanggung Jawab**: Verifikator status transaksi harian (`Dipinjam`, `Dikembalikan`).
-
-#### E. Super Admin
-- **Tujuan**: Mengatur kebijakan sistem, menambah barang baru, kategori, akun petugas, mengaudit insiden kerusakan, serta memantau log sistem.
+| **Katalog Barang & Paket** | Baca & Cari | Baca & Cari | Baca & Cari | Kelola Penuh (CRUD) | Kelola Penuh (CRUD) |
+| **Pengajuan Peminjaman** | Buat & Pantau Milik Sendiri | Buat & Pantau Milik Sendiri | Buat & Pantau Milik Sendiri | Buat (Mewakili) | Buat & Pantau Semua |
+| **Approval Peminjaman** | - | - | - | Validasi & Setujui / Tolak | Validasi, Override, & Tolak |
+| **Penerimaan Pengembalian** | Ajukan Kembali | Ajukan Kembali | Ajukan Kembali | Verifikasi Kondisi & Terima | Verifikasi Kondisi & Terima |
+| **Laporan Kerusakan & Denda** | Buat Laporan | Buat Laporan | Buat Laporan | Verifikasi & Tentukan Denda | Manajemen Laporan & Sanksi |
+| **Live Chat Konsultasi** | Chat ke Admin | Chat ke Admin | Chat ke Admin | Respon Chat User | Respon Seluruh Chat |
+| **Manajemen Master Data** | - | - | - | Barang & Kategori | Barang, Paket, Kategori, User |
+| **Rekap & Ekspor Laporan** | - | - | - | Ekspor Peminjaman/Pengembalian | Ekspor Lengkap (Audit Master) |
 
 ---
 
-## 4. Spesifikasi Fungsional Rinci (Functional Requirements)
+## 4. Arsitektur Teknis Sistem
 
-### 4.1 Modul 1: Autentikasi & Akun Pengguna
-- **REQ-AUTH-01 (Registrasi)**:
-  - Input: Nama Lengkap, Email Institusi (`@campus.ac.id` / terdaftar), Password (min. 8 karakter), Nomor Kontak/WhatsApp, Unit/Jurusan, NIM/NIP.
-  - Role default registrasi publik: `Mahasiswa`. Akun `Dosen` / `Staff` memerlukan approval aktivasi atau registrasi oleh Admin.
-- **REQ-AUTH-02 (Login & Sesi)**:
-  - Otentikasi berbasis Supabase Auth dengan penerbitan JSON Web Token (JWT).
-  - Rate Limiting: Maksimal 10 kegagalan login per 15 menit per IP (mencegah *Brute-Force*).
-  - Sesi tersimpan aman di cookie/local state dengan timeout konfiguratif (15m, 30m, 1h, 1 hari).
-- **REQ-AUTH-03 (Profil & Keamanan)**:
-  - Pengaturan profil: Ubah nama, kontak WhatsApp, jurusan, bio, avatar.
-  - Pengaturan keamanan: Ubah password dengan verifikasi sandi lama, toggle Two-Factor Authentication (2FA), log riwayat aktivitas login.
+### 4.1 Diagram Arsitektur
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    FRONTEND (Next.js 16 App Router)                     │
+│  - Portal User : Katalog, Form Pinjam/Paket, Riwayat, Lapor Rusak, Chat │
+│  - Portal Admin: Dashboard Metrik, Validasi, Pengembalian, Audit Export │
+└────────────────────┬──────────────────────────────────┬─────────────────┘
+                     │ REST API (Bearer JWT Supabase)   │ Supabase SDK
+                     ▼                                  ▼
+┌───────────────────────────────────────┐  ┌──────────────────────────────┐
+│        BACKEND (Express.js 5)         │  │   SUPABASE (Cloud Backend)   │
+│  - Middleware: Auth RBAC, Helmet,     │  │  - Auth Engine (auth.users)  │
+│    Rate Limiter, Joi Validation       │  │  - PostgreSQL Database       │
+│  - Services: Business Logic & Stock   │  │  - Realtime & Storage Bucket │
+└────────────────────┬──────────────────┘  └──────────────▲───────────────┘
+                     │ Supabase Service Role (Bypass RLS) │
+                     └────────────────────────────────────┘
+```
 
-### 4.2 Modul 2: Master Data Inventaris Barang
-- **REQ-ITEM-01 (Atribut Barang)**:
-  - Setiap barang memiliki: `item_id`, `kode_barang` (unik, misal: `ELK-PRJ-001`), `nama_barang`, `kategori_id`, `total_stock`, `available_stock`, `kondisi` (*Baik, Rusak Ringan, Rusak Berat*), `status` (*Tersedia, Dipinjam, Maintenance*), `lokasi_penyimpanan` (contoh: Lemari B-03 Pos Sarpras), `spesifikasi_teknis`, dan `foto_url`.
-- **REQ-ITEM-02 (Pencarian & Filtering)**:
-  - Full-text search berdasarkan nama atau kode barang.
-  - Filter berdasarkan Kategori, Status Ketersediaan, dan Kondisi Fisik.
-  - Pagination dinamis (10, 25, 50 data per halaman).
-- **REQ-ITEM-03 (Integritas Relasi)**:
-  - Kategori barang tidak dapat dihapus jika masih terdapat barang aktif di dalamnya.
-  - Barang tidak dapat dihapus jika masih terkait transaksi peminjaman aktif (*active foreign key guard*).
-
-### 4.3 Modul 3: Paket Bundling Sarpras
-- **REQ-PKG-01 (Struktur Paket)**:
-  - Admin dapat membuat paket kegiatan (contoh: "Paket Sidang Skripsi" = 1 Proyektor HDMI + 1 Pointer Laser + 1 Roll Kabel 5m).
-- **REQ-PKG-02 (Cek Ketersediaan Paket)**:
-  - Status paket dianggap `Tersedia` hanya jika **seluruh** item penyusun paket memiliki `available_stock >= kuantitas_paket`.
-  - Jika salah satu item stoknya 0, status paket otomatis menjadi `Stok Sebagian Tidak Tersedia`.
-
-### 4.4 Modul 4: Engine Transaksi Peminjaman
-- **REQ-BRW-01 (Pengajuan)**:
-  - Peminjam memilih barang tunggal atau paket bundling.
-  - Peminjam wajib menginput:
-    - Tanggal dan Jam Mulai Pinjam.
-    - Tanggal dan Jam Rencana Pengembalian.
-    - Lokasi Pemakaian di Kampus (Gedung, Lantai, Nomor Ruangan / Area).
-    - Keperluan / Agenda Penggunaan.
-    - Berkas Surat Rekomendasi/Pendukung (Opsional/Wajib untuk ormawa).
-- **REQ-BRW-02 (Validasi Ketersediaan & Locking Stok)**:
-  - Sistem menghasilkan nomor referensi: `PJ-YYYYMMDD-XXXX`.
-  - Saat status `Pending`, kuantitas `available_stock` langsung dikunci sementara (*reserved*) agar tidak terjadi *double booking*.
-- **REQ-BRW-03 (Alur Approval)**:
-  - Admin / Petugas menerima alert peminjaman masuk.
-  - Opsi tindakan:
-    - **Setujui (Approve)**: Peminjam menerima notifikasi persetujuan beserta instruksi pengambilan barang di loket.
-    - **Tolak (Reject)**: Wajib memasukkan alasan penolakan (misal: "Stok dialokasikan untuk ujian", "Lokasi luar kampus ditolak"). Stok barang otomatis dipulihkan (*unlocked*).
-
-### 4.5 Modul 5: Alur Serah Terima & Pengembalian
-- **REQ-RET-01 (Handover / Pengambilan Fisik)**:
-  - Peminjam datang ke loket sarpras menunjukkan Kartu Tanda Mahasiswa (KTM) / Identitas Pegawai dan kode `PJ-XXXX`.
-  - Petugas memverifikasi fisik barang di hadapan peminjam, lalu menekan tombol `Serahkan Barang` di sistem -> Status berubah menjadi `Dipinjam`.
-- **REQ-RET-02 (Proses Pengembalian Fisik)**:
-  - Petugas memeriksa kelengkapan unit, kabel, tas, aksesoris, dan fungsi barang.
-  - Input form pengembalian oleh Petugas:
-    - Tanggal & Waktu Aktual Pengembalian.
-    - Kondisi Akhir Barang: `Baik`, `Rusak Ringan`, atau `Rusak Berat`.
-    - Catatan Petugas (misal: "Kabel HDMI hilang", "Bodi lecet normal").
-  - Sistem otomatis:
-    - Mengubah status peminjaman menjadi `Selesai`.
-    - Menambah kembali kuantitas `available_stock` pada tabel `items`.
-- **REQ-RET-03 (Keterlambatan)**:
-  - Jika waktu aktual pengembalian melebihi batas jadwal, sistem menandai flag `Terlambat (Overdue)` dan menghitung durasi keterlambatan.
-  - Pengguna dengan catatan keterlambatan aktif dibekukan hak pengajuan pinjam baru sampai status diselesaikan oleh Admin.
-
-### 4.6 Modul 6: Laporan Kerusakan & Pemeliharaan (Damage Ticketing)
-- **REQ-DMG-01 (Tiket Kerusakan)**:
-  - Pengguna atau Petugas dapat menerbitkan laporan kerusakan terhubung dengan kode peminjaman atau langsung pada item inventaris.
-  - Komponen input: Nama Item, Tingkat Kerusakan (*Ringan, Sedang, Berat, Hilang*), Kronologi Kejadian, Foto Bukti Fisik (Upload berkas gambar).
-- **REQ-DMG-02 (Tindakan Teknis & Perubahan Inventaris)**:
-  - Saat tiket dibuat, status barang otomatis berubah menjadi `Dalam Pemeliharaan (Maintenance)` dan dikeluarkan dari stok pinjam.
-  - Admin dapat memperbarui status tiket: `Menunggu Review` -> `Sedang Diperbaiki` -> `Selesai` / `Ditolak`.
-  - Setelah selesai diperbaiki, Admin memulihkan status barang menjadi `Tersedia`.
-
-### 4.7 Modul 7: Live Chat Konsultasi & Notifikasi Realtime
-- **REQ-COM-01 (Live Chat via Socket.io)**:
-  - Komunikasi langsung *one-on-one* antara Peminjam dan Petugas/Admin Sarpras terkait ketersediaan, konfirmasi izin ruang, dan koordinasi pengembalian.
-  - Fitur: Kirim teks, indikator terbaca (*read receipt*), badge pesan belum dibaca (*unread count*).
-- **REQ-COM-02 (Notification Center)**:
-  - Notifikasi instan dalam aplikasi (*toast popup* dan menu lonceng di navbar):
-    - Status pengajuan di-approve / di-reject.
-    - Pengingat jatuh tempo H-2 jam sebelum batas akhir pengembalian.
-    - Konfirmasi barang sukses dikembalikan.
-    - Tiket kerusakan direspon oleh Admin.
-
-### 4.8 Modul 8: Rekapitulasi Laporan & Audit Data
-- **REQ-RPT-01 (Dashboard Statistik Admin)**:
-  - Total Aset, Total Aset Dipinjam, Total Aset Rusak/Maintenance.
-  - Grafik tren peminjaman mingguan dan bulanan.
-  - Daftar peminjaman paling aktif dan barang paling sering dipinjam.
-- **REQ-RPT-02 (Ekspor Laporan)**:
-  - Filter rentang tanggal laporan.
-  - Ekspor format: Microsoft Excel (`.xlsx`) via sheetjs/xlsx dan format `.json`.
+### 4.2 Komponen Arsitektur
+1. **Frontend (Next.js 16 App Router & Tailwind CSS)**:
+   - Direktori `FE/app/user/`: Antarmuka responsif pengguna (katalog aset, detail item, keranjang paket, tracking peminjaman, dashboard user).
+   - Direktori `FE/app/admin/`: Antarmuka manajemen staf (manajemen peminjaman, pengembalian barang, laporan kerusakan, master barang/paket/kategori, manajemen user, dan ekspor).
+   - `FE/lib/api.tsx`: Abstraksi API client terpusat dengan fallback sinkronisasi langsung ke Supabase SDK.
+2. **Backend (Node.js & Express.js 5)**:
+   - Arsitektur berlapis: `routes/` -> `middleware/` -> `validations/` -> `controller/` -> `services/` -> `config/`.
+   - Mengisolasi aturan bisnis (seperti penyesuaian stok, pembuatan kode dokumen unik, notifikasi) di dalam layer *Services*.
+3. **Database (PostgreSQL via Supabase)**:
+   - Skema relasional terindeks untuk kecepatan respon query sirkulasi tinggi.
+   - Menggunakan autentikasi berbasis JWT Supabase yang terikat dengan tabel profil pengguna `public.users`.
 
 ---
 
-## 5. Arsitektur Data & Model Entitas (Database Schema)
+## 5. Alur Kerja Sistem (System Workflows)
 
-Sistem menggunakan Supabase PostgreSQL dengan skema tabel relasional sebagai berikut:
+### 5.1 Alur Pengajuan & Persetujuan Peminjaman
+```text
+[User]                 [Frontend]               [Backend API]            [Database]
+  │                        │                          │                       │
+  ├─ Pilih Barang/Paket ───►                          │                       │
+  ├─ Isi Tanggal & Tujuan ─►                          │                       │
+  │  (borrow_date & return_date)                      │                       │
+  ├─ Submit Pengajuan ─────► POST /api/borrowings ────►                       │
+  │                        │                          ├─ Validasi Stok        │
+  │                        │                          ├─ Kunci Stok Barang ───► Update items
+  │                        │                          ├─ Simpan Header & Item ─► Insert borrowings
+  │                        │                          │  (PJ-xxx + return_date)
+  │                        │                          ├─ Kirim Notifikasi ────► Insert notifications
+  │                        │                          ▼                       │
+  │                        ◄── Response 201 Sukses ───┤                       │
+  │                                                   │                       │
+[Admin / Petugas]                                     │                       │
+  │                                                   │                       │
+  ├─ Buka Menu Manajemen Peminjaman ─────────────────► GET /api/borrowings ───► Read with planned_return_date
+  ├─ Review Jadwal & Estimasi Kembali                 │                       │
+  ├─ Klik "Validasi & Setujui" ──────────────────────► PATCH /status ─────────► Update status = "Dipinjam"
+  │  (Atau Klik "Tolak" ─────────────────────────────► Restore Stok) ────────► Restore available_stock
+```
 
-### 5.1 Entitas Utama
+### 5.2 Alur Pengembalian Barang & Verifikasi Kondisi
+1. **Penerimaan Fisik**: Peminjam menyerahkan barang fisik ke pos SARPRAS.
+2. **Pemeriksaan Petugas**: Petugas membuka menu *Pengembalian*, memverifikasi kuantitas dan kelayakan fisik barang (*Baik / Rusak Ringan / Rusak Berat / Hilang*).
+3. **Pencatatan Sistem (`POST /api/returns`)**:
+   - Sistem mencatat record baru pada tabel `returns` bersama ID penerima.
+   - Status peminjaman pada `borrowings` diubah menjadi `Selesai` dengan timestamp `actual_return_date`.
+   - Stok `available_stock` pada tabel `items` dipulihkan kembali secara otomatis.
+   - Jika terindikasi rusak/hilang, petugas/user langsung diarahkan membuat tiket kerusakan.
+
+### 5.3 Alur Pelaporan Kerusakan & Penagihan Denda
+1. **Penerbitan Tiket (`POST /api/damage-reports`)**:
+   - Dibuat oleh peminjam atau petugas dengan mencantumkan kronologi, foto bukti, dan referensi peminjaman/barang.
+   - Sistem otomatis memberi kode unik `ITM-YYYYMMDD-XXXX` (barang individual) atau `PKG-YYYYMMDD-XXXX` (paket).
+2. **Review Admin**:
+   - Admin menetapkan status penanganan (*Menunggu Review -> Sedang Diperbaiki -> Selesai*).
+   - Menetapkan besaran denda ganti rugi (`fine_amount`), alasan denda (`fine_reason`), dan mengawasi status pelunasan (`fine_status`).
+
+### 5.4 Alur Live Chat & Notifikasi Interaktif
+- **Konsultasi**: User dapat membuka sesi percakapan dengan admin untuk menanyakan spesifikasi teknis barang, negosiasi perpanjangan batas kembali, atau koordinasi ruangan.
+- **Direct Notification**: Setiap notifikasi approval/kerusakan dilengkapi `action_url`, `reference_id`, dan `reference_type` sehingga user langsung diarahkan ke detail dokumen terkait saat diklik.
+
+---
+
+## 6. Output & Artefak yang Dihasilkan Sistem
+
+1. **Standardisasi Kode Dokumen Unik**:
+   - Peminjaman: `PJ-YYYYMMDD-XXXX` (contoh: `PJ-20260924-G8DQ`)
+   - Master Barang: `BRG-XXX` / Kode Inventaris Kategori (contoh: `BRG-001`)
+   - Laporan Kerusakan: `ITM-YYYYMMDD-XXXX` atau `PKG-YYYYMMDD-XXXX`
+2. **Executive Dashboard Analytics**:
+   - Kartu metrik total aset, stok tersedia, barang terpinjam, dan barang pemeliharaan.
+   - Counter sirkulasi aktif: Peminjaman Pending, Sedang Dipinjam, Pengembalian Bulan Ini, dan Laporan Menunggu Review.
+3. **Ekspor Data Sirkulasi (Spreadsheet XLSX / CSV)**:
+   - Laporan transaksi peminjaman lengkap dengan tanggal pinjam, estimasi kembali, peminjam, status, dan catatan admin.
+   - Laporan audit pengembalian dengan data petugas penerima dan kondisi aset fisik saat diterima.
+4. **Pusat Log Notifikasi Realtime**:
+   - Riwayat pemberitahuan status transaksi dengan pelacakan status baca (`is_read`).
+
+---
+
+## 7. Pemetaan Skema Database Riil (Supabase PostgreSQL)
+
+Sistem beroperasi di atas 10 tabel relasional utama:
 
 1. **`users`**:
-   - `id` (UUID, PK, FK ke `auth.users.id`)
-   - `nama` (VARCHAR 255)
-   - `email` (VARCHAR 255, Unique)
-   - `role` (ENUM: `'Mahasiswa'`, `'Dosen'`, `'Staff'`, `'Petugas'`, `'Admin'`)
-   - `nomor_induk` (VARCHAR 50 - NIM / NIP)
-   - `jurusan_unit` (VARCHAR 100)
-   - `no_telepon` (VARCHAR 20)
-   - `status` (ENUM: `'Aktif'`, `'Nonaktif'`, `'Pending'`)
-   - `avatar_url` (TEXT)
-   - `created_at` (TIMESTAMPTZ)
-
+   - `id` (UUID, PK -> `auth.users.id`), `name` (TEXT), `email` (TEXT), `nomor_induk` (TEXT), `no_hp` (TEXT), `role` (ENUM: `Mahasiswa`, `Dosen`, `Staff`, `Petugas`, `Admin`), `foto` (TEXT), `status` (TEXT), `last_seen` (TIMESTAMPTZ), `created_at` (TIMESTAMPTZ).
 2. **`categories`**:
-   - `id` (UUID, PK)
-   - `nama_kategori` (VARCHAR 100, Unique)
-   - `deskripsi` (TEXT)
-   - `created_at` (TIMESTAMPTZ)
-
+   - `id` (UUID, PK), `name` (TEXT), `description` (TEXT), `created_at` (TIMESTAMPTZ).
 3. **`items`**:
-   - `id` (UUID, PK)
-   - `kategori_id` (UUID, FK -> `categories.id`)
-   - `kode_barang` (VARCHAR 50, Unique)
-   - `nama_barang` (VARCHAR 255)
-   - `deskripsi` (TEXT)
-   - `total_stock` (INTEGER)
-   - `available_stock` (INTEGER)
-   - `kondisi` (ENUM: `'Baik'`, `'Rusak Ringan'`, `'Rusak Berat'`)
-   - `status` (ENUM: `'Tersedia'`, `'Dipinjam'`, `'Dalam Pemeliharaan'`)
-   - `lokasi_penyimpanan` (VARCHAR 255)
-   - `foto_url` (TEXT)
-   - `created_at` (TIMESTAMPTZ)
-
+   - `id` (UUID, PK), `category_id` (UUID, FK -> `categories.id`), `code` (TEXT, Unique), `name` (TEXT), `description` (TEXT), `stock` (INT), `available_stock` (INT), `condition` (TEXT), `status` (TEXT), `image_url` (TEXT), `created_at` (TIMESTAMPTZ).
 4. **`packages` & `packages_items`**:
-   - `packages`: `id` (UUID, PK), `nama_paket` (VARCHAR 255), `deskripsi` (TEXT), `foto_url` (TEXT)
-   - `packages_items`: `id` (UUID, PK), `package_id` (UUID, FK), `item_id` (UUID, FK), `kuantitas` (INTEGER)
-
+   - `packages`: `id` (UUID, PK), `name` (TEXT), `code` (TEXT), `description` (TEXT), `image_url` (TEXT).
+   - `packages_items`: `id` (UUID, PK), `package_id` (UUID, FK), `item_id` (UUID, FK), `quantity` (INT).
 5. **`borrowings`**:
-   - `id` (UUID, PK)
-   - `kode_peminjaman` (VARCHAR 50, Unique - `PJ-YYYYMMDD-XXXX`)
-   - `user_id` (UUID, FK -> `users.id`)
-   - `tanggal_pinjam` (TIMESTAMPTZ)
-   - `tanggal_kembali_rencana` (TIMESTAMPTZ)
-   - `tanggal_kembali_aktual` (TIMESTAMPTZ, Nullable)
-   - `lokasi_kampus` (VARCHAR 255 - Ruangan/Gedung di kampus)
-   - `keperluan` (TEXT)
-   - `status` (ENUM: `'Pending'`, `'Disetujui'`, `'Ditolak'`, `'Dipinjam'`, `'Selesai'`, `'Dibatalkan'`)
-   - `catatan_admin` (TEXT)
-   - `approved_by` (UUID, FK -> `users.id`, Nullable)
-   - `created_at` (TIMESTAMPTZ)
-
+   - `id` (UUID, PK), `borrow_code` (TEXT, Unique), `user_id` (UUID, FK -> `users.id`), `borrow_date` (TIMESTAMPTZ), `planned_return_date` (TIMESTAMPTZ, Estimasi Kembali), `actual_return_date` (TIMESTAMPTZ, Tanggal Selesai Aktual), `purpose` (TEXT), `status` (TEXT), `admin_note` (TEXT), `created_at` (TIMESTAMPTZ).
 6. **`borrowings_items`**:
-   - `id` (UUID, PK)
-   - `borrowing_id` (UUID, FK -> `borrowings.id`)
-   - `item_id` (UUID, FK -> `items.id`)
-   - `kuantitas` (INTEGER)
-
+   - `id` (UUID, PK), `borrowing_id` (UUID, FK), `item_id` (UUID, FK), `quantity` (INT), `condition_before` (TEXT), `condition_after` (TEXT), `note` (TEXT).
 7. **`returns`**:
-   - `id` (UUID, PK)
-   - `borrowing_id` (UUID, FK -> `borrowings.id`, Unique)
-   - `petugas_id` (UUID, FK -> `users.id`)
-   - `tanggal_kembali` (TIMESTAMPTZ)
-   - `kondisi_barang` (ENUM: `'Baik'`, `'Rusak Ringan'`, `'Rusak Berat'`)
-   - `denda_keterlambatan` (BOOLEAN / NUMERIC)
-   - `catatan_pemeriksaan` (TEXT)
-
+   - `id` (UUID, PK), `borrowing_id` (UUID, FK -> `borrowings.id`), `received_by` (UUID, FK -> `users.id`), `return_date` (TIMESTAMPTZ), `condition` (TEXT), `note` (TEXT), `created_at` (TIMESTAMPTZ).
 8. **`damage_reports`**:
-   - `id` (UUID, PK)
-   - `user_id` (UUID, FK -> `users.id`)
-   - `item_id` (UUID, FK -> `items.id`)
-   - `borrowing_id` (UUID, FK -> `borrowings.id`, Nullable)
-   - `tingkat_kerusakan` (VARCHAR 50)
-   - `deskripsi_kerusakan` (TEXT)
-   - `foto_bukti_url` (TEXT)
-   - `status` (ENUM: `'Menunggu Review'`, `'Sedang Diperbaiki'`, `'Selesai'`, `'Ditolak'`)
-   - `catatan_tindak_lanjut` (TEXT)
-   - `created_at` (TIMESTAMPTZ)
-
+   - `id` (UUID, PK), `report_code` (TEXT, Unique), `damage_type` (`per_item` / `per_package`), `user_id` (UUID, FK), `item_id` (UUID, FK, Nullable), `package_id` (UUID, FK, Nullable), `borrowing_id` (UUID, FK, Nullable), `description` (TEXT), `proof_url` (TEXT), `status` (TEXT), `fine_amount` (BIGINT), `fine_reason` (TEXT), `fine_status` (TEXT), `admin_note` (TEXT), `created_at` (TIMESTAMPTZ).
 9. **`chats` & `chat_messages`**:
-   - `chats`: `id` (UUID, PK), `user_id` (UUID, FK), `admin_id` (UUID, FK, Nullable), `status` (VARCHAR 20)
-   - `chat_messages`: `id` (UUID, PK), `chat_id` (UUID, FK), `sender_id` (UUID, FK), `pesan` (TEXT), `lampiran_url` (TEXT), `is_read` (BOOLEAN), `created_at` (TIMESTAMPTZ)
-
+   - `chats`: `id` (UUID, PK), `user_id` (UUID, FK), `admin_id` (UUID, FK), `created_at` (TIMESTAMPTZ).
+   - `chat_messages`: `id` (UUID, PK), `chat_id` (UUID, FK), `sender_id` (UUID, FK), `message` (TEXT), `is_read` (BOOLEAN), `created_at` (TIMESTAMPTZ).
 10. **`notifications`**:
-    - `id` (UUID, PK), `user_id` (UUID, FK), `judul` (VARCHAR 255), `pesan` (TEXT), `tipe` (VARCHAR 50), `is_read` (BOOLEAN), `created_at` (TIMESTAMPTZ)
+    - `id` (UUID, PK), `user_id` (UUID, FK), `title` (TEXT), `message` (TEXT), `type` (TEXT), `action_url` (TEXT), `reference_id` (TEXT), `reference_type` (TEXT), `is_read` (BOOLEAN), `created_at` (TIMESTAMPTZ).
 
 ---
 
-## 6. Kebutuhan Non-Fungsional (Non-Functional Requirements)
+## 8. Analisis Evaluasi Sistem (Keunggulan & Kelemahan)
 
-### 6.1 Keamanan & Kepatuhan (Security)
-- **Zero Raw Secret Exposure**: Variabel kredensial database disimpan terenkripsi di server `.env`.
-- **RBAC Strict Enforcement**: Middleware Express `requireAuth` dan `requireRole` memeriksa klaim token setiap kali request rute privat dipanggil.
-- **Input Sanitization & Schema Validation**: Pustaka `Joi` menolak seluruh payload dengan skema tidak sesuai sebelum mencapai layer controller database.
-- **Header Hardening**: `Helmet` terpasang penuh untuk mematikan header `X-Powered-By`, mitigasi XSS, dan Clickjacking (`X-Frame-Options: SAMEORIGIN`).
-- **DDoS & Flooding Mitigation**: `express-rate-limit` aktif pada seluruh endpoint publik dan transaksi.
+### 8.1 Keunggulan Sistem (Strengths)
+1. **Arsitektur Berlapis Bersih (Separation of Concerns)**: Backend memisahkan antara HTTP handling, validasi skema Joi, dan logika bisnis service. Hal ini mempermudah maintenance dan mencegah duplikasi kode.
+2. **Proteksi Anti Double-Booking & Stok Balik Otomatis**: Kuantitas `available_stock` dipotong saat status peminjaman dibuat, serta otomatis dikembalikan ke inventaris apabila pengajuan ditolak/dibatalkan oleh admin.
+3. **Fleksibilitas Peminjaman Multi-Item & Paket Bundling**: Mendukung peminjaman puluhan item sekaligus maupun paket gabungan sarpras, mempercepat proses pengajuan acara besar.
+4. **Keamanan Jaringan & Data Berlapis**: Mengimplementasikan sanitasi HTTP Header via *Helmet*, pembatasan percobaan login via *express-rate-limit*, serta role authorization berbasis middleware token JWT.
+5. **Resiliensi Dual-Data Source Frontend**: Frontend memiliki mekanisme fallback ke Supabase SDK langsung jika instance backend Express lokal dalam keadaan mati/restarting.
 
-### 6.2 Performa & Skalabilitas (Performance)
-- Response time API rata-rata di bawah 200 ms untuk transaksi CRUD standar.
-- Latensi broadcast WebSocket Socket.io di bawah 100 ms untuk pengiriman pesan chat dan notifikasi real-time.
-- Database index aktif pada kolom pencarian: `kode_barang`, `kode_peminjaman`, `user_id`, `status`.
+### 8.2 Kelemahan Sistem Saat Ini (Weaknesses) & Rekomendasi Perbaikan
 
-### 6.3 Kompatibilitas & Tampilan (Usability & UI/UX)
-- Antarmuka Frontend Next.js responsif optimal di resolusi Desktop (1920x1080), Laptop (1366x768), dan Tablet Pos Petugas (1024x768).
-- Tema: Dukungan Light Theme dan Dark Theme tersimpan di preferensi pengguna.
-- Lokalisasi: Dukungan antarmuka Bahasa Indonesia (Bahasa Utama), Bahasa Inggris, dan Bahasa Jawa.
-
----
-
-## 7. Aturan Bisnis & Penanganan Kondisi Khusus (Edge Cases)
-
-1. **Konflik Peminjaman Bersamaan (Concurrency Collision)**:
-   - Jika dua peminjam mengajukan barang terakhir di detik yang sama, sistem menggunakan transaksi database atomik PostgreSQL (`SELECT FOR UPDATE` / decrement check). Pengaju pertama mendapat status `Pending`, pengaju kedua menerima error "Stok barang tidak mencukupi".
-2. **Keterlambatan Pengembalian (Overdue Penalty)**:
-   - Pengguna yang terlambat mengembalikan barang lebih dari 12 jam tanpa konfirmasi otomatis dibekukan (*suspend*) akunnya dari pengajuan barang lain.
-3. **Barang Hilang atau Rusak Berat**:
-   - Jika barang dikembalikan dalam kondisi `Rusak Berat` atau `Hilang`, Petugas menginput status tersebut pada form pengembalian.
-   - Peminjaman tidak langsung diselesaikan sebelum ada berita acara ganti rugi fisik/biaya perbaikan yang divalidasi oleh Biro Sarpras.
-4. **Pembatalan oleh Pengguna**:
-   - Peminjam hanya boleh membatalkan pengajuan saat status masih `Pending`. Jika sudah `Disetujui`, pembatalan harus menghubungi Petugas via live chat.
+| Area Evaluasi | Kelemahan Saat Ini | Potensi Risiko | Rencana Aksi Solusi / Evaluasi |
+|---|---|---|---|
+| **Integritas Transaksi DB** | Operasi insert peminjaman dan update stok di `borrowingService.js` berjalan dalam beberapa query terpisah tanpa DB Transaction atomik. | Jika server crash di tengah loop pengurangan stok, stok bisa terpotong sebagian tanpa record peminjaman yang utuh. | Implementasikan **Database Transaction via Supabase RPC (Stored Procedure PostgreSQL)** agar bersifat ACID (seluruh data tersimpan atau di-rollback total). |
+| **Arsitektur Data Split-Brain** | Adanya direct query ke Supabase SDK pada `FE/lib/api.tsx` yang memotong jalur Express API. | Logika bisnis (trigger notifikasi, audit log) yang ada di Express bisa terlewat jika frontend membaca/menulis langsung ke Supabase. | Standarisasi mutasi data (*Write Operations*) **100% wajib melalui API Express**. Supabase SDK di client hanya dipakai untuk listen Realtime channel. |
+| **Media & File Storage** | URL gambar bukti kerusakan dan foto barang masih menggunakan string teks mentah/link eksternal. | Rawan tautan mati (*broken image*), tidak ada sanitasi format berkas, serta rawan eksploitasi ukuran berkas raksasa. | Bangun endpoint upload multipart (**Multer + Supabase Storage Bucket**) dengan validasi MIME-type (JPG/PNG/WebP) dan limit ukuran maksimal 2MB. |
+| **Ketiadaan Soft Delete** | Penghapusan barang/kategori menggunakan perintah SQL `DELETE` permanen. | Riwayat transaksi lama akan mengalami *orphan record* atau error foreign key jika barang yang sudah rusak/dibuang dihapus dari katalog master. | Tambahkan kolom `is_deleted` atau `deleted_at` (**Soft Delete**) sehingga aset afkir tetap memiliki rekam jejak pada riwayat peminjaman terdahulu. |
+| **Skalabilitas Cron Scheduler** | Pengecekan peminjaman overdue dijalankan via `node-cron` pada memori server lokal. | Jika backend di-deploy dalam cluster multi-instance/container, job cron akan berjalan berulang kali dan memicu notifikasi ganda ke user. | Migrasikan scheduler ke level basis data menggunakan ekstensi **`pg_cron` Supabase** atau menggunakan cron scheduler cloud terdedikasi. |
 
 ---
 
-## 8. Rencana Rilis & Milestone (Release Phasing)
+## 9. Rencana Rilis & Milestone Pengembangan
 
-- **Fase 1 (Selesai)**: Core backend, integrasi database Supabase, CRUD barang/kategori, autentikasi RBAC, transaksi peminjaman & pengembalian dasar.
-- **Fase 2 (Selesai)**: UI Admin Next.js, UI User/Mahasiswa, Live Chat Socket.io, Notification Center, Export Laporan Excel.
-- **Fase 3 (Pengembangan Mendatang)**:
-  - Implementasi Barcode/QR Scanner fisik pada aplikasi mobile/web kamera untuk serah-terima instan di loket sarpras.
-  - Integrasi push notification via WhatsApp API ke nomor HP peminjam untuk pengingat jadwal pengembalian otomatis.
+- **Fase 1 (Selesai)**: Core REST API, otentikasi JWT Supabase, modul master barang/kategori, dan skema dasar peminjaman.
+- **Fase 2 (Selesai)**: Antarmuka Next.js 16 (Admin & User), visualisasi dashboard analitik, live chat konsultasi, ekspor XLSX/CSV, penagihan denda kerusakan, dan perbaikan alur `planned_return_date`.
+- **Fase 3 (Roadmap Peningkatan Mutu)**:
+  - Migrasi seluruh alur pengurangan stok ke Stored Procedure PostgreSQL (ACID Transaction).
+  - Implementasi upload gambar bukti fisik terintegrasi Supabase Storage.
+  - Implementasi QR Code Scanner pada modul serah terima fisik loket sarpras.
+  - Integrasi WhatsApp Gateway untuk notifikasi otomatis pengingat batas waktu pengembalian.

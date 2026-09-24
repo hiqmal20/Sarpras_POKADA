@@ -296,7 +296,11 @@ export default function ManajemenPeminjamanPage() {
                     borrower_foto: user.foto || null,
                     borrow_date: raw.borrow_date ? new Date(raw.borrow_date).toLocaleDateString("id-ID") : "-",
                     planned_return_date: raw.planned_return_date ? new Date(raw.planned_return_date).toLocaleDateString("id-ID") : "-",
-                    return_date: raw.actual_return_date ? new Date(raw.actual_return_date).toLocaleDateString("id-ID") : "-",
+                    return_date: raw.actual_return_date
+                      ? new Date(raw.actual_return_date).toLocaleDateString("id-ID")
+                      : raw.planned_return_date
+                      ? new Date(raw.planned_return_date).toLocaleDateString("id-ID")
+                      : "-",
                     status: normalizedStatus,
                     raw_status: rawStatus,
                     purpose: raw.purpose || "-",
@@ -448,11 +452,11 @@ export default function ManajemenPeminjamanPage() {
     const exportRows = borrowings.map((b) => ({
       "Kode Barang": b.item_code,
       "Nama Barang": b.item_name,
-      "Nama Peminjam": b.borrower_name,
-      Email: b.borrower_email,
-      "Tanggal Pinjam": b.borrow_date,
-      "Estimasi Kembali": b.return_date,
-      Status: b.status.toUpperCase(),
+          "Nama Peminjam": b.borrower_name,
+          Email: b.borrower_email,
+          "Tanggal Pinjam": b.borrow_date,
+          "Estimasi Kembali": b.planned_return_date && b.planned_return_date !== "-" ? b.planned_return_date : b.return_date,
+          Status: b.status.toUpperCase(),
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportRows);
@@ -629,7 +633,7 @@ export default function ManajemenPeminjamanPage() {
 
                         {/* Estimasi Kembali */}
                         <td className={`px-4 py-4 text-sm font-medium ${row.status === "overdue" ? "text-red-500" : "text-slate-600"}`}>
-                          {row.return_date}
+                          {row.planned_return_date && row.planned_return_date !== "-" ? row.planned_return_date : row.return_date}
                         </td>
 
                         {/* Status */}
@@ -809,7 +813,11 @@ export default function ManajemenPeminjamanPage() {
                     </div>
                     <div>
                       <p className="text-xs text-slate-400">Estimasi Kembali</p>
-                      <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.return_date}</p>
+                      <p className="text-sm font-semibold text-slate-800 mt-0.5">
+                        {selectedBorrowing.planned_return_date && selectedBorrowing.planned_return_date !== "-"
+                          ? selectedBorrowing.planned_return_date
+                          : selectedBorrowing.return_date}
+                      </p>
                     </div>
                   </div>
                   <div className="pt-2 border-t border-slate-100">
@@ -926,7 +934,7 @@ export default function ManajemenPeminjamanPage() {
           "Nama Peminjam": b.borrower_name,
           Email: b.borrower_email,
           "Tanggal Pinjam": b.borrow_date,
-          "Estimasi Kembali": b.return_date,
+      "Estimasi Kembali": b.planned_return_date && b.planned_return_date !== "-" ? b.planned_return_date : b.return_date,
           Status: b.status.toUpperCase(),
           Keperluan: b.purpose || "-",
           Catatan: b.admin_note || "-",

@@ -124,15 +124,22 @@ export default function MessagesPage() {
       if (res.status === "success" && Array.isArray(res.data)) {
         const user = currentUser || getCurrentUser();
         const initialLastSeen: Record<string, string> = {};
+        const apiOnlineIds: string[] = [];
+        const apiOfflineIds: string[] = [];
+
         const mapped: Conversation[] = (res.data as any[]).map((c) => {
           const partner = (c.user && c.user.id !== user?.id ? c.user : c.admin) || c.user || c.admin || {};
           const resolvedUserId = String(partner.id || (c.user_id !== user?.id ? c.user_id : c.admin_id) || c.user_id || "");
-          const partnerLastSeen = c.partner_last_seen || partner.last_seen || null;
+          const partnerLastSeen = c.partner_last_seen || partner.update_at || partner.last_seen || null;
           if (resolvedUserId && partnerLastSeen) {
             initialLastSeen[resolvedUserId] = partnerLastSeen;
           }
-          if (c.is_partner_online && resolvedUserId) {
-            setOnlineUserIds((prev) => new Set(prev).add(resolvedUserId));
+          if (resolvedUserId) {
+            if (c.is_partner_online) {
+              apiOnlineIds.push(resolvedUserId);
+            } else if (c.is_partner_online === false) {
+              apiOfflineIds.push(resolvedUserId);
+            }
           }
           return {
             id: c.id,
@@ -153,7 +160,16 @@ export default function MessagesPage() {
         });
 
         if (Object.keys(initialLastSeen).length > 0) {
-          setLastSeenMap((prev) => ({ ...prev, ...initialLastSeen }));
+          setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
+        }
+
+        if (apiOnlineIds.length > 0 || apiOfflineIds.length > 0) {
+          setOnlineUserIds((prev) => {
+            const next = new Set(prev);
+            apiOnlineIds.forEach((id) => next.add(id));
+            apiOfflineIds.forEach((id) => next.delete(id));
+            return next;
+          });
         }
 
         setConversations(mapped);
@@ -513,7 +529,7 @@ export default function MessagesPage() {
 
     // Initial check online users & periodic sync
     requestOnlineUsers();
-    const onlineInterval = setInterval(requestOnlineUsers, 8000);
+    const onlineInterval = setInterval(requestOnlineUsers, 5000);
 
     return () => {
       clearInterval(onlineInterval);
@@ -793,8 +809,8 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white ${
-                          onlineUserIds.has(conv.userId) ? "bg-emerald-500" : "bg-slate-300"
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
+                          onlineUserIds.has(conv.userId) ? "bg-emerald-500 ring-emerald-100" : "bg-slate-300 ring-slate-100"
                         }`}
                         title={onlineUserIds.has(conv.userId) ? "Online" : "Offline"}
                       />
@@ -802,9 +818,21 @@ export default function MessagesPage() {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <h3 className={`font-semibold text-xs truncate ${isSelected ? "text-[#0785BC]" : "text-slate-900"}`}>
-                          {conv.userName}
-                        </h3>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <h3 className={`font-semibold text-xs truncate ${isSelected ? "text-[#0785BC]" : "text-slate-900"}`}>
+                            {conv.userName}
+                          </h3>
+                          {onlineUserIds.has(conv.userId) ? (
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                              <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                              Online
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-medium bg-slate-100 text-slate-400 border border-slate-200 shrink-0">
+                              Offline
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-1.5">
                           {conv.timestamp}
                         </span>
@@ -854,35 +882,43 @@ export default function MessagesPage() {
                     </div>
                   )}
                   <span
-                    className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full ring-2 ring-white ${
-                      onlineUserIds.has(selectedConversation.userId) ? "bg-emerald-500" : "bg-slate-300"
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
+                      onlineUserIds.has(selectedConversation.userId) ? "bg-emerald-500 ring-emerald-100" : "bg-slate-300 ring-slate-100"
                     }`}
                   />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 text-xs">{selectedConversation.userName}</h3>
+                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm">{selectedConversation.userName}</h3>
                     {(() => {
                       const isOnline = onlineUserIds.has(selectedConversation.userId);
-                      const lastSeenTime = lastSeenMap[selectedConversation.userId] || selectedConversation.lastSeen;
-                      const statusInfo = formatLastSeen(lastSeenTime, isOnline);
-
-                      if (statusInfo.isOnline) {
-                        return (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                            LIVE
-                          </span>
-                        );
-                      }
-                      return (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500 bg-slate-100 border border-slate-200">
-                          {statusInfo.text}
+                      return isOnline ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          Offline
                         </span>
                       );
                     })()}
                   </div>
-                  <p className="text-[10px] font-mono text-slate-400">{selectedConversation.userEmail}</p>
+                  {(() => {
+                    const isOnline = onlineUserIds.has(selectedConversation.userId);
+                    const lastSeenTime = lastSeenMap[selectedConversation.userId] || selectedConversation.lastSeen;
+                    const statusInfo = formatLastSeen(lastSeenTime, isOnline);
+                    return (
+                      <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className={isOnline ? "text-emerald-600 font-semibold" : "text-slate-500"}>
+                          {isOnline ? "Sedang aktif sekarang" : statusInfo.text}
+                        </span>
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
 

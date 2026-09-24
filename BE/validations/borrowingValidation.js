@@ -15,7 +15,8 @@ const createBorrowingSchema = Joi.object({
     'string.empty': 'Tujuan peminjaman wajib diisi'
   }),
   borrow_date: Joi.date().iso().optional(),
-  return_date: Joi.date().iso().min(Joi.ref('borrow_date')).optional(),
+  return_date: Joi.date().iso().optional(),
+  planned_return_date: Joi.date().iso().optional(),
   items: Joi.array().items(borrowingItemSchema).min(1).required().messages({
     'array.min': 'Minimal harus meminjam 1 barang'
   })

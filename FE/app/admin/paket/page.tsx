@@ -22,6 +22,8 @@ import {
   AlertTriangle,
   Info,
   Tag,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import api from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
@@ -130,6 +132,7 @@ export default function PaketPage() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [importSummary, setImportSummary] = useState<{ success: number; failed: number } | null>(null);
 
   const [replenishModal, setReplenishModal] = useState<{
@@ -765,195 +768,422 @@ export default function PaketPage() {
                   <option value="limited">Stok Terbatas / Tidak Lengkap</option>
                 </select>
               </div>
+
+              {/* View Mode Toggle (List / Grid) */}
+              <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-md transition-all ${
+                    viewMode === "list"
+                      ? "bg-white text-[#0785BC] shadow-xs font-semibold"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  title="Tampilan Tabel (List)"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-md transition-all ${
+                    viewMode === "grid"
+                      ? "bg-white text-[#0785BC] shadow-xs font-semibold"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  title="Tampilan Grid (Kartu)"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50/75 border-b border-slate-100">
-                <tr>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Paket Barang</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Item Termasuk</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ketersediaan</th>
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                  <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 5 }).map((_, j) => (
-                        <td key={j} className="px-5 py-4">
-                          <div className="h-4 bg-slate-100 rounded animate-pulse" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : filteredPackages.length === 0 ? (
+          {viewMode === "list" ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50/75 border-b border-slate-100">
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-xs">
-                      Belum ada paket sarpras. Klik tombol "Tambah Paket" untuk membuat bundel baru.
-                    </td>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Paket Barang</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Item Termasuk</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ketersediaan</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Aksi</th>
                   </tr>
-                ) : (
-                  filteredPackages.map((pkg) => (
-                    <tr
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 5 }).map((_, j) => (
+                          <td key={j} className="px-5 py-4">
+                            <div className="h-4 bg-slate-100 rounded animate-pulse" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : filteredPackages.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-xs">
+                        Belum ada paket sarpras. Klik tombol "Tambah Paket" untuk membuat bundel baru.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredPackages.map((pkg) => (
+                      <tr
+                        key={pkg.id}
+                        onClick={() => handleRowClick(pkg)}
+                        className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            {pkg.image_url ? (
+                              <img
+                                src={pkg.image_url}
+                                alt={pkg.name}
+                                className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0785BC] flex items-center justify-center shrink-0">
+                                <Package className="w-5 h-5" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-semibold text-slate-900 text-xs">{pkg.name}</p>
+                              <p className="text-[11px] text-slate-400 max-w-xs truncate">{pkg.description || "-"}</p>
+                              <div className="flex items-center gap-1 flex-wrap mt-1">
+                                {(pkg.categories || []).length > 0 ? (
+                                  (pkg.categories || []).map((cat, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-blue-50 text-[#0785BC] border border-blue-100"
+                                    >
+                                      <Tag className="w-2.5 h-2.5" />
+                                      {cat}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-[10px] text-slate-400">Umum</span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <span className="text-xs font-semibold text-slate-700 block">
+                            {pkg.packages_items?.length || 0} macam barang
+                          </span>
+                          <p className="text-[10px] text-slate-400 max-w-xs truncate mt-0.5">
+                            {(pkg.packages_items || [])
+                              .slice(0, 3)
+                              .map((pi) => `${pi.items?.name || "Barang"} (${pi.items?.category || "Umum"})`)
+                              .join(", ")}
+                            {(pkg.packages_items || []).length > 3 && "..."}
+                          </p>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-slate-800">
+                                {pkg.available_stock ?? (pkg.is_available ? 1 : 0)} Paket
+                              </span>
+                              <span className="text-[10px] text-slate-400">
+                                / {pkg.stock ?? 0} total
+                              </span>
+                            </div>
+                            {pkg.is_available && (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 w-fit">
+                                <CheckCircle2 className="w-2.5 h-2.5" /> Siap Dipinjam
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 w-fit">
+                                <AlertCircle className="w-2.5 h-2.5" /> Stok Kosong
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(pkg);
+                            }}
+                            title="Klik untuk mengubah status Aktif / Non-Aktif"
+                            className="group/st transition-transform active:scale-95"
+                          >
+                            {pkg.status !== "Aktif" ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-200 group-hover/st:bg-rose-100 transition-colors">
+                                Non-Aktif (Manual)
+                              </span>
+                            ) : (pkg.packages_items || []).some(
+                                (pi) => (pi.items?.available_stock ?? 0) < pi.quantity || pi.items?.status !== "Tersedia"
+                              ) ? (
+                              <span
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200 group-hover/st:bg-amber-100 transition-colors"
+                                title="Ada item di paket ini yang kosong/kurang, otomatis dianggap kosong/tidak aktif"
+                              >
+                                Non-Aktif (Item Kosong)
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 group-hover/st:bg-emerald-100 transition-colors">
+                                Aktif
+                              </span>
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenPackageStock(pkg);
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Kelola Stok Paket (+ / - Paket)"
+                            >
+                              <Layers className="w-4 h-4 text-[#0785BC]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(pkg);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Lihat Detail Paket"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(pkg);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
+                              title="Edit Paket"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(pkg.id);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Hapus Paket"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* ── Grid View Tampilan Kartu Paket ── */
+            <div className="p-6">
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl p-4 animate-pulse space-y-3">
+                      <div className="h-36 bg-slate-200 rounded-lg" />
+                      <div className="h-4 bg-slate-200 rounded w-3/4" />
+                      <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredPackages.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  Belum ada paket sarpras. Klik tombol "Tambah Paket" untuk membuat bundel baru.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {filteredPackages.map((pkg) => (
+                    <div
                       key={pkg.id}
                       onClick={() => handleRowClick(pkg)}
-                      className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                      className="group bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-[#0785BC]/50 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden cursor-pointer"
                     >
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          {pkg.image_url ? (
-                            <img
-                              src={pkg.image_url}
-                              alt={pkg.name}
-                              className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
-                            />
+                      {/* Image / Thumbnail Header */}
+                      <div className="relative aspect-video w-full bg-slate-100 overflow-hidden flex items-center justify-center border-b border-slate-100">
+                        {pkg.image_url ? (
+                          <img
+                            src={pkg.image_url}
+                            alt={pkg.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-[#0785BC]">
+                            <Package className="w-10 h-10 stroke-[1.5]" />
+                            <span className="text-[10px] mt-1 font-semibold text-slate-400">Paket Sarpras</span>
+                          </div>
+                        )}
+
+                        {/* Top Badges */}
+                        <div className="absolute top-2.5 left-2.5">
+                          {pkg.is_available && (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-emerald-600 text-white shadow-xs">
+                              <CheckCircle2 className="w-3 h-3" /> Siap Dipinjam
+                            </span>
                           ) : (
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#0785BC] flex items-center justify-center shrink-0">
-                              <Package className="w-5 h-5" />
-                            </div>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[10px] font-bold bg-amber-600 text-white shadow-xs">
+                              <AlertCircle className="w-3 h-3" /> Stok Kosong
+                            </span>
                           )}
-                          <div>
-                            <p className="font-semibold text-slate-900 text-xs">{pkg.name}</p>
-                            <p className="text-[11px] text-slate-400 max-w-xs truncate">{pkg.description || "-"}</p>
-                            <div className="flex items-center gap-1 flex-wrap mt-1">
-                              {(pkg.categories || []).length > 0 ? (
-                                (pkg.categories || []).map((cat, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[9px] font-semibold bg-blue-50 text-[#0785BC] border border-blue-100"
-                                  >
-                                    <Tag className="w-2.5 h-2.5" />
-                                    {cat}
+                        </div>
+
+                        <div className="absolute top-2.5 right-2.5">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleStatus(pkg);
+                            }}
+                            title="Klik untuk mengubah status"
+                            className="transition-transform active:scale-95"
+                          >
+                            {pkg.status !== "Aktif" ? (
+                              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md bg-rose-600 text-white shadow-xs">
+                                Non-Aktif
+                              </span>
+                            ) : (pkg.packages_items || []).some(
+                                (pi) => (pi.items?.available_stock ?? 0) < pi.quantity || pi.items?.status !== "Tersedia"
+                              ) ? (
+                              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-600 text-white shadow-xs">
+                                Item Kosong
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-md bg-[#0785BC] text-white shadow-xs">
+                                Aktif
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-4 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center gap-1 flex-wrap mb-1.5">
+                            {(pkg.categories || []).length > 0 ? (
+                              (pkg.categories || []).map((cat, idx) => (
+                                <span
+                                  key={idx}
+                                  className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-[#0785BC] border border-blue-100"
+                                >
+                                  <Tag className="w-2.5 h-2.5" />
+                                  {cat}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[10px] text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">Umum</span>
+                            )}
+                          </div>
+
+                          <h3 className="text-sm font-bold text-slate-900 group-hover:text-[#0785BC] transition-colors line-clamp-1">
+                            {pkg.name}
+                          </h3>
+
+                          {pkg.description && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                              {pkg.description}
+                            </p>
+                          )}
+
+                          {/* Components Preview */}
+                          <div className="mt-3 p-2.5 rounded-xl bg-slate-50/80 border border-slate-100 text-xs">
+                            <span className="text-[11px] font-bold text-slate-600 block mb-1">
+                              Komponen Paket ({pkg.packages_items?.length || 0} item)
+                            </span>
+                            <div className="space-y-1 max-h-20 overflow-y-auto pr-1">
+                              {(pkg.packages_items || []).slice(0, 3).map((pi, idx) => (
+                                <div key={pi.id || idx} className="flex items-center justify-between text-[11px] text-slate-600">
+                                  <span className="truncate max-w-[170px]">{pi.items?.name || "Barang"}</span>
+                                  <span className="font-semibold text-slate-700 bg-white px-1.5 py-0.2 rounded border border-slate-200 shrink-0">
+                                    {pi.quantity} unit
                                   </span>
-                                ))
-                              ) : (
-                                <span className="text-[10px] text-slate-400">Umum</span>
+                                </div>
+                              ))}
+                              {(pkg.packages_items || []).length > 3 && (
+                                <p className="text-[10px] text-slate-400 italic pt-0.5">
+                                  +{(pkg.packages_items || []).length - 3} item lainnya
+                                </p>
                               )}
                             </div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-xs font-semibold text-slate-700 block">
-                          {pkg.packages_items?.length || 0} macam barang
-                        </span>
-                        <p className="text-[10px] text-slate-400 max-w-xs truncate mt-0.5">
-                          {(pkg.packages_items || [])
-                            .slice(0, 3)
-                            .map((pi) => `${pi.items?.name || "Barang"} (${pi.items?.category || "Umum"})`)
-                            .join(", ")}
-                          {(pkg.packages_items || []).length > 3 && "..."}
-                        </p>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-1.5">
+
+                        {/* Card Footer */}
+                        <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block font-medium">Stok Paket</span>
                             <span className="text-xs font-bold text-slate-800">
-                              {pkg.available_stock ?? (pkg.is_available ? 1 : 0)} Paket
-                            </span>
-                            <span className="text-[10px] text-slate-400">
-                              / {pkg.stock ?? 0} total
+                              {pkg.available_stock ?? (pkg.is_available ? 1 : 0)}{" "}
+                              <span className="text-slate-400 font-normal">/ {pkg.stock ?? 0}</span>
                             </span>
                           </div>
-                          {pkg.is_available && (pkg.available_stock ?? (pkg.is_available ? 1 : 0)) > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 w-fit">
-                              <CheckCircle2 className="w-2.5 h-2.5" /> Siap Dipinjam
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 w-fit">
-                              <AlertCircle className="w-2.5 h-2.5" /> Stok Kosong
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleStatus(pkg);
-                          }}
-                          title="Klik untuk mengubah status Aktif / Non-Aktif"
-                          className="group/st transition-transform active:scale-95"
-                        >
-                          {pkg.status !== "Aktif" ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-rose-50 text-rose-700 border border-rose-200 group-hover/st:bg-rose-100 transition-colors">
-                              Non-Aktif (Manual)
-                            </span>
-                          ) : (pkg.packages_items || []).some(
-                              (pi) => (pi.items?.available_stock ?? 0) < pi.quantity || pi.items?.status !== "Tersedia"
-                            ) ? (
-                            <span
-                              className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-amber-50 text-amber-700 border border-amber-200 group-hover/st:bg-amber-100 transition-colors"
-                              title="Ada item di paket ini yang kosong/kurang, otomatis dianggap kosong/tidak aktif"
+
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenPackageStock(pkg);
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Kelola Stok Paket"
                             >
-                              Non-Aktif (Item Kosong)
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 group-hover/st:bg-emerald-100 transition-colors">
-                              Aktif
-                            </span>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenPackageStock(pkg);
-                            }}
-                            className="p-1.5 text-slate-500 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Kelola Stok Paket (+ / - Paket)"
-                          >
-                            <Layers className="w-4 h-4 text-[#0785BC]" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRowClick(pkg);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Lihat Detail Paket"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEdit(pkg);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
-                            title="Edit Paket"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(pkg.id);
-                            }}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                            title="Hapus Paket"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                              <Layers className="w-4 h-4 text-[#0785BC]" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(pkg);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Lihat Detail Paket"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(pkg);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
+                              title="Edit Paket"
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(pkg.id);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Hapus Paket"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

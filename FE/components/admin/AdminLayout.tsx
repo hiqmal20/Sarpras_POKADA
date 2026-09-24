@@ -31,10 +31,11 @@ export default function AdminLayout({
       router.replace("/auth/login");
       return;
     }
-    api.auth.me().then((res) => {
+    api.auth.getProfile().then((res) => {
       if (res.status === "success" && res.data?.user) {
         const u = res.data.user;
-        if (u.role !== "Admin" && u.role !== "Petugas") {
+        const role = (u.role || "").toLowerCase();
+        if (role !== "admin" && role !== "petugas") {
           router.replace("/user/dashboard");
         } else {
           setAuthorized(true);

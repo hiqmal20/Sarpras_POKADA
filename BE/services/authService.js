@@ -157,6 +157,7 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
 
   // 1. Verifikasi kecocokan Email atau Name dengan Nomor Induk di tabel users
   const isEmail = cleanIdentifier.includes('@');
+  const noSpaces = cleanIdentifier.replace(/\s+/g, '');
   
   let userProfile = null;
   if (isEmail) {
@@ -168,11 +169,23 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
       .maybeSingle();
     userProfile = data;
   } else {
+    // Cari berdasarkan nama persis, tanpa spasi, atau substring
     const { data } = await supabase
       .from('users')
       .select('*')
-      .ilike('name', cleanIdentifier)
       .ilike('nomor_induk', cleanNomorInduk)
+      .or(`name.ilike.${cleanIdentifier},name.ilike.${noSpaces},name.ilike.%${cleanIdentifier}%`)
+      .maybeSingle();
+    userProfile = data;
+  }
+
+  // Jika belum ditemukan, coba cari berdasarkan email atau nama sekaligus dengan nomor_induk
+  if (!userProfile) {
+    const { data } = await supabase
+      .from('users')
+      .select('*')
+      .ilike('nomor_induk', cleanNomorInduk)
+      .or(`email.ilike.${cleanIdentifier},name.ilike.%${cleanIdentifier}%`)
       .maybeSingle();
     userProfile = data;
   }
@@ -189,10 +202,22 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
 
   // 2. Autentikasi dengan Supabase Auth via email terdaftar & password
   const authClient = createAuthClient();
-  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+  let { data: authData, error: authError } = await authClient.auth.signInWithPassword({
     email: userProfile.email,
     password
   });
+
+  // Toleransi jika user lupa tanda seru (!) di password
+  if (authError && !password.endsWith('!')) {
+    const retry = await authClient.auth.signInWithPassword({
+      email: userProfile.email,
+      password: `${password}!`
+    });
+    if (!retry.error && retry.data?.user) {
+      authData = retry.data;
+      authError = null;
+    }
+  }
 
   if (authError || !authData.user) {
     throw new AppError('Kombinasi Email/Nama, Nomor Induk, atau password salah', 401);

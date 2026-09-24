@@ -18,7 +18,7 @@ exports.getChats = async (req, res, next) => {
       const partner = (c.user && c.user.id !== req.user.id ? c.user : c.admin) || c.user || c.admin || {};
       const partnerId = partner.id || (c.user_id !== req.user.id ? c.user_id : c.admin_id);
       const isOnline = Boolean(partnerId && onlineUsers && onlineUsers.has(partnerId));
-      const lastSeen = partnerId && lastSeenMap ? (lastSeenMap.get(partnerId) || null) : null;
+      const lastSeen = (partnerId && lastSeenMap && lastSeenMap.get(partnerId)) || partner.update_at || partner.created_at || null;
       return {
         ...c,
         is_partner_online: isOnline,

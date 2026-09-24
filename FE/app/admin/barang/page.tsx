@@ -22,6 +22,8 @@ import {
   User,
   Layers,
   FileText,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import api from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
@@ -94,6 +96,7 @@ export default function BarangPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showExportModal, setShowExportModal] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -427,148 +430,321 @@ export default function BarangPage() {
               <h2 className="text-sm font-bold text-slate-900 tracking-tight">Daftar Inventaris Barang</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Menampilkan {filteredItems.length} barang terdaftar</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-medium">Filter Kategori:</span>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
-              >
-                <option value="all">Semua Kategori</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 font-medium">Filter Kategori:</span>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
+                >
+                  <option value="all">Semua Kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* View Mode Toggle (List / Grid) */}
+              <div className="flex items-center bg-slate-200/60 p-0.5 rounded-lg border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("list")}
+                  className={`p-1.5 rounded-md transition-all ${
+                    viewMode === "list"
+                      ? "bg-white text-[#0785BC] shadow-xs font-semibold"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  title="Tampilan Tabel (List)"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("grid")}
+                  className={`p-1.5 rounded-md transition-all ${
+                    viewMode === "grid"
+                      ? "bg-white text-[#0785BC] shadow-xs font-semibold"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                  title="Tampilan Grid (Kartu)"
+                >
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="bg-slate-50/80 border-b border-slate-200/80 font-mono text-[10px] text-slate-500 uppercase tracking-wider">
-                <tr>
-                  <th className="px-4 py-2.5 text-left">Kode</th>
-                  <th className="px-4 py-2.5 text-left">Nama Barang</th>
-                  <th className="px-4 py-2.5 text-left">Kategori</th>
-                  <th className="px-4 py-2.5 text-left">Stok / Tersedia</th>
-                  <th className="px-4 py-2.5 text-left">Kondisi</th>
-                  <th className="px-4 py-2.5 text-left">Status</th>
-                  <th className="px-4 py-2.5 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <td key={j} className="px-4 py-4">
-                          <div className="h-4 bg-slate-100 rounded animate-pulse" />
-                        </td>
-                      ))}
-                    </tr>
-                  ))
-                ) : filteredItems.length === 0 ? (
+          {viewMode === "list" ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50/80 border-b border-slate-200/80 font-mono text-[10px] text-slate-500 uppercase tracking-wider">
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-xs">
-                      Belum ada data barang. Klik tombol "Tambah Barang" untuk membuat baru.
-                    </td>
+                    <th className="px-4 py-2.5 text-left">Kode</th>
+                    <th className="px-4 py-2.5 text-left">Nama Barang</th>
+                    <th className="px-4 py-2.5 text-left">Kategori</th>
+                    <th className="px-4 py-2.5 text-left">Stok / Tersedia</th>
+                    <th className="px-4 py-2.5 text-left">Kondisi</th>
+                    <th className="px-4 py-2.5 text-left">Status</th>
+                    <th className="px-4 py-2.5 text-right">Aksi</th>
                   </tr>
-                ) : (
-                  filteredItems.map((item) => (
-                    <tr
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {loading ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 7 }).map((_, j) => (
+                          <td key={j} className="px-4 py-4">
+                            <div className="h-4 bg-slate-100 rounded animate-pulse" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : filteredItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-xs">
+                        Belum ada data barang. Klik tombol "Tambah Barang" untuk membuat baru.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredItems.map((item) => (
+                      <tr
+                        key={item.id}
+                        onClick={() => handleRowClick(item)}
+                        className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                      >
+                        <td className="px-4 py-3.5 text-xs font-semibold text-slate-800">{item.code}</td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center gap-3">
+                            {item.image_url ? (
+                              <img src={item.image_url} alt={item.name} className="w-9 h-9 rounded-lg object-cover border border-slate-100" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                                <ImageIcon className="w-4 h-4 text-slate-400" />
+                              </div>
+                            )}
+                            <span className="font-medium text-slate-900 text-xs">{item.name}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-slate-600">{item.category}</td>
+                        <td className="px-4 py-3.5 text-xs font-semibold text-slate-800">
+                          {item.available_stock ?? item.stock} <span className="text-slate-400 font-normal">/ {item.stock}</span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-full ${
+                              item.condition === "Baik"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : item.condition === "Rusak Ringan"
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-rose-50 text-rose-700"
+                            }`}
+                          >
+                            {item.condition}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-full ${
+                              (item.available_stock ?? item.stock) === 0 || item.status === "Stok Kosong"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : item.status === "Tersedia"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : item.status === "Dipinjam"
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "bg-slate-100 text-slate-600 border border-slate-200"
+                            }`}
+                          >
+                            {(item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : item.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(item);
+                              }}
+                              title="Lihat Detail Barang"
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(item);
+                              }}
+                              title="Edit Barang"
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item.id);
+                              }}
+                              title="Hapus Barang"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* ── Grid View Tampilan Kartu ── */
+            <div className="p-5">
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl p-4 animate-pulse space-y-3">
+                      <div className="h-32 bg-slate-200 rounded-lg" />
+                      <div className="h-4 bg-slate-200 rounded w-3/4" />
+                      <div className="h-3 bg-slate-200 rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              ) : filteredItems.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs">
+                  Belum ada data barang. Klik tombol "Tambah Barang" untuk membuat baru.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredItems.map((item) => (
+                    <div
                       key={item.id}
                       onClick={() => handleRowClick(item)}
-                      className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                      className="group bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-[#0785BC]/50 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden cursor-pointer"
                     >
-                      <td className="px-4 py-3.5 text-xs font-semibold text-slate-800">{item.code}</td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-3">
-                          {item.image_url ? (
-                            <img src={item.image_url} alt={item.name} className="w-9 h-9 rounded-lg object-cover border border-slate-100" />
-                          ) : (
-                            <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                              <ImageIcon className="w-4 h-4 text-slate-400" />
-                            </div>
+                      {/* Image / Thumbnail */}
+                      <div className="relative aspect-video w-full bg-slate-100 overflow-hidden flex items-center justify-center border-b border-slate-100">
+                        {item.image_url ? (
+                          <img
+                            src={item.image_url}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center text-slate-400">
+                            <ImageIcon className="w-8 h-8 stroke-[1.5]" />
+                            <span className="text-[10px] mt-1 font-medium text-slate-400">Tanpa Foto</span>
+                          </div>
+                        )}
+
+                        {/* Badges on top */}
+                        <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded-md shadow-xs ${
+                              item.condition === "Baik"
+                                ? "bg-emerald-600 text-white"
+                                : item.condition === "Rusak Ringan"
+                                ? "bg-amber-600 text-white"
+                                : "bg-rose-600 text-white"
+                            }`}
+                          >
+                            {item.condition}
+                          </span>
+                        </div>
+
+                        <div className="absolute top-2 right-2">
+                          <span
+                            className={`inline-flex px-2 py-0.5 text-[10px] font-bold rounded-md shadow-xs ${
+                              (item.available_stock ?? item.stock) === 0 || item.status === "Stok Kosong"
+                                ? "bg-rose-600 text-white"
+                                : item.status === "Tersedia"
+                                ? "bg-emerald-600 text-white"
+                                : item.status === "Dipinjam"
+                                ? "bg-amber-600 text-white"
+                                : "bg-slate-700 text-white"
+                            }`}
+                          >
+                            {(item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : item.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Card Content */}
+                      <div className="p-4 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-1">
+                            <span className="font-semibold text-slate-600">{item.code}</span>
+                            <span className="truncate max-w-[120px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
+                              {item.category || "Umum"}
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-[#0785BC] transition-colors mt-0.5">
+                            {item.name}
+                          </h3>
+                          {item.description && (
+                            <p className="text-[11px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
+                              {item.description}
+                            </p>
                           )}
-                          <span className="font-medium text-slate-900 text-xs">{item.name}</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3.5 text-xs text-slate-600">{item.category}</td>
-                      <td className="px-4 py-3.5 text-xs font-semibold text-slate-800">
-                        {item.available_stock ?? item.stock} <span className="text-slate-400 font-normal">/ {item.stock}</span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span
-                          className={`inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-full ${
-                            item.condition === "Baik"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : item.condition === "Rusak Ringan"
-                              ? "bg-amber-50 text-amber-700"
-                              : "bg-rose-50 text-rose-700"
-                          }`}
-                        >
-                          {item.condition}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span
-                          className={`inline-flex px-2 py-0.5 text-[11px] font-semibold rounded-full ${
-                            (item.available_stock ?? item.stock) === 0 || item.status === "Stok Kosong"
-                              ? "bg-rose-50 text-rose-700 border border-rose-200"
-                              : item.status === "Tersedia"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : item.status === "Dipinjam"
-                              ? "bg-amber-50 text-amber-700 border border-amber-200"
-                              : "bg-slate-100 text-slate-600 border border-slate-200"
-                          }`}
-                        >
-                          {(item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : item.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <div className="inline-flex items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRowClick(item);
-                            }}
-                            title="Lihat Detail Barang"
-                            className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEdit(item);
-                            }}
-                            title="Edit Barang"
-                            className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(item.id);
-                            }}
-                            title="Hapus Barang"
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+
+                        {/* Card Footer */}
+                        <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] text-slate-400 block font-medium">Stok Tersedia</span>
+                            <span className="text-xs font-bold text-slate-800">
+                              {item.available_stock ?? item.stock} <span className="text-slate-400 font-normal">/ {item.stock}</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(item);
+                              }}
+                              title="Lihat Detail Barang"
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEdit(item);
+                              }}
+                              title="Edit Barang"
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(item.id);
+                              }}
+                              title="Hapus Barang"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

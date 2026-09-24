@@ -16,6 +16,7 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
       id,
       borrow_code,
       borrow_date,
+      planned_return_date,
       actual_return_date,
       purpose,
       status,
@@ -103,7 +104,7 @@ exports.findBorrowingById = async (id) => {
   };
 };
 
-exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date }) => {
+exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, return_date, planned_return_date }) => {
   // Validasi ketersediaan stok
   for (const item of items) {
     const { data: itemData, error: itemError } = await supabase
@@ -128,14 +129,16 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date }
 
   const borrowCode = generateBorrowCode();
   const now = new Date().toISOString();
+  const targetReturnDate = planned_return_date || return_date || null;
 
-  // Insert peminjaman — tanpa borrow_date & planned_return_date
+  // Insert peminjaman
   const { data: newBorrowing, error: borrowError } = await supabase
     .from('borrowings')
     .insert([{
       user_id,
       borrow_code: borrowCode,
       borrow_date: borrow_date || now,
+      planned_return_date: targetReturnDate,
       purpose,
       status: 'Pending',
       created_at: now

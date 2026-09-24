@@ -129,3 +129,11 @@ export const disconnectSocket = (): void => {
   }
   joinedChatRooms.clear();
 };
+
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    if (socketInstance) {
+      socketInstance.disconnect();
+    }
+  });
+}

@@ -208,7 +208,7 @@ export const api = {
     },
 
     me: async () => {
-      return apiFetch<{ user: any }>("/auth/me", { method: "GET" });
+      return api.auth.getProfile();
     },
 
     updateProfile: async (payload: {
