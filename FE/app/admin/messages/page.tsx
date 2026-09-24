@@ -537,14 +537,25 @@ export default function MessagesPage() {
     socket.on("user_stop_typing", handleUserStopTyping);
     socket.on("chat_cleared", handleChatCleared);
     socket.on("chat_deleted", handleChatDeleted);
+    // Dengarkan koneksi socket secara langsung. Event window tetap dipertahankan
+    // sebagai fallback untuk kompatibilitas dengan inisialisasi socket lama.
+    const handleSocketDisconnect = () => {
+      // Socket admin sendiri terputus; jangan menganggap user online sampai
+      // snapshot baru diterima setelah reconnect.
+      setOnlineUserIds(new Set());
+    };
+    socket.on("connect", handleSocketReconnect);
+    socket.on("disconnect", handleSocketDisconnect);
     window.addEventListener("socket-connected", handleSocketReconnect);
 
-    // Initial check online users & periodic sync
+    // Initial check online users & fallback sync ringan.
     requestOnlineUsers();
-    const onlineInterval = setInterval(requestOnlineUsers, 5000);
+    const onlineInterval = setInterval(requestOnlineUsers, 3000);
 
     return () => {
       clearInterval(onlineInterval);
+      socket.off("connect", handleSocketReconnect);
+      socket.off("disconnect", handleSocketDisconnect);
       socket.off("new_message", handleNewMessage);
       socket.off("notification", handleNotification);
       socket.off("chat_updated", handleChatUpdated);
