@@ -536,20 +536,30 @@ export default function UserMessagesPage() {
     socket.on("user_offline", handleUserOffline);
     socket.on("user_status_change", handleUserStatusChange);
 
-    if (socket.connected) {
-      socket.emit("get_online_users");
-    }
-    // Polling status online agar Admin ↔ User saling lihat live (sebelumnya hanya sekali saat mount)
-    const presenceInterval = setInterval(() => {
-      if (socket.connected) socket.emit("get_online_users");
-    }, 10000);
-    const handleSocketReconnect = () => {
+    const requestPresence = () => {
       if (socket.connected) socket.emit("get_online_users");
     };
+
+    // Minta snapshot segera saat halaman/socket aktif dan setiap reconnect.
+    requestPresence();
+    const handleSocketReconnect = () => requestPresence();
+    const handleSocketDisconnect = () => {
+      // Jangan menunggu pindah halaman: jika koneksi socket user putus,
+      // refresh snapshot ketika koneksi kembali agar status admin langsung akurat.
+      setIsAdminTyping(false);
+    };
+    socket.on("connect", handleSocketReconnect);
+    socket.on("disconnect", handleSocketDisconnect);
     window.addEventListener("socket-connected", handleSocketReconnect);
+
+    // Fallback ringan berbasis socket (bukan HTTP polling), untuk menangani
+    // event presence yang terlewat saat koneksi sempat reconnect.
+    const presenceInterval = setInterval(requestPresence, 3000);
 
     return () => {
       clearInterval(presenceInterval);
+      socket.off("connect", handleSocketReconnect);
+      socket.off("disconnect", handleSocketDisconnect);
       window.removeEventListener("socket-connected", handleSocketReconnect);
       socket.off("new_message", handleNewMessage);
       socket.off("messages_read", handleMessagesRead);
