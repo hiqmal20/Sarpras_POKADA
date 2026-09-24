@@ -407,8 +407,10 @@ export default function MessagesPage() {
     };
 
     const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
-      const ids = Array.isArray(data) ? data : data?.onlineUserIds || [];
-      setOnlineUserIds(new Set(ids.map(String)));
+      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || [])
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== "undefined" && id !== "null");
+      setOnlineUserIds(new Set(ids));
       if (!Array.isArray(data) && data?.lastSeenMap) {
         setLastSeenMap((prev) => ({ ...prev, ...data.lastSeenMap }));
       }
@@ -467,7 +469,9 @@ export default function MessagesPage() {
     const handlePresenceSnapshot = (users: { userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
         // Replace (bukan merge) agar user yang sudah offline tidak nyangkut online
-        const ids = users.map((u) => String(u.userId || u.id)).filter(Boolean);
+        const ids = users
+          .map((u) => String(u.userId || u.id || "").trim())
+          .filter((id) => id && id !== "undefined" && id !== "null");
         setOnlineUserIds(new Set(ids));
       }
     };
@@ -551,9 +555,13 @@ export default function MessagesPage() {
     // Initial check online users & fallback sync ringan.
     requestOnlineUsers();
     const onlineInterval = setInterval(requestOnlineUsers, 3000);
+    // Refresh daftar percakapan hanya untuk user baru; jangan gunakan hasilnya
+    // untuk menimpa presence realtime yang sudah diterima dari socket.
+    const chatListInterval = setInterval(() => fetchChats(true), 30000);
 
     return () => {
       clearInterval(onlineInterval);
+      clearInterval(chatListInterval);
       socket.off("connect", handleSocketReconnect);
       socket.off("disconnect", handleSocketDisconnect);
       socket.off("new_message", handleNewMessage);
