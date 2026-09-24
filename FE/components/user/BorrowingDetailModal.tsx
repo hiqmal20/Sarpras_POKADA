@@ -17,14 +17,20 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
 
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage();
+  const tr = (k: string, fb: string) => {
+    const v = t(k, fb);
+    return v === k ? fb : v;
+  };
   const s = (status || "").toLowerCase();
   if (s.includes("pending") || s.includes("menunggu") || s.includes("validasi")) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-700 border border-amber-200">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-        Perlu Divalidasi
+        {tr("modal.st_need_validate", "Perlu Divalidasi")}
       </span>
     );
   }
@@ -32,7 +38,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700 border border-sky-200">
         <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
-        Sedang Dipinjam
+        {tr("modal.st_borrowed", "Sedang Dipinjam")}
       </span>
     );
   }
@@ -40,7 +46,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-600 border border-red-200">
         <AlertTriangle className="w-3 h-3" />
-        Terlambat
+        {tr("modal.st_late", "Terlambat")}
       </span>
     );
   }
@@ -48,7 +54,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
         <Check className="w-3 h-3" />
-        Selesai
+        {tr("modal.st_done", "Selesai")}
       </span>
     );
   }
@@ -56,7 +62,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
         <Check className="w-3 h-3" />
-        Disetujui
+        {tr("modal.st_approved", "Disetujui")}
       </span>
     );
   }
@@ -64,7 +70,7 @@ function StatusBadge({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-600 border border-rose-200">
         <X className="w-3 h-3" />
-        Ditolak
+        {tr("modal.st_rejected", "Ditolak")}
       </span>
     );
   }
@@ -76,13 +82,18 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function Stepper({ status }: { status: string }) {
+  const { t } = useLanguage();
+  const tr = (k: string, fb: string) => {
+    const v = t(k, fb);
+    return v === k ? fb : v;
+  };
   const s = (status || "").toLowerCase();
   const rejected = s.includes("tolak") || s.includes("batal") || s.includes("rejected");
   if (rejected) {
     return (
       <div className="mt-3 flex items-center gap-2 rounded-xl bg-rose-50 border border-rose-100 px-3 py-2">
         <X className="w-4 h-4 text-rose-500 shrink-0" />
-        <p className="text-[11px] font-semibold text-rose-600">Pengajuan ditolak / dibatalkan. Hubungi admin untuk info lanjut.</p>
+        <p className="text-[11px] font-semibold text-rose-600">{tr("modal.rejected_note", "Pengajuan ditolak / dibatalkan. Hubungi admin untuk info lanjut.")}</p>
       </div>
     );
   }
@@ -91,9 +102,9 @@ function Stepper({ status }: { status: string }) {
   if (s.includes("kembali") || s.includes("selesai") || s.includes("completed") || s.includes("returned") || s.includes("dikembalikan")) step = 2;
 
   const steps = [
-    { label: "Diajukan", icon: FileText },
-    { label: "Dipinjam", icon: Package },
-    { label: "Selesai", icon: CheckCircle2 },
+    { key: "modal.step_submitted", fallback: "Diajukan", icon: FileText },
+    { key: "modal.step_borrowed", fallback: "Dipinjam", icon: Package },
+    { key: "modal.step_done", fallback: "Selesai", icon: CheckCircle2 },
   ];
   return (
     <div className="mt-3 flex items-center">
@@ -101,8 +112,9 @@ function Stepper({ status }: { status: string }) {
         const Icon = st.icon;
         const done = i <= step;
         const current = i === step;
+        const label = tr(st.key, st.fallback);
         return (
-          <div key={st.label} className="flex items-center flex-1 last:flex-none">
+          <div key={st.key} className="flex items-center flex-1 last:flex-none">
             <div className="flex items-center gap-1.5">
               <div
                 className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors ${
@@ -112,7 +124,7 @@ function Stepper({ status }: { status: string }) {
                 <Icon className="w-3 h-3" />
               </div>
               <span className={`text-[10px] font-bold whitespace-nowrap ${done ? "text-slate-800" : "text-slate-400"}`}>
-                {st.label}
+                {label}
               </span>
             </div>
             {i < steps.length - 1 && (
@@ -125,9 +137,9 @@ function Stepper({ status }: { status: string }) {
   );
 }
 
-const fmtDateTime = (v?: string) =>
+const fmtDateTime = (v?: string, locale: string = "id-ID") =>
   v
-    ? new Date(v).toLocaleString("id-ID", {
+    ? new Date(v).toLocaleString(locale, {
         day: "numeric",
         month: "numeric",
         year: "numeric",
@@ -136,9 +148,9 @@ const fmtDateTime = (v?: string) =>
       })
     : "-";
 
-const fmtDate = (v?: string) =>
+const fmtDate = (v?: string, locale: string = "id-ID") =>
   v
-    ? new Date(v).toLocaleDateString("id-ID", {
+    ? new Date(v).toLocaleDateString(locale, {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -152,6 +164,12 @@ interface Props {
 
 export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
   const router = useRouter();
+  const { t, lang } = useLanguage();
+  const tr = (k: string, fb: string) => {
+    const v = t(k, fb);
+    return v === k ? fb : v;
+  };
+  const locale = lang === "en" ? "en-US" : "id-ID";
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -196,10 +214,17 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
 
   const rows = data?.borrowings_items || data?.borrowing_items || [];
   const borrower = data?.users || data?.user || {};
-  const borrowerName = borrower.name || borrower.full_name || data?.borrower_name || "Saya";
+  const meLabel = lang === "en" ? "Me" : "Saya";
+  const borrowerName = borrower.name || borrower.full_name || data?.borrower_name || meLabel;
   const borrowerEmail = borrower.email || data?.borrower_email || "-";
   const borrowerPhone = borrower.no_hp || borrower.phone || data?.borrower_phone || "-";
-  const borrowerRole = borrower.role || data?.borrower_role || "Peminjam";
+  const rawRole = String(borrower.role || data?.borrower_role || "");
+  const borrowerRole =
+    rawRole === "Admin"
+      ? tr("profile.role_admin", "Administrator")
+      : rawRole === "Petugas"
+        ? tr("profile.role_staff", "Petugas")
+        : rawRole || tr("profile.role_borrower", "Peminjam");
   const borrowerFoto = borrower.foto || data?.borrower_foto || null;
   const initials = String(borrowerName).split(" ").filter(Boolean).map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
@@ -221,16 +246,16 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                 <Package className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-extrabold text-white text-[15px] leading-tight tracking-tight">Detail Peminjaman</h3>
+                <h3 className="font-extrabold text-white text-[15px] leading-tight tracking-tight">{tr("modal.detail_title", "Detail Peminjaman")}</h3>
                 <span className="mt-1 inline-flex items-center px-2 py-0.5 rounded-full bg-black/20 border border-white/15 text-[11px] font-mono text-white/90 truncate max-w-[220px] sm:max-w-none">
-                  {data?.borrow_code || "Memuat..."}
+                  {data?.borrow_code || tr("modal.loading_detail", "Memuat...")}
                 </span>
               </div>
             </div>
             <button
               onClick={onClose}
               className="p-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors cursor-pointer shrink-0"
-              aria-label="Tutup"
+              aria-label={tr("modal.close", "Tutup")}
             >
               <X className="w-4 h-4" />
             </button>
@@ -241,13 +266,13 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
           {loading ? (
             <div className="bg-white rounded-2xl shadow-lg border border-slate-100 py-14 text-center">
               <Loader2 className="w-7 h-7 animate-spin text-[#0785BC] mx-auto" />
-              <p className="text-xs text-slate-400 mt-3 font-medium">Memuat detail peminjaman...</p>
+              <p className="text-xs text-slate-400 mt-3 font-medium">{tr("modal.loading", "Memuat detail peminjaman...")}</p>
             </div>
           ) : !data ? (
             <div className="bg-white rounded-2xl shadow-lg border border-slate-100 py-14 text-center">
               <AlertTriangle className="w-7 h-7 mx-auto text-slate-300" />
-              <p className="text-sm font-bold text-slate-700 mt-3">Detail tidak ditemukan</p>
-              <p className="text-xs text-slate-400 mt-1">Data peminjaman tidak tersedia.</p>
+              <p className="text-sm font-bold text-slate-700 mt-3">{tr("modal.not_found", "Detail tidak ditemukan")}</p>
+              <p className="text-xs text-slate-400 mt-1">{tr("modal.not_found_sub", "Data peminjaman tidak tersedia.")}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -255,8 +280,8 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                 <div className="flex items-center justify-between gap-3">
                   <StatusBadge status={data.status} />
                   <div className="text-right">
-                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Dibuat</p>
-                    <p className="text-xs font-bold text-slate-700 tabular-nums mt-0.5">{fmtDateTime(data.created_at)}</p>
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{tr("modal.created", "Dibuat")}</p>
+                    <p className="text-xs font-bold text-slate-700 tabular-nums mt-0.5">{fmtDateTime(data.created_at, locale)}</p>
                   </div>
                 </div>
                 <Stepper status={data.status} />
@@ -281,14 +306,14 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                   <div className="px-4 py-3 border-r border-slate-50">
                     <div className="flex items-center gap-1.5 text-slate-400">
                       <User className="w-3 h-3" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider">Nama</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider">{tr("modal.name", "Nama")}</p>
                     </div>
                     <p className="text-xs font-bold text-slate-800 mt-1 truncate">{borrowerName}</p>
                   </div>
                   <div className="px-4 py-3">
                     <div className="flex items-center gap-1.5 text-slate-400">
                       <Clock className="w-3 h-3" />
-                      <p className="text-[10px] font-bold uppercase tracking-wider">Telepon</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider">{tr("modal.phone", "Telepon")}</p>
                     </div>
                     <p className="text-xs font-bold text-slate-800 mt-1">{borrowerPhone}</p>
                   </div>
@@ -302,8 +327,8 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                       <Calendar className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold text-slate-400 leading-none">Pinjam</p>
-                      <p className="text-xs font-extrabold text-slate-800 mt-1">{fmtDate(data.borrow_date)}</p>
+                      <p className="text-[10px] font-semibold text-slate-400 leading-none">{tr("modal.borrow", "Pinjam")}</p>
+                      <p className="text-xs font-extrabold text-slate-800 mt-1">{fmtDate(data.borrow_date, locale)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100/70 p-2.5">
@@ -311,21 +336,21 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                       <RotateCcw className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold text-slate-400 leading-none">Kembali</p>
+                      <p className="text-[10px] font-semibold text-slate-400 leading-none">{tr("modal.return", "Kembali")}</p>
                       <p className="text-xs font-extrabold text-slate-800 mt-1">
-                        {fmtDate(data.planned_return_date || data.return_date || data.actual_return_date)}
+                        {fmtDate(data.planned_return_date || data.return_date || data.actual_return_date, locale)}
                       </p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-2.5 rounded-xl bg-slate-50 border border-slate-100 p-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tujuan / Keperluan</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{tr("modal.purpose", "Tujuan / Keperluan")}</p>
                   <p className="text-xs text-slate-700 mt-1 leading-relaxed whitespace-pre-wrap">{data.purpose || "-"}</p>
                   {data.admin_note && (
                     <div className="mt-2 pt-2 border-t border-slate-200/70 flex gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#0785BC] shrink-0 mt-0.5" />
                       <p className="text-[11px] text-slate-600 leading-relaxed">
-                        <span className="font-bold">Respon admin: </span>{data.admin_note}
+                        <span className="font-bold">{tr("modal.admin_response", "Respon admin:")} </span>{data.admin_note}
                       </p>
                     </div>
                   )}
@@ -335,10 +360,10 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
               <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
                 <div className="flex items-center justify-between mb-2.5">
                   <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                    <Package className="w-3.5 h-3.5 text-[#0785BC]" /> Isi Pinjaman
+                    <Package className="w-3.5 h-3.5 text-[#0785BC]" /> {tr("modal.items", "Isi Pinjaman")}
                   </p>
                   <span className="px-2 py-0.5 rounded-full bg-[#0785BC]/10 text-[#0785BC] text-[10px] font-extrabold">
-                    {rows.length} item
+                    {rows.length} {tr("modal.item", "item")}
                   </span>
                 </div>
                 <div className="space-y-2">
@@ -353,7 +378,7 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-800 truncate">{it.items?.name || "Barang"}</p>
+                          <p className="text-xs font-bold text-slate-800 truncate">{it.items?.name || tr("damage.item_fallback", "Barang")}</p>
                           <p className="text-[10px] text-slate-400 font-mono truncate">{it.items?.code || it.item_id}</p>
                         </div>
                         <span className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-extrabold text-slate-700 shrink-0 shadow-sm">
@@ -362,12 +387,12 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
                       </div>
                     ))
                   ) : (
-                    <p className="text-[11px] text-slate-400 text-center py-3">Tidak ada rincian barang</p>
+                    <p className="text-[11px] text-slate-400 text-center py-3">{tr("modal.no_items", "Tidak ada rincian barang")}</p>
                   )}
                 </div>
                 <div className="mt-2.5 flex items-start gap-1.5 text-[10px] text-slate-400 leading-relaxed">
                   <FileText className="w-3 h-3 mt-0.5 shrink-0" />
-                  <span>Status & info di atas sama dengan data admin, diperbarui otomatis.</span>
+                  <span>{tr("modal.sync_note", "Status & info di atas sama dengan data admin, diperbarui otomatis.")}</span>
                 </div>
               </div>
             </div>
@@ -379,7 +404,7 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
             onClick={onClose}
             className="px-3 py-2 text-[13px] font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
           >
-            Tutup
+            {tr("modal.close", "Tutup")}
           </button>
           {data && (
             <button
@@ -389,7 +414,7 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
               }}
               className="inline-flex items-center gap-1.5 pl-4 pr-3 py-2.5 text-[13px] font-extrabold text-white bg-gradient-to-r from-[#0785BC] to-[#0aa5e0] hover:brightness-110 rounded-xl shadow-[0_6px_16px_-6px_rgba(7,133,188,0.6)] transition-all active:scale-95 cursor-pointer"
             >
-              Buka Detail Lengkap <ArrowRight className="w-4 h-4" />
+              {tr("modal.open_full", "Buka Detail Lengkap")} <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>

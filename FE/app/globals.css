@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #0f172a;
@@ -7,6 +9,23 @@
   --primary-hover: #066d9b;
   --primary-dark: #064E70;
   --primary-light: #e6f4fa;
+  --surface: #eef2f9;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
+}
+
+.dark {
+  --background: #0b1220;
+  --foreground: #e2e8f0;
+  --primary: #22a7dd;
+  --primary-hover: #0785BC;
+  --primary-dark: #0B3B60;
+  --primary-light: #0e2a3d;
+  --surface: #0b1220;
+  --card: #111c30;
+  --border: #1e293b;
+  --muted: #94a3b8;
 }
 
 @theme inline {
@@ -142,6 +161,155 @@ input, button, select, textarea {
     linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* ── Dark-mode mapping for legacy light UI (all user pages) ──
+   Uses substring selectors so opacity variants like bg-white/95,
+   border-slate-200/70, bg-blue-50/50 are all caught. */
+.dark body {
+  background: var(--background);
+  color: var(--foreground);
+}
+/* ---- white surfaces → dark card; low-opacity overlays stay translucent ----
+   (solid badges like bg-white/95 become cards, gradient decor like
+   bg-white/10 stays a light veil) */
+.dark [class*="bg-white"]:not([class*="bg-white/"]) { background-color: var(--card) !important; }
+.dark [class*="bg-white/"] { background-color: rgba(255, 255, 255, 0.12) !important; }
+.dark :is([class*="bg-white/6"], [class*="bg-white/7"], [class*="bg-white/8"], [class*="bg-white/9"]) {
+  background-color: var(--card) !important;
+}
+/* ---- neutral soft surfaces → subtle white wash ---- */
+.dark [class*="bg-slate-50"],
+.dark [class*="bg-slate-100"],
+.dark [class*="bg-gray-50"],
+.dark [class*="bg-gray-100"],
+.dark [class*="bg-neutral-50"],
+.dark [class*="bg-neutral-100"] { background-color: rgba(255, 255, 255, 0.04) !important; }
+.dark [class*="bg-slate-200"],
+.dark [class*="bg-gray-200"] { background-color: rgba(255, 255, 255, 0.08) !important; }
+/* ---- pastel status backgrounds → dark tinted ---- */
+.dark [class*="bg-blue-50"],
+.dark [class*="bg-sky-50"],
+.dark [class*="bg-cyan-50"] { background-color: rgba(7, 133, 188, 0.14) !important; }
+.dark [class*="bg-emerald-50"],
+.dark [class*="bg-teal-50"],
+.dark [class*="bg-green-50"] { background-color: rgba(16, 185, 129, 0.12) !important; }
+.dark [class*="bg-amber-50"],
+.dark [class*="bg-yellow-50"],
+.dark [class*="bg-orange-50"] { background-color: rgba(245, 158, 11, 0.13) !important; }
+.dark [class*="bg-rose-50"],
+.dark [class*="bg-red-50"],
+.dark [class*="bg-pink-50"] { background-color: rgba(244, 63, 94, 0.12) !important; }
+.dark [class*="bg-violet-50"],
+.dark [class*="bg-indigo-50"],
+.dark [class*="bg-purple-50"] { background-color: rgba(139, 92, 246, 0.13) !important; }
+/* -100 solid badges → slightly stronger tint */
+.dark [class*="bg-blue-100"],
+.dark [class*="bg-sky-100"] { background-color: rgba(7, 133, 188, 0.2) !important; }
+.dark [class*="bg-emerald-100"],
+.dark [class*="bg-green-100"] { background-color: rgba(16, 185, 129, 0.18) !important; }
+.dark [class*="bg-amber-100"],
+.dark [class*="bg-yellow-100"] { background-color: rgba(245, 158, 11, 0.19) !important; }
+.dark [class*="bg-rose-100"],
+.dark [class*="bg-red-100"] { background-color: rgba(244, 63, 94, 0.18) !important; }
+.dark [class*="bg-indigo-100"],
+.dark [class*="bg-violet-100"],
+.dark [class*="bg-purple-100"] { background-color: rgba(139, 92, 246, 0.19) !important; }
+/* brand tint */
+.dark [class*="bg-[#0785BC]/10"],
+.dark [class*="bg-[#0785BC]/5"] { background-color: rgba(34, 167, 221, 0.14) !important; }
+/* app canvases (solid only — no opacity variants exist) */
+.dark [class*="bg-[#f8faff]"],
+.dark [class*="bg-[#eef2f9]"],
+.dark [class*="bg-[#f4f7fb]"] { background-color: #0b1220 !important; }
+/* solid dark panels — exact match only so /25 /80 overlays stay translucent */
+.dark .bg-slate-900 { background-color: #111c30 !important; }
+.dark [class*="bg-slate-900/"] { background-color: rgba(17, 28, 48, 0.55) !important; }
+.dark [class*="bg-slate-950/"] { background-color: rgba(2, 6, 23, 0.6) !important; }
+/* hover / focus states that would flash white in dark */
+.dark [class*="hover:bg-slate-50"]:hover { background-color: rgba(255, 255, 255, 0.06) !important; }
+.dark [class*="hover:bg-slate-100"]:hover { background-color: rgba(255, 255, 255, 0.08) !important; }
+.dark [class*="hover:bg-blue-50"]:hover { background-color: rgba(7, 133, 188, 0.16) !important; }
+.dark [class*="focus:bg-white"]:focus,
+.dark [class*="focus-within:bg-white"]:focus-within { background-color: #16233d !important; }
+.dark [class*="hover:text-slate-600"]:hover,
+.dark [class*="hover:text-slate-700"]:hover { color: #e2e8f0 !important; }
+.dark [class*="hover:border-slate-300"]:hover { border-color: #334155 !important; }
+/* ---- text → light in dark (substring catches opacity + hover:/placeholder: variants) ---- */
+.dark [class*="text-slate-900"],
+.dark [class*="text-slate-800"],
+.dark [class*="text-gray-900"],
+.dark [class*="text-neutral-900"],
+.dark [class*="text-stone-900"] { color: #e8eef7 !important; }
+.dark [class*="text-slate-700"],
+.dark [class*="text-gray-700"] { color: #cbd5e1 !important; }
+.dark [class*="text-slate-600"],
+.dark [class*="text-gray-600"] { color: #b6c2d6 !important; }
+.dark [class*="text-slate-500"],
+.dark [class*="text-slate-400"],
+.dark [class*="text-gray-500"],
+.dark [class*="text-gray-400"] { color: #94a3b8 !important; }
+/* status text tints → readable pastels */
+.dark [class*="text-emerald-"],
+.dark [class*="text-teal-"],
+.dark [class*="text-green-"] { color: #6ee7b7 !important; }
+.dark [class*="text-rose-"],
+.dark [class*="text-red-"],
+.dark [class*="text-pink-"] { color: #fda4af !important; }
+.dark [class*="text-amber-"],
+.dark [class*="text-yellow-"],
+.dark [class*="text-orange-"] { color: #fcd34d !important; }
+.dark [class*="text-blue-"],
+.dark [class*="text-sky-"],
+.dark [class*="text-cyan-"],
+.dark [class*="text-indigo-"],
+.dark [class*="text-violet-"],
+.dark [class*="text-purple-"] { color: #a5c4ff !important; }
+.dark [class*="text-[#0785BC]"] { color: #38bdf8 !important; }
+/* ---- borders → dark (substring catches /70 opacity + hover: variants) ---- */
+.dark [class*="border-slate-"],
+.dark [class*="border-gray-"],
+.dark [class*="border-neutral-"],
+.dark [class*="border-stone-"] { border-color: #1e293b !important; }
+.dark [class*="border-blue-"],
+.dark [class*="border-sky-"],
+.dark [class*="border-cyan-"],
+.dark [class*="border-emerald-"],
+.dark [class*="border-teal-"],
+.dark [class*="border-green-"],
+.dark [class*="border-amber-"],
+.dark [class*="border-yellow-"],
+.dark [class*="border-orange-"],
+.dark [class*="border-rose-"],
+.dark [class*="border-red-"],
+.dark [class*="border-pink-"],
+.dark [class*="border-violet-"],
+.dark [class*="border-indigo-"],
+.dark [class*="border-purple-"] { border-color: rgba(255, 255, 255, 0.1) !important; }
+.dark [class*="divide-slate-"] > :not([hidden]) ~ :not([hidden]),
+.dark [class*="divide-gray-"] > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b !important; }
+.dark [class*="ring-slate-"] { --tw-ring-color: #1e293b !important; }
+/* NOTE: border-white/* on brand gradients intentionally untouched */
+/* forms */
+.dark input, .dark select, .dark textarea {
+  color-scheme: dark;
+}
+.dark input::placeholder, .dark textarea::placeholder {
+  color: #64748b !important;
+}
+.dark select option {
+  background-color: #111c30;
+  color: #e2e8f0;
+}
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.7);
+}
+/* soft shadows become subtle in dark */
+.dark .shadow-sm, .dark .shadow-xs, .dark .shadow-md {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+/* image placeholder icons stay visible */
+.dark .text-slate-200 { color: #334155 !important; }
+.dark .text-slate-300 { color: #475569 !important; }
 
 /* Custom sleek slim scrollbar for desktop app & dashboard feel */
 ::-webkit-scrollbar {

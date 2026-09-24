@@ -75,7 +75,11 @@ exports.markAsRead = async (req, res, next) => {
     await chatService.markChatAsRead(req.params.chatId, req.user.id, req.user.role);
     const io = req.app.get('io');
     if (io) {
-      io.to(req.params.chatId).emit('messages_read', {
+      // Kecualikan socket milik pembaca agar tidak echo ke dirinya sendiri
+      // (echo inilah yang bikin ceklis 2 balik jadi 1 saat sinkronisasi ulang).
+      const onlineUsers = req.app.get('onlineUsers');
+      const readerSockets = onlineUsers ? Array.from(onlineUsers.get(req.user.id) || []) : [];
+      io.to(req.params.chatId).except(readerSockets).emit('messages_read', {
         chatId: req.params.chatId,
         readBy: req.user.id,
         timestamp: new Date().toISOString()

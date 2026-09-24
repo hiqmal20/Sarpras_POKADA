@@ -236,9 +236,15 @@ export default function MessagesPage() {
 
           setMessages((prev) => {
             if (msgs.length === 0 && prev.length === 0) return prev;
+            // Pertahankan status dibaca (read) agar tidak revert false saat polling race (cegah flicker 2→1)
+            const merged = msgs.map((m) => {
+              const existing = prev.find((p) => p.id === m.id);
+              if (existing?.isRead && !m.isRead) return { ...m, isRead: true };
+              return m;
+            });
             const hasChanged =
-              msgs.length !== prev.length ||
-              msgs.some(
+              merged.length !== prev.length ||
+              merged.some(
                 (m, idx) =>
                   !prev[idx] ||
                   prev[idx].id !== m.id ||
@@ -247,9 +253,9 @@ export default function MessagesPage() {
               );
             if (!hasChanged) return prev;
             const tempMsgs = prev.filter(
-              (p) => p.id.startsWith("temp-") && !msgs.some((m) => m.text === p.text)
+              (p) => p.id.startsWith("temp-") && !merged.some((m) => m.text === p.text)
             );
-            return [...msgs, ...tempMsgs];
+            return [...merged, ...tempMsgs];
           });
 
           if (isInitial) {
@@ -383,7 +389,13 @@ export default function MessagesPage() {
       }
     };
 
-    const handleMessagesRead = (data: { chatId: string }) => {
+    const handleMessagesRead = (data: { chatId: string; readBy?: string }) => {
+      // Abaikan echo dari diri sendiri (pengaman lapis kedua setelah BE memakai
+      // socket.to / except): event ini hanya valid bila readBy = lawan bicara.
+      // Tanpa ini, pesan milik admin ikut ditandai dibaca lalu dikoreksi saat
+      // sinkronisasi DB → terlihat seperti flicker ceklis 2 → 1.
+      const me = String(getCurrentUser()?.id || "");
+      if (data.readBy && me && String(data.readBy) === me) return;
       setConversations((prev) =>
         prev.map((c) => (c.id === data.chatId ? { ...c, unread: false } : c))
       );
@@ -456,8 +468,9 @@ export default function MessagesPage() {
 
     const handlePresenceSnapshot = (users: { userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
+        // Replace (bukan merge) agar user yang sudah offline tidak nyangkut online
         const ids = users.map((u) => String(u.userId || u.id)).filter(Boolean);
-        setOnlineUserIds((prev) => new Set([...prev, ...ids]));
+        setOnlineUserIds(new Set(ids));
       }
     };
 
@@ -810,9 +823,9 @@ export default function MessagesPage() {
                       )}
                       <span
                         className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
-                          onlineUserIds.has(conv.userId) ? "bg-emerald-500 ring-emerald-100" : "bg-slate-300 ring-slate-100"
+                          onlineUserIds.has(conv.userId) ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" : "bg-slate-300"
                         }`}
-                        title={onlineUserIds.has(conv.userId) ? "Online" : "Offline"}
+                        title={onlineUserIds.has(conv.userId) ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(lastSeenMap[conv.userId] || conv.lastSeen || null, false).text}`}
                       />
                     </div>
 
@@ -883,8 +896,9 @@ export default function MessagesPage() {
                   )}
                   <span
                     className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
-                      onlineUserIds.has(selectedConversation.userId) ? "bg-emerald-500 ring-emerald-100" : "bg-slate-300 ring-slate-100"
+                      onlineUserIds.has(selectedConversation.userId) ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" : "bg-slate-300"
                     }`}
+                    title={onlineUserIds.has(selectedConversation.userId) ? "Online" : "Offline"}
                   />
                 </div>
                 <div>
@@ -893,12 +907,17 @@ export default function MessagesPage() {
                     {(() => {
                       const isOnline = onlineUserIds.has(selectedConversation.userId);
                       return isOnline ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        <span
+                          title="Pengguna sedang online — pesan akan langsung terkirim"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
                           Online
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200"
+                        >
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                           Offline
                         </span>
@@ -1050,13 +1069,31 @@ export default function MessagesPage() {
                           >
                             <span>{msg.timestamp}</span>
                             {msg.senderRole === "admin" && (
-                              <span title={msg.isRead ? "Dibaca" : "Terkirim"}>
-                                {msg.isRead ? (
-                                  <CheckCheck className="w-3.5 h-3.5 text-cyan-200 stroke-[2.5]" />
-                                ) : (
-                                  <Check className="w-3.5 h-3.5 text-sky-200/80 stroke-[2]" />
-                                )}
-                              </span>
+                              (() => {
+                                const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
+                                // Fixed: tick tidak lagi bergantung pada peerOnline agar tidak flicker 2→1 saat status online berubah
+                                const tick = msg.isRead ? "read" : isTemp ? "sent" : "delivered";
+                                return (
+                                  <span
+                                    className="transition-colors duration-200"
+                                    title={
+                                      tick === "read"
+                                        ? "Dibaca oleh pengguna ✓✓"
+                                        : tick === "delivered"
+                                          ? "Terkirim ke pengguna ✓✓"
+                                          : "Terkirim ✓"
+                                    }
+                                  >
+                                    {tick === "read" ? (
+                                      <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
+                                    ) : tick === "delivered" ? (
+                                      <CheckCheck className="w-3.5 h-3.5 text-sky-100/90 stroke-[2]" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5 text-sky-100/70 stroke-[2]" />
+                                    )}
+                                  </span>
+                                );
+                              })()
                             )}
                           </div>
                         </div>

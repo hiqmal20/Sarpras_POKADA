@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { useLanguage } from "@/lib/i18n";
 
 interface NavGroup {
   title: string;
@@ -30,46 +31,47 @@ interface NavGroup {
   }>;
 }
 
-const navGroups: NavGroup[] = [
-  {
-    title: "Menu Utama",
-    items: [
-      { href: "/admin/dashboard_admin", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/admin/messages", label: "Pesan & Live Chat", icon: MessageSquare, isMessages: true },
-    ],
-  },
-  {
-    title: "Inventaris & Aset",
-    items: [
-      { href: "/admin/barang", label: "Barang Per Item", icon: Box },
-      { href: "/admin/paket", label: "Paket Barang", icon: Package },
-      { href: "/admin/kategori_barang", label: "Kategori Barang", icon: Tag },
-    ],
-  },
-  {
-    title: "Operasional Sarpras",
-    items: [
-      { href: "/admin/manajemen_peminjaman", label: "Peminjaman", icon: BookOpen },
-      { href: "/admin/pengembalian", label: "Pengembalian", icon: RotateCcw },
-      { href: "/admin/rekap_laporan", label: "Laporan Kerusakan", icon: AlertTriangle },
-    ],
-  },
-  {
-    title: "Administrasi Sistem",
-    items: [
-      { href: "/admin/manajemen_user", label: "Manajemen User", icon: Users },
-      { href: "/admin/settings", label: "Pengaturan Sistem", icon: Settings },
-    ],
-  },
-];
-
 interface SidebarProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
 }
 
 export default function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
+  const { t } = useLanguage();
   const pathname = usePathname();
+
+  const navGroups: NavGroup[] = [
+    {
+      title: t("admin.nav.main", "Menu Utama"),
+      items: [
+        { href: "/admin/dashboard_admin", label: t("admin.nav.dashboard", "Dashboard"), icon: LayoutDashboard },
+        { href: "/admin/messages", label: t("admin.nav.messages", "Pesan & Live Chat"), icon: MessageSquare, isMessages: true },
+      ],
+    },
+    {
+      title: t("admin.nav.inventory", "Inventaris & Aset"),
+      items: [
+        { href: "/admin/barang", label: t("admin.nav.items", "Barang Per Item"), icon: Box },
+        { href: "/admin/paket", label: t("admin.nav.packages", "Paket Barang"), icon: Package },
+        { href: "/admin/kategori_barang", label: t("admin.nav.categories", "Kategori Barang"), icon: Tag },
+      ],
+    },
+    {
+      title: t("admin.nav.operations", "Operasional Sarpras"),
+      items: [
+        { href: "/admin/manajemen_peminjaman", label: t("admin.nav.borrowing", "Peminjaman"), icon: BookOpen },
+        { href: "/admin/pengembalian", label: t("admin.nav.returns", "Pengembalian"), icon: RotateCcw },
+        { href: "/admin/rekap_laporan", label: t("admin.nav.damage", "Laporan Kerusakan"), icon: AlertTriangle },
+      ],
+    },
+    {
+      title: t("admin.nav.system", "Administrasi Sistem"),
+      items: [
+        { href: "/admin/manajemen_user", label: t("admin.nav.users", "Manajemen User"), icon: Users },
+        { href: "/admin/settings", label: t("admin.nav.settings", "Pengaturan Sistem"), icon: Settings },
+      ],
+    },
+  ];
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [unreadMsgCount, setUnreadMsgCount] = useState<number>(0);
 
@@ -176,7 +178,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
           className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
             collapsed ? "hidden" : "block"
           }`}
-          title="Kecilkan Sidebar"
+          title={t("admin.nav.collapse", "Kecilkan Sidebar")}
         >
           <PanelLeftClose className="w-4 h-4" />
         </button>
@@ -188,7 +190,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
           <button
             onClick={onToggleCollapse}
             className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-slate-50 transition-colors"
-            title="Perluas Sidebar"
+            title={t("admin.nav.expand", "Perluas Sidebar")}
           >
             <PanelLeft className="w-4 h-4 text-[#0785BC]" />
           </button>
@@ -257,7 +259,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
           className={`flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white hover:shadow-2xs transition-all ${
             collapsed ? "justify-center" : ""
           }`}
-          title={collapsed ? displayName : "Buka Profil Saya"}
+          title={collapsed ? displayName : t("admin.nav.open_profile", "Buka Profil Saya")}
         >
           <div className="relative shrink-0">
             {currentUser?.foto ? (
@@ -278,7 +280,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
             <div className="flex-1 min-w-0">
               <p className="text-xs font-bold text-slate-800 truncate leading-snug">{displayName}</p>
               <p className="text-[10px] text-slate-400 truncate">
-                {currentUser?.role === "Admin" ? "Administrator Sarpras" : "Petugas Laboratorium"}
+                {currentUser?.role === "Admin" ? t("admin.nav.role_admin", "Administrator Sarpras") : t("admin.nav.role_staff", "Petugas Laboratorium")}
               </p>
             </div>
           )}

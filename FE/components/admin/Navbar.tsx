@@ -13,12 +13,17 @@ import {
   AlertTriangle,
   RotateCcw,
   ChevronRight,
+  Languages,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
 import { getNotificationTargetUrl, getNotificationActionLabel } from "@/lib/notificationHelper";
+import { useLanguage } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 
 interface NavbarProps {
   showSearch?: boolean;
@@ -39,26 +44,16 @@ interface NotificationItem {
   action_url?: string;
 }
 
-const routeBreadcrumbMap: Record<string, { section: string; title: string }> = {
-  "/admin/dashboard_admin": { section: "Menu Utama", title: "Dashboard" },
-  "/admin/messages": { section: "Menu Utama", title: "Pesan & Live Chat" },
-  "/admin/barang": { section: "Inventaris", title: "Barang Per Item" },
-  "/admin/paket": { section: "Inventaris", title: "Paket Barang" },
-  "/admin/kategori_barang": { section: "Inventaris", title: "Kategori Barang" },
-  "/admin/manajemen_peminjaman": { section: "Operasional Sarpras", title: "Peminjaman" },
-  "/admin/pengembalian": { section: "Operasional Sarpras", title: "Pengembalian" },
-  "/admin/rekap_laporan": { section: "Operasional Sarpras", title: "Laporan Kerusakan" },
-  "/admin/manajemen_user": { section: "Administrasi Sistem", title: "Manajemen Pengguna" },
-  "/admin/settings": { section: "Administrasi Sistem", title: "Pengaturan Sistem" },
-  "/admin/profile": { section: "Akun Petugas", title: "Profil Saya" },
-};
+
 
 export default function Navbar({
   showSearch = false,
   searchValue = "",
-  searchPlaceholder = "Cari data sarpras...",
+  searchPlaceholder,
   onSearchChange,
 }: NavbarProps) {
+  const { t, lang, setLang } = useLanguage();
+  const { theme, toggle } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -122,8 +117,8 @@ export default function Navbar({
               read: n.is_read,
               created_at: n.created_at,
               time: n.created_at
-                ? new Date(n.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB"
-                : "Baru saja",
+                ? new Date(n.created_at).toLocaleTimeString(lang === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit" }) + (lang === "en" ? "" : " WIB")
+                : (lang === "en" ? "Just now" : "Baru saja"),
             }))
           );
         }
@@ -207,7 +202,7 @@ export default function Navbar({
   };
 
   const handleLogout = () => {
-    if (confirm("Apakah Anda yakin ingin logout?")) {
+    if (confirm(t("admin.nav.logout_confirm", "Apakah Anda yakin ingin logout?"))) {
       removeAuthToken();
       router.push("/auth/login");
     }
@@ -255,6 +250,20 @@ export default function Navbar({
     .join("")
     .toUpperCase() || "A";
 
+  const routeBreadcrumbMap: Record<string, { section: string; title: string }> = {
+    "/admin/dashboard_admin": { section: t("admin.nav.main", "Menu Utama"), title: t("admin.nav.dashboard", "Dashboard") },
+    "/admin/messages": { section: t("admin.nav.main", "Menu Utama"), title: t("admin.nav.messages", "Pesan & Live Chat") },
+    "/admin/barang": { section: t("admin.nav.inventory", "Inventaris"), title: t("admin.nav.items", "Barang Per Item") },
+    "/admin/paket": { section: t("admin.nav.inventory", "Inventaris"), title: t("admin.nav.packages", "Paket Barang") },
+    "/admin/kategori_barang": { section: t("admin.nav.inventory", "Inventaris"), title: t("admin.nav.categories", "Kategori Barang") },
+    "/admin/manajemen_peminjaman": { section: t("admin.nav.operations", "Operasional Sarpras"), title: t("admin.nav.borrowing", "Peminjaman") },
+    "/admin/pengembalian": { section: t("admin.nav.operations", "Operasional Sarpras"), title: t("admin.nav.returns", "Pengembalian") },
+    "/admin/rekap_laporan": { section: t("admin.nav.operations", "Operasional Sarpras"), title: t("admin.nav.damage", "Laporan Kerusakan") },
+    "/admin/manajemen_user": { section: t("admin.nav.system", "Administrasi Sistem"), title: t("admin.nav.users", "Manajemen Pengguna") },
+    "/admin/settings": { section: t("admin.nav.system", "Administrasi Sistem"), title: t("admin.nav.settings", "Pengaturan Sistem") },
+    "/admin/profile": { section: t("admin.nav.profile", "Profil Saya"), title: t("admin.nav.profile", "Profil Saya") },
+  };
+
   const breadcrumb = routeBreadcrumbMap[pathname] || { section: "Admin", title: "Portal Sarpras" };
 
   return (
@@ -276,7 +285,7 @@ export default function Navbar({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder || t("admin.nav.search_ph", "Cari data sarpras...")}
               value={searchValue}
               onChange={(e) => onSearchChange?.(e.target.value)}
               className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]/20 focus:border-[#0785BC] transition-all text-slate-800 placeholder-slate-400"
@@ -290,8 +299,28 @@ export default function Navbar({
         {/* Status Sistem Kampus */}
         <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-700">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Sistem Aktif</span>
+          <span>{t("admin.nav.sys_active", "Sistem Aktif")}</span>
         </div>
+
+        {/* Language Switcher */}
+        <button
+          onClick={() => setLang(lang === "id" ? "en" : "id")}
+          className="h-8 px-2 rounded-xl text-[11px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 flex items-center gap-1.5 border border-transparent hover:border-slate-200 transition-colors"
+          title="Language / Bahasa"
+        >
+          <Languages className="w-3.5 h-3.5" />
+          {lang.toUpperCase()}
+        </button>
+
+        {/* Theme Switcher */}
+        <button
+          onClick={toggle}
+          className="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+          title={theme === "dark" ? "Mode Terang / Light" : "Mode Gelap / Dark"}
+          aria-label="Toggle theme"
+        >
+          {theme === "dark" ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
+        </button>
 
         {/* Notifications Dropdown */}
         <div className="relative" ref={notifRef}>
@@ -301,7 +330,7 @@ export default function Navbar({
               setShowProfileDropdown(false);
             }}
             className="relative p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-colors"
-            title="Notifikasi"
+            title={t("admin.nav.notif", "Notifikasi")}
           >
             <Bell className="w-4 h-4" />
             {showBadge && unreadCount > 0 && (
@@ -316,10 +345,10 @@ export default function Navbar({
             <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 max-h-[460px] overflow-y-auto animate-scale-in z-50">
               <div className="px-4 py-2.5 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-xs text-slate-900">Notifikasi Sistem</h3>
+                  <h3 className="font-bold text-xs text-slate-900">{t("admin.nav.notif_system", "Notifikasi Sistem")}</h3>
                   {unreadCount > 0 && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-100">
-                      {unreadCount} baru
+                      {unreadCount} {t("admin.nav.new", "baru")}
                     </span>
                   )}
                 </div>
@@ -328,7 +357,7 @@ export default function Navbar({
                     onClick={handleMarkAllAsRead}
                     className="text-xs text-[#0785BC] hover:underline font-semibold"
                   >
-                    Tandai dibaca
+                    {t("admin.nav.mark_all", "Tandai dibaca")}
                   </button>
                 )}
               </div>
@@ -337,7 +366,7 @@ export default function Navbar({
                 {notifications.length === 0 ? (
                   <div className="px-4 py-8 text-center text-slate-400 text-xs">
                     <CheckCircle2 className="w-7 h-7 mx-auto mb-1.5 text-slate-300" />
-                    <p>Tidak ada notifikasi baru</p>
+                    <p>{t("admin.nav.no_notif", "Tidak ada notifikasi baru")}</p>
                   </div>
                 ) : (
                   notifications.map((notif) => (
@@ -362,7 +391,7 @@ export default function Navbar({
                                 handleClearNotification(notif.id);
                               }}
                               className="text-slate-300 hover:text-slate-500 p-0.5 rounded"
-                              title="Hapus notifikasi"
+                              title={t("admin.nav.del_notif", "Hapus notifikasi")}
                             >
                               <X className="w-3.5 h-3.5" />
                             </button>
@@ -373,7 +402,7 @@ export default function Navbar({
                           <div className="flex items-center justify-between mt-1.5 text-[10px]">
                             <span className="text-slate-400">{notif.time}</span>
                             <span className="text-[#0785BC] font-semibold flex items-center gap-0.5 group-hover:underline">
-                              {getNotificationActionLabel(notif.type)} &rarr;
+                              {getNotificationActionLabel(notif.type, lang)} &rarr;
                             </span>
                           </div>
                         </div>
@@ -390,7 +419,7 @@ export default function Navbar({
         <Link
           href="/admin/settings"
           className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-colors"
-          title="Pengaturan"
+          title={t("nav.settings", "Pengaturan")}
         >
           <Settings className="w-4 h-4" />
         </Link>
@@ -418,7 +447,7 @@ export default function Navbar({
             <div className="text-left hidden md:block">
               <p className="text-xs font-bold text-slate-800 leading-none">{displayName}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                {currentUser?.role === "Admin" ? "Administrator" : "Petugas"}
+                {currentUser?.role === "Admin" ? t("profile.role_admin", "Administrator") : t("profile.role_staff", "Petugas")}
               </p>
             </div>
           </button>
@@ -437,7 +466,7 @@ export default function Navbar({
                   className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <User className="w-3.5 h-3.5 text-slate-400" />
-                  Profil Saya
+                  {t("admin.nav.profile", "Profil Saya")}
                 </Link>
 
                 <Link
@@ -446,7 +475,7 @@ export default function Navbar({
                   className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <Settings className="w-3.5 h-3.5 text-slate-400" />
-                  Pengaturan
+                  {t("nav.settings", "Pengaturan")}
                 </Link>
 
                 <Link
@@ -455,7 +484,7 @@ export default function Navbar({
                   className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-slate-50 transition-colors"
                 >
                   <Shield className="w-3.5 h-3.5 text-slate-400" />
-                  Keamanan Akun
+                  {t("admin.nav.security", "Keamanan Akun")}
                 </Link>
               </div>
 
@@ -465,7 +494,7 @@ export default function Navbar({
                   className="flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 transition-colors w-full font-semibold"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  Logout
+                  {t("nav.logout", "Logout")}
                 </button>
               </div>
             </div>

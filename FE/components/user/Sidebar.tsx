@@ -17,45 +17,54 @@ import {
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
+import { useLanguage } from "@/lib/i18n";
 
-interface NavGroup {
-  title: string;
-  items: Array<{
-    href: string;
-    label: string;
-    icon: any;
-    isMessages?: boolean;
-    matchPrefix?: boolean;
-  }>;
+interface NavItem {
+  href: string;
+  labelKey: string;
+  fallback: string;
+  icon: any;
+  isMessages?: boolean;
+  matchPrefix?: boolean;
 }
 
-const navGroups: NavGroup[] = [
+interface NavGroup {
+  titleKey: string;
+  fallback: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Menu Utama",
+    titleKey: "side.main",
+    fallback: "Menu Utama",
     items: [
-      { href: "/user/dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { href: "/user/messages", label: "Pesan Admin", icon: MessageSquare, isMessages: true },
+      { href: "/user/dashboard", labelKey: "nav.dashboard", fallback: "Dashboard", icon: LayoutDashboard },
+      { href: "/user/messages", labelKey: "nav.messages", fallback: "Pesan Admin", icon: MessageSquare, isMessages: true },
     ],
   },
   {
-    title: "Pinjam & Kembali",
+    titleKey: "side.borrow",
+    fallback: "Pinjam & Kembali",
     items: [
-      { href: "/user/item_catalog", label: "Katalog Barang", icon: PackageSearch, matchPrefix: true },
-      { href: "/user/peminjaman", label: "Peminjaman Saya", icon: ClipboardList, matchPrefix: true },
-      { href: "/user/pengembalian", label: "Pengembalian", icon: PackageCheck },
+      { href: "/user/item_catalog", labelKey: "nav.catalog", fallback: "Katalog Barang", icon: PackageSearch, matchPrefix: true },
+      { href: "/user/peminjaman", labelKey: "nav.borrow", fallback: "Peminjaman Saya", icon: ClipboardList, matchPrefix: true },
+      { href: "/user/pengembalian", labelKey: "nav.return", fallback: "Pengembalian", icon: PackageCheck },
     ],
   },
   {
-    title: "Riwayat & Laporan",
+    titleKey: "side.history",
+    fallback: "Riwayat & Laporan",
     items: [
-      { href: "/user/riwayat_peminjaman", label: "Riwayat Peminjaman", icon: History },
-      { href: "/user/laporan_kerusakan", label: "Laporan Kerusakan", icon: AlertTriangle },
+      { href: "/user/riwayat_peminjaman", labelKey: "nav.history", fallback: "Riwayat Peminjaman", icon: History },
+      { href: "/user/laporan_kerusakan", labelKey: "nav.damage", fallback: "Laporan Kerusakan", icon: AlertTriangle },
     ],
   },
   {
-    title: "Akun Saya",
+    titleKey: "side.account",
+    fallback: "Akun Saya",
     items: [
-      { href: "/user/profile", label: "Profil Saya", icon: UserRound },
+      { href: "/user/profile", labelKey: "nav.profile", fallback: "Profil Saya", icon: UserRound },
     ],
   },
 ];
@@ -64,14 +73,17 @@ interface UserSidebarProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
   onToggle?: (collapsed: boolean) => void;
+  onNavigate?: () => void;
 }
 
 export default function UserSidebar({
   collapsed: controlledCollapsed,
   onToggleCollapse,
   onToggle,
+  onNavigate,
 }: UserSidebarProps) {
   const pathname = usePathname();
+  const { t } = useLanguage();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [unreadMsgCount, setUnreadMsgCount] = useState<number>(0);
@@ -159,16 +171,21 @@ export default function UserSidebar({
       .join("")
       .toUpperCase() || "U";
 
+  const labelOf = (key: string, fallback: string) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
+
   return (
     <aside
-      className={`bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shrink-0 select-none ${
+      className={`bg-white dark:bg-[#111c30] border-r border-slate-200 dark:border-slate-800 flex flex-col h-screen h-dvh sticky top-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shrink-0 select-none ${
         collapsed ? "w-20" : "w-64"
       }`}
     >
-      <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between bg-white">
+      <div className="h-16 px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#111c30]">
         {!collapsed ? (
           <div className="flex items-center gap-2.5 min-w-0 pr-1">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-2xs shrink-0 bg-white">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 bg-white">
               <img
                 src="/images/pokada.jpg"
                 alt="Logo POKADA"
@@ -176,8 +193,8 @@ export default function UserSidebar({
               />
             </div>
             <div className="min-w-0">
-              <h1 className="text-xs font-black tracking-tight text-slate-900 leading-tight truncate">
-                SARPRAS<span className="text-[#0785BC]">POKADA</span>
+              <h1 className="text-xs font-black tracking-tight text-slate-900 dark:text-white leading-tight truncate">
+                SARPRAS<span className="text-[#0785BC] dark:text-sky-300">POKADA</span>
               </h1>
               <p className="text-[10px] text-slate-400 font-medium truncate leading-tight mt-0.5">
                 Politeknik Karya Husada
@@ -186,7 +203,7 @@ export default function UserSidebar({
           </div>
         ) : (
           <div className="mx-auto">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-2xs bg-white">
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs bg-white">
               <img
                 src="/images/pokada.jpg"
                 alt="Logo POKADA"
@@ -198,7 +215,7 @@ export default function UserSidebar({
 
         <button
           onClick={handleToggle}
-          className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
+          className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
             collapsed ? "hidden" : "block"
           }`}
           title="Kecilkan Sidebar"
@@ -211,20 +228,20 @@ export default function UserSidebar({
         <div className="pt-2 px-3 pb-1 flex justify-center">
           <button
             onClick={handleToggle}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-slate-50 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             title="Perluas Sidebar"
           >
-            <PanelLeft className="w-4 h-4 text-[#0785BC]" />
+            <PanelLeft className="w-4 h-4 text-[#0785BC] dark:text-sky-300" />
           </button>
         </div>
       )}
 
       <nav className="flex-1 py-3 px-3 overflow-y-auto space-y-4">
-        {navGroups.map((group) => (
-          <div key={group.title}>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.titleKey}>
             {!collapsed && (
               <p className="px-2.5 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                {group.title}
+                {labelOf(group.titleKey, group.fallback)}
               </p>
             )}
             <ul className="space-y-1">
@@ -234,27 +251,29 @@ export default function UserSidebar({
                   ? pathname === item.href || pathname.startsWith(item.href + "/")
                   : pathname === item.href;
                 const badgeCount = item.isMessages ? unreadMsgCount : 0;
+                const label = labelOf(item.labelKey, item.fallback);
 
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      title={collapsed ? item.label : undefined}
+                      onClick={onNavigate}
+                      title={collapsed ? label : undefined}
                       className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
                         collapsed ? "justify-center" : ""
                       } ${
                         isActive
                           ? "bg-[#0785BC] text-white shadow-xs"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                       }`}
                     >
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
+                          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200"
                         }`}
                       />
 
-                      {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+                      {!collapsed && <span className="truncate flex-1">{label}</span>}
 
                       {badgeCount > 0 && (
                         <span
@@ -274,10 +293,11 @@ export default function UserSidebar({
         ))}
       </nav>
 
-      <div className="p-3 border-t border-slate-100 bg-slate-50/50">
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
         <Link
           href="/user/profile"
-          className={`flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white hover:shadow-2xs transition-all ${
+          onClick={onNavigate}
+          className={`flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs transition-all ${
             collapsed ? "justify-center" : ""
           }`}
           title={collapsed ? displayName : "Buka Profil Saya"}
@@ -287,19 +307,19 @@ export default function UserSidebar({
               <img
                 src={currentUser.foto}
                 alt={displayName}
-                className="w-8 h-8 rounded-lg object-cover border border-slate-200"
+                className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-700"
               />
             ) : (
               <div className="w-8 h-8 rounded-lg bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
                 {initials}
               </div>
             )}
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#111c30]" />
           </div>
 
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-slate-800 truncate leading-snug">{displayName}</p>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate leading-snug">{displayName}</p>
               <p className="text-[10px] text-slate-400 truncate">{userRole}</p>
             </div>
           )}

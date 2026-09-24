@@ -21,7 +21,7 @@ const requireAuth = async (req, res, next) => {
       });
     }
 
-    // 1. Verifikasi token via Supabase Auth
+    // 1. Verifikasi token via Supabase Auth (wajib valid, tanpa fallback decode)
     const { data: authData, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !authData?.user) {
