@@ -22,6 +22,7 @@ module.exports = (io, app) => {
     // Format for user messages page
     io.emit(isOnline ? 'user_online' : 'user_offline', {
       userId: user.id,
+      id: user.id,
       role: user.role,
       name: user.name,
       lastSeen
@@ -30,6 +31,7 @@ module.exports = (io, app) => {
     // Format for admin messages page
     io.emit('user_status_change', {
       userId: user.id,
+      id: user.id,
       online: isOnline,
       last_seen: lastSeen,
       role: user.role,
@@ -66,10 +68,15 @@ module.exports = (io, app) => {
         .single();
 
       if (profileError || !userProfile) {
-        return next(new Error('Authentication error: User tidak ditemukan'));
+        socket.user = {
+          id: userId,
+          name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
+          email: authData.user.email,
+          role: authData.user.user_metadata?.role || 'Mahasiswa'
+        };
+      } else {
+        socket.user = userProfile;
       }
-
-      socket.user = userProfile;
       next();
     } catch (err) {
       next(new Error('Authentication error: ' + err.message));
@@ -82,7 +89,7 @@ module.exports = (io, app) => {
     const userSockets = onlineUsers.get(user.id) || new Set();
     userSockets.add(socket.id);
     onlineUsers.set(user.id, userSockets);
-    onlineProfiles.set(user.id, { userId: user.id, role: user.role, name: user.name });
+    onlineProfiles.set(user.id, { userId: user.id, id: user.id, role: user.role, name: user.name });
 
     if (userSockets.size === 1) {
       broadcastPresence(user, true);
