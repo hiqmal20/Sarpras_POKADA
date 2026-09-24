@@ -12,6 +12,8 @@ import {
   CheckCheck,
   Pencil,
   X,
+  Clock3,
+  CircleDot,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
@@ -38,6 +40,7 @@ interface Conversation {
   lastMessage: string;
   timestamp: string;
   unread: boolean;
+  isOnline?: boolean;
   lastSeen?: string | null;
 }
 
@@ -58,6 +61,7 @@ export default function MessagesPage() {
 
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
+  const presenceSetRef = useRef<Set<string>>(new Set());
 
   const joiningChatRef = useRef<string | null>(null);
   const chatListRef = useRef<{ id: string; lastMessage: string; timestamp: string }[]>([]);
@@ -124,8 +128,7 @@ export default function MessagesPage() {
       if (res.status === "success" && Array.isArray(res.data)) {
         const user = currentUser || getCurrentUser();
         const initialLastSeen: Record<string, string> = {};
-        const apiOnlineIds: string[] = [];
-        const apiOfflineIds: string[] = [];
+        const presenceSet = presenceSetRef.current;
 
         const mapped: Conversation[] = (res.data as any[]).map((c) => {
           const partner = (c.user && c.user.id !== user?.id ? c.user : c.admin) || c.user || c.admin || {};
@@ -134,12 +137,9 @@ export default function MessagesPage() {
           if (resolvedUserId && partnerLastSeen) {
             initialLastSeen[resolvedUserId] = partnerLastSeen;
           }
-          if (resolvedUserId) {
-            if (c.is_partner_online) {
-              apiOnlineIds.push(resolvedUserId);
-            } else if (c.is_partner_online === false) {
-              apiOfflineIds.push(resolvedUserId);
-            }
+          const online = presenceSet.size > 0 ? presenceSet.has(resolvedUserId) : Boolean(c.is_partner_online);
+          if (online && resolvedUserId) {
+            presenceSetRef.current.add(resolvedUserId);
           }
           return {
             id: c.id,
@@ -155,6 +155,7 @@ export default function MessagesPage() {
                 })
               : "Baru saja",
             unread: c.unread_count ? c.unread_count > 0 : false,
+            isOnline: online,
             lastSeen: partnerLastSeen,
           };
         });
@@ -163,15 +164,7 @@ export default function MessagesPage() {
           setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
         }
 
-        if (apiOnlineIds.length > 0 || apiOfflineIds.length > 0) {
-          setOnlineUserIds((prev) => {
-            const next = new Set(prev);
-            apiOnlineIds.forEach((id) => next.add(id));
-            apiOfflineIds.forEach((id) => next.delete(id));
-            return next;
-          });
-        }
-
+        setOnlineUserIds(new Set(presenceSetRef.current));
         setConversations(mapped);
         mapped.forEach((c) => {
           joinChatRoom(c.id);
@@ -408,29 +401,93 @@ export default function MessagesPage() {
       }
     };
 
-    const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
-      const ids = Array.isArray(data) ? data : data?.onlineUserIds || [];
-      setOnlineUserIds(new Set(ids.map(String)));
-      if (!Array.isArray(data) && data?.lastSeenMap) {
-        setLastSeenMap((prev) => ({ ...prev, ...data.lastSeenMap }));
+    const applyPresence = (userId: string | undefined, online: boolean, lastSeen?: string | null) => {
+      if (!userId) return;
+      const id = String(userId);
+      if (online) presenceSetRef.current.add(id);
+      else presenceSetRef.current.delete(id);
+
+      setConversations((prev) =>
+        prev.map((c) =>
+          String(c.userId || "") === id
+            ? { ...c, isOnline: online, lastSeen: lastSeen !== undefined ? lastSeen : c.lastSeen }
+            : c
+        )
+      );
+
+      setSelectedConversation((prev) => {
+        if (!prev || String(prev.userId || "") !== id) return prev;
+        return {
+          ...prev,
+          isOnline: online,
+          lastSeen: lastSeen !== undefined ? lastSeen : prev.lastSeen,
+        };
+      });
+
+      setOnlineUserIds(new Set(presenceSetRef.current));
+      if (lastSeen) {
+        setLastSeenMap((prev) => ({ ...prev, [id]: lastSeen }));
       }
     };
 
-    const handleUserStatusChange = (data: { userId: string; online: boolean; last_seen?: string }) => {
-      const targetId = String(data?.userId || "");
-      if (!targetId) return;
-      if (data.last_seen) {
-        const seenStr = String(data.last_seen);
-        setLastSeenMap((prev) => ({ ...prev, [targetId]: seenStr }));
+    const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
+      if (Array.isArray(users)) {
+        const ids = users.map((u) => String((u as any).userId || (u as any).id || "")).filter(Boolean);
+        presenceSetRef.current = new Set(ids);
+        setOnlineUserIds(new Set(ids));
+        setConversations((prev) =>
+          prev.map((c) => ({ ...c, isOnline: ids.includes(String(c.userId || "")) }))
+        );
+        setSelectedConversation((prev) => {
+          if (!prev) return null;
+          return { ...prev, isOnline: ids.includes(String(prev.userId || "")) };
+        });
       }
-      setOnlineUserIds((prev) => {
-        const next = new Set(prev);
-        if (data.online) {
-          next.add(targetId);
-        } else {
-          next.delete(targetId);
-        }
-        return next;
+    };
+
+    const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
+      const uid = String((data as any)?.userId || (data as any)?.id || "");
+      if (uid) applyPresence(uid, true);
+    };
+
+    const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
+      const uid = String((data as any)?.userId || (data as any)?.id || "");
+      if (uid) applyPresence(uid, false, data.lastSeen || null);
+    };
+
+    const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
+      const uid = String((data as any)?.userId || (data as any)?.id || "");
+      if (uid) applyPresence(uid, Boolean(data.online), data.last_seen || null);
+    };
+
+    const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
+      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || []).map(String);
+      presenceSetRef.current = new Set(ids);
+      setOnlineUserIds(new Set(ids));
+
+      const mapUpdate: Record<string, string> = {};
+      if (!Array.isArray(data) && data?.lastSeenMap) {
+        Object.entries(data.lastSeenMap).forEach(([uid, seen]) => {
+          mapUpdate[String(uid)] = String(seen);
+        });
+        setLastSeenMap((prev) => ({ ...prev, ...mapUpdate }));
+      }
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          const uid = String(c.userId || "");
+          const isUserOn = ids.includes(uid);
+          const ls = mapUpdate[uid] || c.lastSeen || null;
+          return { ...c, isOnline: isUserOn, lastSeen: ls };
+        })
+      );
+
+      setSelectedConversation((prev) => {
+        if (!prev) return null;
+        const uid = String(prev.userId || "");
+        const isUserOn = ids.includes(uid);
+        const ls = mapUpdate[uid] || prev.lastSeen || null;
+        return { ...prev, isOnline: isUserOn, lastSeen: ls };
       });
     };
 
@@ -443,34 +500,6 @@ export default function MessagesPage() {
     const handleUserStopTyping = (data: { chatId: string }) => {
       if (data.chatId === selectedConvRef.current?.id) {
         setIsTyping(false);
-      }
-    };
-
-    const handleUserOnline = (data: { userId?: string }) => {
-      if (data?.userId) {
-        setOnlineUserIds((prev) => new Set(prev).add(String(data.userId)));
-      }
-    };
-
-    const handleUserOffline = (data: { userId?: string; lastSeen?: string }) => {
-      if (data?.userId) {
-        const idStr = String(data.userId);
-        setOnlineUserIds((prev) => {
-          const next = new Set(prev);
-          next.delete(idStr);
-          return next;
-        });
-        if (data.lastSeen) {
-          setLastSeenMap((prev) => ({ ...prev, [idStr]: String(data.lastSeen) }));
-        }
-      }
-    };
-
-    const handlePresenceSnapshot = (users: { userId?: string; id?: string }[]) => {
-      if (Array.isArray(users)) {
-        // Replace (bukan merge) agar user yang sudah offline tidak nyangkut online
-        const ids = users.map((u) => String(u.userId || u.id)).filter(Boolean);
-        setOnlineUserIds(new Set(ids));
       }
     };
 
@@ -822,10 +851,12 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
-                          onlineUserIds.has(conv.userId) ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" : "bg-slate-300"
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
+                          conv.isOnline
+                            ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]"
+                            : "bg-slate-300"
                         }`}
-                        title={onlineUserIds.has(conv.userId) ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(lastSeenMap[conv.userId] || conv.lastSeen || null, false).text}`}
+                        title={conv.isOnline ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(conv.lastSeen || lastSeenMap[conv.userId] || null, false).text}`}
                       />
                     </div>
 
@@ -835,13 +866,13 @@ export default function MessagesPage() {
                           <h3 className={`font-semibold text-xs truncate ${isSelected ? "text-[#0785BC]" : "text-slate-900"}`}>
                             {conv.userName}
                           </h3>
-                          {onlineUserIds.has(conv.userId) ? (
-                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                          {conv.isOnline ? (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                               <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                               Online
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-medium bg-slate-100 text-slate-400 border border-slate-200 shrink-0">
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-100 text-slate-400 border border-slate-200 shrink-0">
                               Offline
                             </span>
                           )}
@@ -880,64 +911,77 @@ export default function MessagesPage() {
         {selectedConversation ? (
           <div className="flex-1 flex flex-col min-w-0 bg-white">
             {/* Header Chat */}
-            <div className="px-5 py-3 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/40">
-              <div className="flex items-center gap-3">
+            <div className="h-16 px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
                 <div className="relative shrink-0">
                   {selectedConversation.userFoto ? (
                     <img
                       src={selectedConversation.userFoto}
                       alt={selectedConversation.userName}
-                      className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
+                      className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-lg bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs">
+                    <div className="w-10 h-10 rounded-xl bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shadow-xs shadow-[#0785BC]/20">
                       {(selectedConversation.userName || "U").charAt(0).toUpperCase()}
                     </div>
                   )}
                   <span
-                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
-                      onlineUserIds.has(selectedConversation.userId) ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" : "bg-slate-300"
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
+                      selectedConversation.isOnline
+                        ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]"
+                        : "bg-slate-300"
                     }`}
-                    title={onlineUserIds.has(selectedConversation.userId) ? "Online" : "Offline"}
+                    title={selectedConversation.isOnline ? "Pengguna online" : "Pengguna offline"}
                   />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm">{selectedConversation.userName}</h3>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
+                      {selectedConversation.userName}
+                    </h3>
                     {(() => {
-                      const isOnline = onlineUserIds.has(selectedConversation.userId);
-                      return isOnline ? (
+                      const isOnline = Boolean(selectedConversation.isOnline);
+                      const lastSeenTime = selectedConversation.lastSeen || lastSeenMap[selectedConversation.userId];
+                      const statusInfo = formatLastSeen(lastSeenTime, isOnline);
+                      if (isOnline) {
+                        return (
+                          <span
+                            title="Pengguna sedang online — pesan akan langsung terkirim"
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm"
+                          >
+                            <span className="relative flex h-2 w-2">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                            </span>
+                            Online • Aktif sekarang
+                          </span>
+                        );
+                      }
+                      return (
                         <span
-                          title="Pengguna sedang online — pesan akan langsung terkirim"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
+                          title={statusInfo.text}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200 shadow-sm max-w-[18rem]"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-                          Online
-                        </span>
-                      ) : (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200"
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-                          Offline
+                          <Clock3 className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="truncate">{statusInfo.text}</span>
                         </span>
                       );
                     })()}
                   </div>
-                  {(() => {
-                    const isOnline = onlineUserIds.has(selectedConversation.userId);
-                    const lastSeenTime = lastSeenMap[selectedConversation.userId] || selectedConversation.lastSeen;
-                    const statusInfo = formatLastSeen(lastSeenTime, isOnline);
-                    return (
-                      <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
+                  <p className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
+                    {selectedConversation.isOnline ? (
+                      <>
+                        <CircleDot className="w-3 h-3 text-emerald-500" />
+                        <span className="text-emerald-600 font-medium">Pengguna sedang online</span>
                         <span className="text-slate-300">•</span>
-                        <span className={isOnline ? "text-emerald-600 font-semibold" : "text-slate-500"}>
-                          {isOnline ? "Sedang aktif sekarang" : statusInfo.text}
-                        </span>
-                      </p>
-                    );
-                  })()}
+                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
 
