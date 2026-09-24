@@ -53,6 +53,7 @@ export default function MessagesPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
+  const presenceHydratedRef = useRef(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
@@ -163,13 +164,10 @@ export default function MessagesPage() {
           setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
         }
 
-        if (apiOnlineIds.length > 0 || apiOfflineIds.length > 0) {
-          setOnlineUserIds((prev) => {
-            const next = new Set(prev);
-            apiOnlineIds.forEach((id) => next.add(id));
-            apiOfflineIds.forEach((id) => next.delete(id));
-            return next;
-          });
+        // API hanya mengisi snapshot awal; event Socket.IO tetap menjadi sumber utama.
+        if (!presenceHydratedRef.current) {
+          setOnlineUserIds(new Set(onlineIds));
+          presenceHydratedRef.current = true;
         }
 
         setConversations(mapped);
@@ -494,6 +492,7 @@ export default function MessagesPage() {
     };
 
     const handleSocketReconnect = () => {
+      presenceHydratedRef.current = false;
       const current = selectedConvRef.current;
       if (current) joinChatRoom(current.id);
       requestOnlineUsers();
