@@ -19,12 +19,15 @@ import {
 } from "lucide-react";
 import { UserLayout } from "@/components/user";
 import api, { getCurrentUser } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
+import { useTheme } from "@/lib/theme";
 
 type SettingsTab = "profile" | "notifications" | "security" | "preferences";
 
 export default function UserSettingsPage() {
+  const { t } = useLanguage();
   return (
-    <Suspense fallback={<div className="p-8 text-sm text-slate-500">Memuat pengaturan...</div>}>
+    <Suspense fallback={<div className="p-8 text-sm text-slate-500">{t("settings.loading", "Memuat pengaturan...")}</div>}>
       <SettingsContent />
     </Suspense>
   );
@@ -32,6 +35,12 @@ export default function UserSettingsPage() {
 
 function SettingsContent() {
   const searchParams = useSearchParams();
+  const { t, lang, setLang } = useLanguage();
+  const tr = (k: string, fb: string) => {
+    const v = t(k, fb);
+    return v === k ? fb : v;
+  };
+  const { theme, setTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -56,8 +65,12 @@ function SettingsContent() {
   const [chatNotif, setChatNotif] = useState(true);
 
   // Preferences
-  const [language, setLanguage] = useState("id");
+  const [language, setLanguageState] = useState("id");
   const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
+  const setLanguage = (v: string) => {
+    setLanguageState(v);
+    if (v === "id" || v === "en") setLang(v);
+  };
 
   // State feedback
   const [saving, setSaving] = useState(false);
@@ -82,6 +95,9 @@ function SettingsContent() {
 
     // Load appSettings
     try {
+      const savedLang = localStorage.getItem("app-lang");
+      if (savedLang === "id" || savedLang === "en") setLanguageState(savedLang);
+      else setLanguageState(lang);
       const raw = localStorage.getItem("appSettings");
       if (raw) {
         const parsed = JSON.parse(raw);
@@ -116,7 +132,7 @@ function SettingsContent() {
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      showError("Ukuran foto maksimal 2MB.");
+      showError(tr("settings.err_photo_size", "Ukuran foto maksimal 2MB."));
       return;
     }
 
@@ -129,7 +145,7 @@ function SettingsContent() {
     };
     reader.onerror = () => {
       setUploadingPhoto(false);
-      showError("Gagal membaca file gambar.");
+      showError(tr("settings.err_photo_read", "Gagal membaca file gambar."));
     };
     reader.readAsDataURL(file);
   };
@@ -158,12 +174,12 @@ function SettingsContent() {
         localStorage.setItem("user", JSON.stringify(updatedUser));
         setCurrentUser(updatedUser);
         window.dispatchEvent(new Event("user-updated"));
-        showSuccess("Profil berhasil diperbarui!");
+        showSuccess(tr("settings.msg_profile_ok", "Profil berhasil diperbarui!"));
       } else {
-        showError(res.message || "Gagal memperbarui profil.");
+        showError(res.message || tr("settings.err_profile_fail", "Gagal memperbarui profil."));
       }
     } catch (err: any) {
-      showError(err.message || "Terjadi kesalahan saat menyimpan profil.");
+      showError(err.message || tr("settings.err_profile_generic", "Terjadi kesalahan saat menyimpan profil."));
     } finally {
       setSaving(false);
     }
@@ -186,26 +202,26 @@ function SettingsContent() {
       };
 
       localStorage.setItem("appSettings", JSON.stringify(updated));
-      showSuccess("Preferensi notifikasi berhasil disimpan!");
+      showSuccess(tr("settings.msg_notif_ok", "Preferensi notifikasi berhasil disimpan!"));
     } catch {
-      showError("Gagal menyimpan preferensi notifikasi.");
+      showError(tr("settings.err_notif_fail", "Gagal menyimpan preferensi notifikasi."));
     }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword || !newPassword || !confirmPassword) {
-      showError("Semua bidang kata sandi wajib diisi.");
+      showError(tr("settings.err_pass_required", "Semua bidang kata sandi wajib diisi."));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showError("Konfirmasi kata sandi baru tidak cocok.");
+      showError(tr("settings.err_pass_mismatch", "Konfirmasi kata sandi baru tidak cocok."));
       return;
     }
 
     if (newPassword.length < 6) {
-      showError("Kata sandi baru minimal 6 karakter.");
+      showError(tr("settings.err_pass_short", "Kata sandi baru minimal 6 karakter."));
       return;
     }
 
@@ -217,15 +233,15 @@ function SettingsContent() {
       });
 
       if (res.status === "success") {
-        showSuccess("Kata sandi berhasil diubah!");
+        showSuccess(tr("settings.msg_pass_ok", "Kata sandi berhasil diubah!"));
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
       } else {
-        showError(res.message || "Gagal mengubah kata sandi.");
+        showError(res.message || tr("settings.err_pass_fail", "Gagal mengubah kata sandi."));
       }
     } catch (err: any) {
-      showError(err.message || "Gagal memperbarui kata sandi.");
+      showError(err.message || tr("settings.err_pass_generic", "Gagal memperbarui kata sandi."));
     } finally {
       setSaving(false);
     }
@@ -233,6 +249,8 @@ function SettingsContent() {
 
   const handleSavePreferences = () => {
     try {
+      setLang(language === "en" ? "en" : "id");
+      setTheme(theme);
       let current = {};
       const raw = localStorage.getItem("appSettings");
       if (raw) current = JSON.parse(raw);
@@ -246,17 +264,17 @@ function SettingsContent() {
       };
 
       localStorage.setItem("appSettings", JSON.stringify(updated));
-      showSuccess("Preferensi tampilan berhasil disimpan!");
+      showSuccess(tr("settings.msg_pref_ok", "Preferensi tampilan berhasil disimpan!"));
     } catch {
-      showError("Gagal menyimpan preferensi.");
+      showError(tr("settings.err_pref_fail", "Gagal menyimpan preferensi."));
     }
   };
 
   const tabs = [
-    { id: "profile" as SettingsTab, label: "Profil Akun", icon: User },
-    { id: "notifications" as SettingsTab, label: "Notifikasi", icon: Bell },
-    { id: "security" as SettingsTab, label: "Keamanan & Sandi", icon: Lock },
-    { id: "preferences" as SettingsTab, label: "Preferensi", icon: SlidersHorizontal },
+    { id: "profile" as SettingsTab, label: tr("settings.tab_profile", "Profil Akun"), icon: User },
+    { id: "notifications" as SettingsTab, label: tr("settings.tab_notif", "Notifikasi"), icon: Bell },
+    { id: "security" as SettingsTab, label: tr("settings.tab_security", "Keamanan & Sandi"), icon: Lock },
+    { id: "preferences" as SettingsTab, label: tr("settings.tab_pref", "Preferensi"), icon: SlidersHorizontal },
   ];
 
   return (
@@ -265,10 +283,10 @@ function SettingsContent() {
         {/* Header */}
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
-            Pengaturan Akun
+            {tr("settings.header", "Pengaturan Akun")}
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Kelola profil identitas Anda, notifikasi peminjaman, serta keamanan akun.
+            {tr("settings.header_sub", "Kelola profil identitas Anda, notifikasi peminjaman, serta keamanan akun.")}
           </p>
         </div>
 
@@ -315,9 +333,9 @@ function SettingsContent() {
             {/* 1. Tab Profil */}
             {activeTab === "profile" && (
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="text-base font-bold text-slate-900 mb-1">Informasi Profil</h2>
+                <h2 className="text-base font-bold text-slate-900 mb-1">{tr("settings.profile_title", "Informasi Profil")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
-                  Perbarui informasi pribadi dan foto profil Anda untuk verifikasi peminjaman.
+                  {tr("settings.profile_sub", "Perbarui informasi pribadi dan foto profil Anda untuk verifikasi peminjaman.")}
                 </p>
 
                 <form onSubmit={handleSaveProfile} className="space-y-5">
@@ -333,7 +351,7 @@ function SettingsContent() {
                     <div>
                       <label className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl cursor-pointer transition-colors">
                         <Camera className="w-3.5 h-3.5" />
-                        {uploadingPhoto ? "Mengunggah..." : "Ganti Foto"}
+                        {uploadingPhoto ? tr("settings.uploading", "Mengunggah...") : tr("settings.change_photo", "Ganti Foto")}
                         <input
                           type="file"
                           accept="image/*"
@@ -342,14 +360,14 @@ function SettingsContent() {
                           disabled={uploadingPhoto}
                         />
                       </label>
-                      <p className="text-[11px] text-slate-400 mt-1">JPG, PNG atau WebP (Maks 2MB)</p>
+                      <p className="text-[11px] text-slate-400 mt-1">{tr("settings.photo_hint", "JPG, PNG atau WebP (Maks 2MB)")}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                        Nama Lengkap
+                        {tr("settings.name", "Nama Lengkap")}
                       </label>
                       <input
                         type="text"
@@ -362,20 +380,20 @@ function SettingsContent() {
 
                     <div>
                       <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                        NIP / NIM / Nomor Induk
+                        {tr("settings.id_label", "NIP / NIM / Nomor Induk")}
                       </label>
                       <input
                         type="text"
                         value={nomorInduk}
                         onChange={(e) => setNomorInduk(e.target.value)}
-                        placeholder="Contoh: 21010102"
+                        placeholder={tr("settings.id_ph", "Contoh: 21010102")}
                         className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                       />
                     </div>
 
                     <div>
                       <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                        Alamat Email
+                        {tr("settings.email", "Alamat Email")}
                       </label>
                       <div className="relative">
                         <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -391,7 +409,7 @@ function SettingsContent() {
 
                     <div>
                       <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                        Nomor HP / WhatsApp
+                        {tr("settings.phone", "Nomor HP / WhatsApp")}
                       </label>
                       <div className="relative">
                         <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -399,7 +417,7 @@ function SettingsContent() {
                           type="tel"
                           value={noHp}
                           onChange={(e) => setNoHp(e.target.value)}
-                          placeholder="Contoh: 08123456789"
+                          placeholder={tr("settings.phone_ph", "Contoh: 08123456789")}
                           className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                         />
                       </div>
@@ -413,7 +431,7 @@ function SettingsContent() {
                       className="inline-flex items-center gap-2 px-5 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                      {saving ? tr("settings.saving", "Menyimpan...") : tr("settings.save", "Simpan Perubahan")}
                     </button>
                   </div>
                 </form>
@@ -423,17 +441,17 @@ function SettingsContent() {
             {/* 2. Tab Notifikasi */}
             {activeTab === "notifications" && (
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="text-base font-bold text-slate-900 mb-1">Pengaturan Notifikasi</h2>
+                <h2 className="text-base font-bold text-slate-900 mb-1">{tr("settings.notif_title", "Pengaturan Notifikasi")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
-                  Atur pemberitahuan yang ingin Anda terima saat proses peminjaman berjalan.
+                  {tr("settings.notif_sub", "Atur pemberitahuan yang ingin Anda terima saat proses peminjaman berjalan.")}
                 </p>
 
                 <div className="space-y-4 divide-y divide-slate-100">
                   <div className="flex items-center justify-between pt-3">
                     <div>
-                      <p className="text-xs font-bold text-slate-800">Tampilkan Badge Notifikasi</p>
+                      <p className="text-xs font-bold text-slate-800">{tr("settings.badge", "Tampilkan Badge Notifikasi")}</p>
                       <p className="text-[11px] text-slate-400">
-                        Tampilkan lingkaran merah notifikasi belum dibaca pada lonceng navbar.
+                        {tr("settings.badge_sub", "Tampilkan lingkaran merah notifikasi belum dibaca pada lonceng navbar.")}
                       </p>
                     </div>
                     <input
@@ -446,9 +464,9 @@ function SettingsContent() {
 
                   <div className="flex items-center justify-between pt-3">
                     <div>
-                      <p className="text-xs font-bold text-slate-800">Status Pengajuan Peminjaman</p>
+                      <p className="text-xs font-bold text-slate-800">{tr("settings.borrow_status", "Status Pengajuan Peminjaman")}</p>
                       <p className="text-[11px] text-slate-400">
-                        Dapatkan kabar saat permohonan disetujui, ditolak, atau diproses.
+                        {tr("settings.borrow_status_sub", "Dapatkan kabar saat permohonan disetujui, ditolak, atau diproses.")}
                       </p>
                     </div>
                     <input
@@ -461,9 +479,9 @@ function SettingsContent() {
 
                   <div className="flex items-center justify-between pt-3">
                     <div>
-                      <p className="text-xs font-bold text-slate-800">Pengingat Pengembalian</p>
+                      <p className="text-xs font-bold text-slate-800">{tr("settings.return_rem", "Pengingat Pengembalian")}</p>
                       <p className="text-[11px] text-slate-400">
-                        Terima pemberitahuan menjelang batas waktu pengembalian barang.
+                        {tr("settings.return_rem_sub", "Terima pemberitahuan menjelang batas waktu pengembalian barang.")}
                       </p>
                     </div>
                     <input
@@ -476,9 +494,9 @@ function SettingsContent() {
 
                   <div className="flex items-center justify-between pt-3">
                     <div>
-                      <p className="text-xs font-bold text-slate-800">Pesan Masuk dari Admin</p>
+                      <p className="text-xs font-bold text-slate-800">{tr("settings.chat_msg", "Pesan Masuk dari Admin")}</p>
                       <p className="text-[11px] text-slate-400">
-                        Notifikasi saat petugas/admin membalas percakapan Anda.
+                        {tr("settings.chat_msg_sub", "Notifikasi saat petugas/admin membalas percakapan Anda.")}
                       </p>
                     </div>
                     <input
@@ -497,7 +515,7 @@ function SettingsContent() {
                     className="inline-flex items-center gap-2 px-5 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
                     <Save className="w-3.5 h-3.5" />
-                    Simpan Preferensi
+                    {tr("settings.save_pref", "Simpan Preferensi")}
                   </button>
                 </div>
               </div>
@@ -506,15 +524,15 @@ function SettingsContent() {
             {/* 3. Tab Keamanan */}
             {activeTab === "security" && (
               <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="text-base font-bold text-slate-900 mb-1">Ubah Kata Sandi</h2>
+                <h2 className="text-base font-bold text-slate-900 mb-1">{tr("settings.sec_title", "Ubah Kata Sandi")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
-                  Pastikan akun Anda tetap terlindungi dengan kata sandi yang aman dan tidak mudah ditebak.
+                  {tr("settings.sec_sub", "Pastikan akun Anda tetap terlindungi dengan kata sandi yang aman dan tidak mudah ditebak.")}
                 </p>
 
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                   <div>
                     <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                      Kata Sandi Saat Ini
+                      {tr("settings.current", "Kata Sandi Saat Ini")}
                     </label>
                     <div className="relative">
                       <input
@@ -529,7 +547,7 @@ function SettingsContent() {
 
                   <div>
                     <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                      Kata Sandi Baru
+                      {tr("settings.new", "Kata Sandi Baru")}
                     </label>
                     <div className="relative">
                       <input
@@ -544,7 +562,7 @@ function SettingsContent() {
 
                   <div>
                     <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                      Konfirmasi Kata Sandi Baru
+                      {tr("settings.confirm", "Konfirmasi Kata Sandi Baru")}
                     </label>
                     <div className="relative">
                       <input
@@ -565,11 +583,11 @@ function SettingsContent() {
                     >
                       {showPasswords ? (
                         <>
-                          <EyeOff className="w-3.5 h-3.5" /> Sembunyikan Sandi
+                          <EyeOff className="w-3.5 h-3.5" /> {tr("settings.hide", "Sembunyikan Sandi")}
                         </>
                       ) : (
                         <>
-                          <Eye className="w-3.5 h-3.5" /> Lihat Sandi
+                          <Eye className="w-3.5 h-3.5" /> {tr("settings.show", "Lihat Sandi")}
                         </>
                       )}
                     </button>
@@ -582,7 +600,7 @@ function SettingsContent() {
                       className="inline-flex items-center gap-2 px-5 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      {saving ? "Menyimpan..." : "Perbarui Kata Sandi"}
+                      {saving ? tr("settings.saving", "Menyimpan...") : tr("settings.update", "Perbarui Kata Sandi")}
                     </button>
                   </div>
                 </form>
@@ -591,38 +609,60 @@ function SettingsContent() {
 
             {/* 4. Tab Preferensi */}
             {activeTab === "preferences" && (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
-                <h2 className="text-base font-bold text-slate-900 mb-1">Preferensi Tampilan</h2>
+              <div className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-xs">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">{tr("settings.pref_title", "Preferensi Tampilan")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
-                  Sesuaikan format bahasa dan tampilan tanggal untuk kenyamanan penggunaan Anda.
+                  {tr("settings.pref_sub", "Sesuaikan bahasa (EN/ID), tema gelap-terang, dan format tanggal.")}
                 </p>
 
                 <div className="space-y-4 max-w-md">
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                      Bahasa Aplikasi
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 block">
+                      {tr("settings.lang_label", "Bahasa Aplikasi")}
                     </label>
                     <select
                       value={language}
                       onChange={(e) => setLanguage(e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     >
-                      <option value="id">Bahasa Indonesia (ID)</option>
-                      <option value="en">English (US)</option>
+                      <option value="id">{tr("settings.lang_id", "Bahasa Indonesia (ID)")}</option>
+                      <option value="en">{tr("settings.lang_en", "English (US)")}</option>
                     </select>
                   </div>
 
                   <div>
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5 block">
+                      {tr("settings.theme_label", "Tema Tampilan")}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["light", "dark"] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setTheme(m)}
+                          className={`px-3.5 py-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            theme === m
+                              ? "bg-[#0785BC] text-white border-[#0785BC]"
+                              : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
+                          }`}
+                        >
+                          {m === "light" ? tr("settings.theme_light", "☀️ Terang") : tr("settings.theme_dark", "🌙 Gelap")}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-                      Format Tanggal
+                      {tr("settings.date_label", "Format Tanggal")}
                     </label>
                     <select
                       value={dateFormat}
                       onChange={(e) => setDateFormat(e.target.value)}
                       className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     >
-                      <option value="DD/MM/YYYY">DD/MM/YYYY (Contoh: 15/09/2026)</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD (Contoh: 2026-09-15)</option>
+                      <option value="DD/MM/YYYY">DD/MM/YYYY ({lang === "en" ? "Example" : "Contoh"}: 15/09/2026)</option>
+                      <option value="YYYY-MM-DD">YYYY-MM-DD ({lang === "en" ? "Example" : "Contoh"}: 2026-09-15)</option>
                     </select>
                   </div>
 
@@ -633,7 +673,7 @@ function SettingsContent() {
                       className="inline-flex items-center gap-2 px-5 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
                     >
                       <Save className="w-3.5 h-3.5" />
-                      Simpan Preferensi
+                      {tr("settings.save_pref", "Simpan Preferensi")}
                     </button>
                   </div>
                 </div>

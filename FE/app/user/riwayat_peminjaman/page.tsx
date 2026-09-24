@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
+import { useLanguage } from "@/lib/i18n";
 
 type TabKey = "peminjaman" | "pengembalian" | "kerusakan";
 
@@ -42,38 +43,40 @@ function useMount() {
 
 // ── Status badge ──
 function StatusBadge({ status }: { status: Rental["status"] }) {
+  const { t } = useLanguage();
+  const tr = (k: string, fb: string) => { const v = t(k); return v === k ? fb : v; };
   if (status === "pending")
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">
         <Clock className="w-3 h-3 text-amber-500 animate-pulse" />
-        Menunggu
+        {tr("history.status_pending", "Menunggu")}
       </span>
     );
   if (status === "approved")
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
         <CheckCircle2 className="w-3 h-3 text-indigo-600" />
-        Disetujui
+        {tr("history.status_approved", "Disetujui")}
       </span>
     );
   if (status === "active")
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-[#0785BC] border border-blue-200 shadow-sm">
         <span className="w-1.5 h-1.5 rounded-full bg-[#0785BC]" />
-        Dipinjam
+        {tr("history.status_active", "Dipinjam")}
       </span>
     );
   if (status === "returned")
     return (
       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
         <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-        Selesai
+        {tr("history.status_returned", "Selesai")}
       </span>
     );
   return (
     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-red-50 text-red-500 border border-red-200 shadow-sm">
       <XCircle className="w-3 h-3" />
-      Ditolak
+      {tr("history.status_rejected", "Ditolak")}
     </span>
   );
 }
@@ -88,9 +91,12 @@ function RentalCard({
   mounted: boolean;
   delay: number;
 }) {
+  const { t, lang } = useLanguage();
+  const tr = (k: string, fb: string) => { const v = t(k); return v === k ? fb : v; };
+  const locale = lang === "en" ? "en-US" : "id-ID";
   const dateRange = rental.return_date
     ? `${rental.borrow_date} - ${rental.return_date}`
-    : `Tgl Pinjam: ${rental.borrow_date}`;
+    : `${tr("history.borrow_date", "Tgl Pinjam")}: ${rental.borrow_date}`;
 
   return (
     <Link
@@ -122,7 +128,7 @@ function RentalCard({
 
       <div className="flex-1 p-4 flex flex-col">
         <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0785BC] truncate">
-          Riwayat Peminjaman
+          {tr("history.list_label", "Riwayat Peminjaman")}
         </p>
         <h3 className="mt-1 text-[13px] font-bold text-slate-900 leading-[1.45] line-clamp-2 min-h-[2.6rem] group-hover:text-[#0785BC] transition-colors">
           {rental.item_name}
@@ -139,16 +145,16 @@ function RentalCard({
           </p>
           <p className="flex items-center gap-2 text-xs text-slate-500 min-h-[1rem]">
             <UserCircle2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="truncate">{rental.owner || "Tujuan: -"}</span>
+            <span className="truncate">{rental.owner || `${tr("history.purpose", "Tujuan")}: -`}</span>
           </p>
         </div>
 
         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
           <span className="text-[11px] font-semibold text-slate-400">
-            Klik untuk lihat isi
+            {tr("history.click_detail", "Klik untuk lihat isi")}
           </span>
           <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#0785BC] shrink-0">
-            Lihat Detail <ChevronRight className="w-3.5 h-3.5" />
+            {tr("history.view_detail", "Lihat Detail")} <ChevronRight className="w-3.5 h-3.5" />
           </span>
         </div>
       </div>
@@ -173,6 +179,9 @@ export default function RiwayatPeminjamanPage() {
 }
 
 function RiwayatPeminjamanContent() {
+  const { t, lang } = useLanguage();
+  const tr = (k: string, fb: string) => { const v = t(k); return v === k ? fb : v; };
+  const locale = lang === "en" ? "en-US" : "id-ID";
   const searchParams = useSearchParams();
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,7 +228,7 @@ function RiwayatPeminjamanContent() {
     }
 
     const borrowDateFormatted = b.borrow_date
-      ? new Date(b.borrow_date).toLocaleDateString("id-ID", {
+      ? new Date(b.borrow_date).toLocaleDateString(locale, {
           day: "numeric",
           month: "short",
           year: "numeric",
@@ -227,13 +236,13 @@ function RiwayatPeminjamanContent() {
       : "-";
 
     const returnDateFormatted = b.actual_return_date
-      ? new Date(b.actual_return_date).toLocaleDateString("id-ID", {
+      ? new Date(b.actual_return_date).toLocaleDateString(locale, {
           day: "numeric",
           month: "short",
           year: "numeric",
         })
       : b.planned_return_date
-      ? new Date(b.planned_return_date).toLocaleDateString("id-ID", {
+      ? new Date(b.planned_return_date).toLocaleDateString(locale, {
           day: "numeric",
           month: "short",
           year: "numeric",
@@ -242,12 +251,12 @@ function RiwayatPeminjamanContent() {
 
     return {
       id: b.id,
-      item_name: firstItem.name ? `${firstItem.name}${(b.borrowings_items?.length || 0) > 1 ? ` + ${(b.borrowings_items.length - 1)} item lain` : ""}` : b.purpose || `Peminjaman (${b.borrow_code || "-"})`,
+      item_name: firstItem.name ? `${firstItem.name}${(b.borrowings_items?.length || 0) > 1 ? ` + ${(b.borrowings_items.length - 1)} ${tr("history.other_items", "item lain")}` : ""}` : b.purpose || `(${b.borrow_code || "-"})`,
       category: firstItem.code || "Sarpras",
       image: firstItem.image_url,
       borrow_date: borrowDateFormatted,
       return_date: returnDateFormatted,
-      owner: b.purpose ? `Tujuan: ${b.purpose}` : undefined,
+      owner: b.purpose ? `${tr("history.purpose", "Tujuan")}: ${b.purpose}` : undefined,
       borrow_code: b.borrow_code,
       status: mappedStatus,
     };
@@ -291,9 +300,9 @@ function RiwayatPeminjamanContent() {
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const historyTabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
-    { key: "peminjaman", label: "Riwayat Peminjaman", icon: ClipboardList },
-    { key: "pengembalian", label: "Riwayat Pengembalian", icon: RotateCcw },
-    { key: "kerusakan", label: "Riwayat Laporan Kerusakan", icon: AlertTriangle },
+    { key: "peminjaman", label: tr("history.tab_borrow_label", "Riwayat Peminjaman"), icon: ClipboardList },
+    { key: "pengembalian", label: tr("history.tab_return_label", "Riwayat Pengembalian"), icon: RotateCcw },
+    { key: "kerusakan", label: tr("history.tab_damage_label", "Riwayat Laporan Kerusakan"), icon: AlertTriangle },
   ];
 
   const countReturned = rentals.filter((r) => r.status === "returned").length;
@@ -310,7 +319,7 @@ function RiwayatPeminjamanContent() {
           <div className="absolute right-10 bottom-[-1.8rem] hidden xl:block w-16 h-16 rounded-2xl bg-white/15 backdrop-blur rotate-12" />
           <div className="absolute right-6 top-6 hidden sm:flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Terhubung
+            {tr("history.connected", "Terhubung")}
           </div>
           <div className="relative flex flex-col lg:flex-row lg:items-center gap-5">
             <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -318,20 +327,20 @@ function RiwayatPeminjamanContent() {
                 <ClipboardList className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-200">Riwayat Saya</p>
-                <h1 className="mt-1 text-2xl md:text-[26px] font-extrabold tracking-tight leading-tight">Riwayat Peminjaman</h1>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-200">{tr("history.mine", "Riwayat Saya")}</p>
+                <h1 className="mt-1 text-2xl md:text-[26px] font-extrabold tracking-tight leading-tight">{tr("history.title", "Riwayat Peminjaman")}</h1>
                 <p className="mt-1.5 text-sm text-white/80 max-w-xl leading-relaxed">
-                  Lihat seluruh riwayat peminjaman, pengembalian, dan laporan kerusakan Anda.
+                  {tr("history.subtitle", "Lihat seluruh riwayat peminjaman, pengembalian, dan laporan kerusakan Anda.")}
                 </p>
                 <div className="mt-3.5 flex flex-wrap gap-2 text-xs font-bold">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
-                    <ClipboardList className="w-3.5 h-3.5 text-[#0785BC]" /> {rentals.length} Peminjaman
+                    <ClipboardList className="w-3.5 h-3.5 text-[#0785BC]" /> {rentals.length} {tr("history.count_borrow", "Peminjaman")}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-white backdrop-blur">
-                    <Clock className="w-3.5 h-3.5 text-sky-200" /> {countActive} Dipinjam
+                    <Clock className="w-3.5 h-3.5 text-sky-200" /> {countActive} {tr("history.count_active", "Dipinjam")}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-white backdrop-blur">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> {countReturned} Selesai
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> {countReturned} {tr("history.count_done", "Selesai")}
                   </span>
                 </div>
               </div>
@@ -339,15 +348,15 @@ function RiwayatPeminjamanContent() {
             <div className="hidden lg:grid grid-cols-3 gap-2.5 shrink-0 w-[300px]">
               <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur p-3 text-center">
                 <p className="text-lg font-extrabold tabular-nums">{rentals.length}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mt-0.5">Total</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mt-0.5">{tr("history.total", "Total")}</p>
               </div>
               <div className="rounded-xl bg-white text-[#0785BC] p-3 text-center shadow-lg">
                 <p className="text-lg font-extrabold tabular-nums">{countActive}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">Aktif</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{tr("history.active", "Aktif")}</p>
               </div>
               <div className="rounded-xl bg-emerald-400 text-emerald-950 p-3 text-center shadow-lg">
                 <p className="text-lg font-extrabold tabular-nums">{countReturned}</p>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70 mt-0.5">Selesai</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-900/70 mt-0.5">{tr("history.done_label", "Selesai")}</p>
               </div>
             </div>
           </div>
@@ -375,8 +384,8 @@ function RiwayatPeminjamanContent() {
         </div>
 
         {activeTab === "kerusakan" ? (
-          reports.length === 0 ? <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200/70"><AlertTriangle className="w-9 h-9 mx-auto mb-3 text-slate-200" /><p className="text-sm font-bold text-slate-600">Belum ada riwayat laporan kerusakan.</p><p className="text-xs text-slate-400 mt-1">Laporan kerusakan Anda akan tampil di sini.</p></div> :
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">{reports.map((report) => <Link key={report.id} href={report.borrowing_id ? `/user/peminjaman/${report.borrowing_id}` : "/user/laporan_kerusakan"} className="group bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all flex flex-col h-full"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[13px] font-bold text-slate-900 leading-snug line-clamp-2 min-h-[2.6rem] group-hover:text-[#0785BC] transition-colors">{report.title || "Laporan Kerusakan"}</p><p className="text-xs text-slate-500 mt-1 truncate">{report.items?.name || "Barang terkait"}</p></div><span className="px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold shrink-0">{report.status || "Menunggu Review"}</span></div><p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">{report.description}</p><div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2"><p className="text-[10px] text-slate-400 truncate">{report.created_at ? new Date(report.created_at).toLocaleString("id-ID") : "-"}</p><span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#0785BC] shrink-0">Lihat <ChevronRight className="w-3.5 h-3.5" /></span></div></Link>)}</div>
+          reports.length === 0 ? <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200/70"><AlertTriangle className="w-9 h-9 mx-auto mb-3 text-slate-200" /><p className="text-sm font-bold text-slate-600">{tr("history.empty_damage_title", "Belum ada riwayat laporan kerusakan.")}</p><p className="text-xs text-slate-400 mt-1">{tr("history.empty_damage_sub", "Laporan kerusakan Anda akan tampil di sini.")}</p></div> :
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">{reports.map((report) => <Link key={report.id} href={report.borrowing_id ? `/user/peminjaman/${report.borrowing_id}` : "/user/laporan_kerusakan"} className="group bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all flex flex-col h-full"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[13px] font-bold text-slate-900 leading-snug line-clamp-2 min-h-[2.6rem] group-hover:text-[#0785BC] transition-colors">{report.title || tr("damage.report_fallback", "Laporan Kerusakan")}</p><p className="text-xs text-slate-500 mt-1 truncate">{report.items?.name || tr("history.related_item", "Barang terkait")}</p></div><span className="px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold shrink-0">{report.status || tr("history.wait_review", "Menunggu Review")}</span></div><p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">{report.description}</p><div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2"><p className="text-[10px] text-slate-400 truncate">{report.created_at ? new Date(report.created_at).toLocaleString(locale) : "-"}</p><span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#0785BC] shrink-0">{tr("history.see", "Lihat")} <ChevronRight className="w-3.5 h-3.5" /></span></div></Link>)}</div>
         ) : loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -396,8 +405,8 @@ function RiwayatPeminjamanContent() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200/70">
             <ClipboardList className="w-9 h-9 mx-auto mb-3 text-slate-200" />
-            <p className="text-sm font-bold text-slate-600">Tidak ada riwayat peminjaman pada kategori ini.</p>
-            <p className="text-xs text-slate-400 mt-1">Coba tab lain atau ajukan peminjaman baru.</p>
+            <p className="text-sm font-bold text-slate-600">{tr("history.empty_tab_title", "Tidak ada riwayat peminjaman pada kategori ini.")}</p>
+            <p className="text-xs text-slate-400 mt-1">{tr("history.empty_tab_sub", "Coba tab lain atau ajukan peminjaman baru.")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">
@@ -415,9 +424,9 @@ function RiwayatPeminjamanContent() {
 
          {activeTab !== "kerusakan" && filtered.length > pageSize && (
            <div className="flex items-center justify-center gap-3">
-             <button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">Sebelumnya</button>
-             <span className="text-xs text-slate-500">Halaman {page} dari {totalPages}</span>
-             <button disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">Berikutnya</button>
+             <button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">{tr("history.prev", "Sebelumnya")}</button>
+             <span className="text-xs text-slate-500">{tr("history.page", "Halaman")} {page} {tr("history.of", "dari")} {totalPages}</span>
+             <button disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">{tr("history.next", "Berikutnya")}</button>
            </div>
          )}
        </div>

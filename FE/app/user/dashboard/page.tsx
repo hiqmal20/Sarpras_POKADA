@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { UserLayout } from "@/components/user";
+import { useLanguage } from "@/lib/i18n";
 
 interface BorrowingItem {
   id: string;
@@ -56,6 +57,11 @@ interface PieSlice {
 
 // ── Interactive Pie / Donut Chart ──
 function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
+  const { t } = useLanguage();
+  const tr = (key: string, fallback: string) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const [hovered, setHovered] = useState<number | null>(null);
   const size = 180;
   const strokeWidth = 26;
@@ -72,16 +78,16 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
         <div className="w-24 h-24 rounded-full border-4 border-dashed border-slate-200 flex items-center justify-center mb-3">
           <Layers className="w-8 h-8 text-slate-300" />
         </div>
-        <p className="text-sm font-semibold text-slate-700">Belum Ada Peminjaman</p>
+        <p className="text-sm font-semibold text-slate-700">{tr("dash.no_activity", "Belum Ada Peminjaman")}</p>
         <p className="text-xs text-slate-400 mt-1 max-w-xs">
-          Anda belum memiliki pengajuan peminjaman barang. Silakan ajukan dari katalog.
+          {tr("dash.no_activity_sub", "Anda belum memiliki pengajuan peminjaman barang. Silakan ajukan dari katalog.")}
         </p>
         <Link
           href="/user/item_catalog"
           className="mt-4 px-4 py-2 text-xs font-semibold bg-[#0785BC] text-white rounded-xl hover:bg-[#0672a0] transition-colors inline-flex items-center gap-1.5"
         >
           <BookOpen className="w-3.5 h-3.5" />
-          Buka Katalog Barang
+          {tr("dash.open_catalog", "Buka Katalog Barang")}
         </Link>
       </div>
     );
@@ -139,7 +145,7 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
             {hovered !== null ? data[hovered].value : total}
           </span>
           <span className="text-[11px] font-medium text-slate-400 px-2 truncate max-w-[110px]">
-            {hovered !== null ? data[hovered].label : "Total Pengajuan"}
+            {hovered !== null ? data[hovered].label : tr("dash.total", "Total Pengajuan")}
           </span>
         </div>
       </div>
@@ -177,12 +183,17 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
 
 // ── Status Pill ──
 function StatusPill({ status }: { status: string }) {
+  const { t } = useLanguage();
+  const tr = (key: string, fallback: string) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const norm = (status || "").toLowerCase();
   if (norm.includes("pending") || norm.includes("menunggu")) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-        Menunggu
+        {tr("dash.st_pending", "Menunggu")}
       </span>
     );
   }
@@ -190,7 +201,7 @@ function StatusPill({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
         <span className="w-1.5 h-1.5 rounded-full bg-[#0785BC]" />
-        Dipinjam
+        {tr("dash.st_active", "Dipinjam")}
       </span>
     );
   }
@@ -198,7 +209,7 @@ function StatusPill({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
         <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-        Disetujui
+        {tr("dash.st_approved", "Disetujui")}
       </span>
     );
   }
@@ -206,31 +217,36 @@ function StatusPill({ status }: { status: string }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-        Selesai
+        {tr("dash.st_done", "Selesai")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-200">
       <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-      Ditolak
+      {tr("dash.st_rejected", "Ditolak")}
     </span>
   );
 }
 
 export default function UserDashboardPage() {
+  const { t, lang } = useLanguage();
+  const tr = (key: string, fallback: string) => {
+    const v = t(key);
+    return v === key ? fallback : v;
+  };
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [borrowings, setBorrowings] = useState<BorrowingItem[]>([]);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Time-based greeting in Indonesian
+  // Time-based greeting (EN/ID)
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 11) return "Selamat Pagi";
-    if (hour >= 11 && hour < 15) return "Selamat Siang";
-    if (hour >= 15 && hour < 18) return "Selamat Sore";
-    return "Selamat Malam";
+    if (hour >= 5 && hour < 11) return tr("dash.greeting_morning", "Selamat Pagi");
+    if (hour >= 11 && hour < 15) return tr("dash.greeting_noon", "Selamat Siang");
+    if (hour >= 15 && hour < 18) return tr("dash.greeting_evening", "Selamat Sore");
+    return tr("dash.greeting_night", "Selamat Malam");
   };
 
   const syncUser = useCallback(() => {
@@ -300,40 +316,40 @@ export default function UserDashboardPage() {
 
   // Pie chart data
   const pieData: PieSlice[] = [
-    { label: "Menunggu Persetujuan", value: pendingCount, color: "#F59E0B" },
-    { label: "Sedang Dipinjam", value: activeCount, color: "#0785BC" },
-    { label: "Selesai Dikembalikan", value: returnedCount, color: "#10B981" },
-    { label: "Ditolak / Batal", value: rejectedCount, color: "#EF4444" },
+    { label: tr("dash.pie_pending", "Menunggu Persetujuan"), value: pendingCount, color: "#F59E0B" },
+    { label: tr("dash.pie_active", "Sedang Dipinjam"), value: activeCount, color: "#0785BC" },
+    { label: tr("dash.pie_done", "Selesai Dikembalikan"), value: returnedCount, color: "#10B981" },
+    { label: tr("dash.pie_rejected", "Ditolak / Batal"), value: rejectedCount, color: "#EF4444" },
   ];
 
   // Stat cards definition
   const statCards = [
     {
-      label: "Total Pengajuan",
+      label: tr("dash.total", "Total Pengajuan"),
       value: totalCount,
       icon: Package,
-      iconBg: "bg-blue-50 text-[#0785BC]",
+      iconBg: "bg-blue-50 dark:bg-sky-950/60 text-[#0785BC] dark:text-sky-300",
       border: "border-slate-100",
     },
     {
-      label: "Menunggu Persetujuan",
+      label: tr("dash.pending", "Menunggu Persetujuan"),
       value: pendingCount,
       icon: Clock,
-      iconBg: "bg-amber-50 text-amber-600",
+      iconBg: "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300",
       border: "border-slate-100",
     },
     {
-      label: "Sedang Dipinjam",
+      label: tr("dash.active", "Sedang Dipinjam"),
       value: activeCount,
       icon: BookOpen,
-      iconBg: "bg-indigo-50 text-indigo-600",
+      iconBg: "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300",
       border: "border-slate-100",
     },
     {
-      label: "Selesai Dikembalikan",
+      label: tr("dash.done", "Selesai Dikembalikan"),
       value: returnedCount,
       icon: CheckCircle2,
-      iconBg: "bg-emerald-50 text-emerald-600",
+      iconBg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300",
       border: "border-slate-100",
     },
   ];
@@ -343,55 +359,62 @@ export default function UserDashboardPage() {
   const displayName = currentUser?.name || currentUser?.full_name || "Peminjam";
 
   return (
-    <UserLayout showSearch={true} searchPlaceholder="Cari barang untuk dipinjam...">
-      <div className="space-y-6 w-full min-w-0 pb-10">
-        {/* ── Hero Greeting ── */}
-        <div className="rounded-3xl bg-gradient-to-r from-[#0785BC]/10 via-[#0785BC]/5 to-transparent border border-[#0785BC]/15 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {getGreeting()},{" "}
-              <span className="text-[#0785BC]">{displayName}</span>
-            </h1>
-            <p className="text-slate-500 mt-1.5 text-xs sm:text-sm">
-              Pantau status peminjaman aset fasilitas Anda secara real-time.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            <Link
-              href="/user/item_catalog"
-              className="px-4 py-2.5 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-all"
-            >
-              <BookOpen className="w-4 h-4" />
-              Pinjam Barang
-            </Link>
-            <Link
-              href="/user/riwayat_peminjaman"
-              className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold flex items-center gap-2 transition-all"
-            >
-              <ClipboardList className="w-4 h-4" />
-              Riwayat Saya
-            </Link>
+    <UserLayout showSearch={true}>
+      <div className="space-y-5 sm:space-y-6 max-w-7xl mx-auto pb-16 md:pb-10">
+        {/* ── Hero Greeting ala ChatGPT/n8n ── */}
+        <div className="relative overflow-hidden rounded-3xl border border-[#0785BC]/15 dark:border-sky-900 bg-gradient-to-br from-white via-[#eef7fc] to-[#e3f1f9] dark:from-[#111c30] dark:via-[#0f2740] dark:to-[#0b1a30] p-5 sm:p-8">
+          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-[#0785BC]/10 dark:bg-sky-500/10 blur-2xl pointer-events-none" />
+          <div className="absolute right-10 bottom-0 w-40 h-40 rounded-full bg-[#0785BC]/5 dark:bg-sky-500/5 blur-xl pointer-events-none" />
+          <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="min-w-0">
+              <p className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#0785BC] dark:text-sky-300 bg-white/70 dark:bg-white/5 border border-[#0785BC]/20 rounded-full px-3 py-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {tr("dash.live", "Terhubung real-time")}
+              </p>
+              <h1 className="mt-2 text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
+                {getGreeting()}, <span className="text-[#0785BC] dark:text-sky-300">{displayName}</span>
+              </h1>
+              <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-xs sm:text-sm max-w-xl">
+                {tr("dash.subtitle", "Pantau status peminjaman aset fasilitas Anda secara real-time.")}
+              </p>
+            </div>
+            <div className="flex items-center gap-2.5 shrink-0 w-full md:w-auto">
+              <Link
+                href="/user/item_catalog"
+                className="flex-1 md:flex-none justify-center px-4 py-2.5 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-semibold flex items-center gap-2 shadow-sm shadow-[#0785BC]/25 transition-all active:scale-[0.98]"
+              >
+                <BookOpen className="w-4 h-4" />
+                {tr("dash.borrow_item", "Pinjam Barang")}
+              </Link>
+              <Link
+                href="/user/riwayat_peminjaman"
+                className="flex-1 md:flex-none justify-center px-4 py-2.5 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-white/10 text-slate-700 dark:text-slate-100 text-xs font-semibold flex items-center gap-2 transition-all active:scale-[0.98]"
+              >
+                <ClipboardList className="w-4 h-4" />
+                {tr("dash.my_history", "Riwayat Saya")}
+              </Link>
+            </div>
           </div>
         </div>
 
         {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {statCards.map((stat) => {
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {statCards.map((stat, idx) => {
             const Icon = stat.icon;
+            const href = idx === 0 ? "/user/riwayat_peminjaman" : idx === 1 ? "/user/riwayat_peminjaman?status=pending" : idx === 2 ? "/user/pengembalian" : "/user/riwayat_peminjaman?status=returned";
               return (
                <Link
-                 href={stat.label === "Total Pengajuan" ? "/user/riwayat_peminjaman" : stat.label === "Menunggu Persetujuan" ? "/user/riwayat_peminjaman?status=pending" : stat.label === "Sedang Dipinjam" ? "/user/pengembalian" : "/user/riwayat_peminjaman?status=returned"}
+                 href={href}
                  key={stat.label}
-                className="bg-white rounded-2xl border border-slate-100 shadow-xs p-5 flex items-center justify-between hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+                className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs p-4 sm:p-5 flex items-center justify-between gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-w-0"
               >
-                <div>
-                  <p className="text-xs text-slate-500 font-medium mb-1">{stat.label}</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-slate-900 tabular-nums">
+                <div className="min-w-0">
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate">{stat.label}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tabular-nums">
                     {loading ? "..." : stat.value}
                   </p>
                 </div>
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg}`}>
+                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg}`}>
                    <Icon className="w-5 h-5" />
                 </div>
                </Link>
@@ -400,41 +423,41 @@ export default function UserDashboardPage() {
         </div>
 
         {/* ── Main Section: Pie Chart & Recent Borrowings ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Pie Chart Card (1 column on lg) */}
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 flex flex-col justify-between">
-            <div className="border-b border-slate-100 pb-3 mb-2 flex items-center justify-between">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">
-                  Grafik Status Peminjaman
+          <div className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs p-5 sm:p-6 flex flex-col justify-between">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3 mb-2 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                  {tr("dash.chart_title", "Grafik Status Peminjaman")}
                 </h2>
-                <p className="text-[11px] text-slate-400">Distribusi pengajuan aset Anda</p>
+                <p className="text-[11px] text-slate-400 truncate">{tr("dash.chart_sub", "Distribusi pengajuan aset Anda")}</p>
               </div>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" title="Real-time terhubung" />
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" title="Real-time" />
             </div>
 
-            <div className="flex-1 flex items-center justify-center my-2">
+            <div className="flex-1 flex items-center justify-center my-2 min-w-0">
               <StatusPieChart data={pieData} total={totalCount} />
             </div>
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Auto-refresh real-time</span>
-              <span className="font-semibold text-[#0785BC]">{totalCount} Pengajuan</span>
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <span>{tr("dash.auto_refresh", "Auto-refresh real-time")}</span>
+              <span className="font-semibold text-[#0785BC] dark:text-sky-300">{totalCount} {tr("dash.requests", "Pengajuan")}</span>
             </div>
           </div>
 
           {/* Status Peminjaman Real-time List (2 columns on lg) */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-xs flex flex-col">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900">Status Peminjaman Terkini</h2>
-                <p className="text-[11px] text-slate-400">Daftar peminjaman barang Anda saat ini</p>
+          <div className="lg:col-span-2 bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs flex flex-col min-w-0 overflow-hidden">
+            <div className="flex items-center justify-between gap-2 px-5 sm:px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white truncate">{tr("dash.recent", "Status Peminjaman Terkini")}</h2>
+                <p className="text-[11px] text-slate-400 truncate">{tr("dash.recent_sub", "Daftar peminjaman barang Anda saat ini")}</p>
               </div>
               <Link
                 href="/user/riwayat_peminjaman"
-                className="text-xs font-semibold text-[#0785BC] hover:underline flex items-center gap-1"
+                className="shrink-0 text-xs font-semibold text-[#0785BC] dark:text-sky-300 hover:underline flex items-center gap-1"
               >
-                Lihat Semua
+                {tr("dash.view_all", "Lihat Semua")}
                 <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -453,21 +476,21 @@ export default function UserDashboardPage() {
               ) : recentBorrowings.length === 0 ? (
                 <div className="p-10 text-center text-slate-400">
                   <ClipboardList className="w-10 h-10 mx-auto mb-2 text-slate-200" />
-                  <p className="text-xs font-medium text-slate-500">Belum ada aktivitas peminjaman</p>
+                  <p className="text-xs font-medium text-slate-500">{tr("dash.no_activity", "Belum ada aktivitas peminjaman")}</p>
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Ajukan peminjaman pertama Anda melalui katalog barang.
+                    {tr("dash.no_activity_sub", "Ajukan peminjaman pertama Anda melalui katalog barang.")}
                   </p>
                   <Link
                     href="/user/item_catalog"
                     className="inline-block mt-3 text-xs font-semibold text-[#0785BC] hover:underline"
                   >
-                    Buka Katalog &rarr;
+                    {tr("dash.open_catalog", "Buka Katalog")} &rarr;
                   </Link>
                 </div>
               ) : (
                 recentBorrowings.map((b) => {
                   const firstItem = b.borrowings_items?.[0]?.items;
-                  const itemName = firstItem?.name || b.purpose || "Peminjaman Fasilitas";
+                  const itemName = firstItem?.name || b.purpose || tr("dash.facility", "Peminjaman Fasilitas");
                   const borrowDate = b.borrow_date
                     ? new Date(b.borrow_date).toLocaleDateString("id-ID", {
                         day: "numeric",
@@ -495,8 +518,8 @@ export default function UserDashboardPage() {
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Tgl Pinjam: {borrowDate}
-                          {b.purpose && ` • Tujuan: ${b.purpose}`}
+                          {tr("dash.borrow_date", "Tgl Pinjam")}: {borrowDate}
+                          {b.purpose && ` • ${tr("dash.purpose", "Tujuan")}: ${b.purpose}`}
                         </p>
                       </div>
 
@@ -505,7 +528,7 @@ export default function UserDashboardPage() {
                       <Link
                         href={`/user/peminjaman/${b.id}`}
                         className="p-1 text-slate-300 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
-                        title="Lihat Detail Peminjaman"
+                        title={tr("dash.view_detail", "Lihat Detail Peminjaman")}
                       >
                         <ChevronRight className="w-4 h-4" />
                       </Link>
@@ -524,15 +547,15 @@ export default function UserDashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-sm font-bold text-slate-900">
-                  Rekomendasi Barang Tersedia
+                  {tr("dash.recommend", "Rekomendasi Barang Tersedia")}
                 </h2>
-                <p className="text-[11px] text-slate-400">Aset sarpras yang siap Anda pinjam hari ini</p>
+                <p className="text-[11px] text-slate-400">{tr("dash.recommend_sub", "Aset sarpras yang siap Anda pinjam hari ini")}</p>
               </div>
               <Link
                 href="/user/item_catalog"
                 className="text-xs font-semibold text-[#0785BC] hover:underline flex items-center gap-1"
               >
-                Lihat Katalog
+                {tr("dash.view_catalog", "Lihat Katalog")}
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -543,7 +566,7 @@ export default function UserDashboardPage() {
                     const catName =
                       typeof item.category === "object"
                         ? item.category?.name
-                        : item.categories?.name || item.category || "Umum";
+                        : item.categories?.name || item.category || tr("dash.general", "Umum");
                     const stockVal = Number(item.available_stock ?? item.stock ?? 0);
                     const emptyDash = stockVal <= 0;
                     return (
@@ -567,7 +590,7 @@ export default function UserDashboardPage() {
                           </span>
                           {emptyDash && (
                             <span className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-rose-600 rounded text-[9px] font-extrabold text-white shadow">
-                              Habis
+                              {tr("dash.out_short", "Habis")}
                             </span>
                           )}
                         </div>
@@ -575,12 +598,12 @@ export default function UserDashboardPage() {
                           {item.name}
                         </h3>
                         <div className="flex items-center justify-between mt-auto pt-2 text-[10px] text-slate-400">
-                          <span>Stok:</span>
+                          <span>{tr("dash.stock", "Stok:")}</span>
                           {emptyDash ? (
-                            <span className="font-bold text-rose-600">Stok Habis</span>
+                            <span className="font-bold text-rose-600">{tr("common.stock_out", "Stok Habis")}</span>
                           ) : (
                             <span className="font-semibold text-emerald-600">
-                              {stockVal} Tersedia
+                              {stockVal} {tr("common.available", "Tersedia")}
                             </span>
                           )}
                          </div>
@@ -600,36 +623,36 @@ export default function UserDashboardPage() {
           {/* Quick Actions (1 col) */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-xs p-6 flex flex-col justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 mb-1">Aksi Cepat</h2>
-              <p className="text-[11px] text-slate-400 mb-4">Akses menu penting dalam satu klik</p>
+              <h2 className="text-sm font-bold text-slate-900 mb-1">{tr("dash.quick", "Aksi Cepat")}</h2>
+              <p className="text-[11px] text-slate-400 mb-4">{tr("dash.quick_sub", "Akses menu penting dalam satu klik")}</p>
 
               <div className="space-y-2">
                 {[
                   {
                     href: "/user/item_catalog",
-                    label: "Cari & Pinjam Barang",
-                    desc: "Jelajahi seluruh aset dan fasilitas",
+                    label: tr("dash.search_borrow", "Cari & Pinjam Barang"),
+                    desc: tr("dash.search_borrow_desc", "Jelajahi seluruh aset dan fasilitas"),
                     icon: BookOpen,
                     color: "bg-blue-50 text-[#0785BC]",
                   },
                   {
                     href: "/user/riwayat_peminjaman",
-                    label: "Kelola Peminjaman",
-                    desc: "Cek status & tanggal pengembalian",
+                    label: tr("dash.manage_borrow", "Kelola Peminjaman"),
+                    desc: tr("dash.manage_borrow_desc", "Cek status & tanggal pengembalian"),
                     icon: ClipboardList,
                     color: "bg-emerald-50 text-emerald-600",
                   },
                   {
                     href: "/user/messages",
-                    label: "Chat Admin Sarpras",
-                    desc: "Konsultasi & bantuan peminjaman",
+                    label: tr("dash.chat_admin", "Chat Admin Sarpras"),
+                    desc: tr("dash.chat_admin_desc", "Konsultasi & bantuan peminjaman"),
                     icon: MessageSquare,
                     color: "bg-purple-50 text-purple-600",
                   },
                   {
                     href: "/user/profile",
-                    label: "Pengaturan Akun",
-                    desc: "Ubah profil dan nomor kontak",
+                    label: tr("dash.account", "Pengaturan Akun"),
+                    desc: tr("dash.account_desc", "Ubah profil dan nomor kontak"),
                     icon: User,
                     color: "bg-slate-100 text-slate-700",
                   },
@@ -655,9 +678,9 @@ export default function UserDashboardPage() {
             </div>
 
             <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Butuh bantuan segera?</span>
+              <span>{tr("dash.need_help", "Butuh bantuan segera?")}</span>
               <Link href="/user/messages" className="text-[#0785BC] font-semibold hover:underline">
-                Hubungi Kami
+                {tr("dash.contact_us", "Hubungi Kami")}
               </Link>
             </div>
           </div>

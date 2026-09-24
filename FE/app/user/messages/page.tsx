@@ -13,11 +13,14 @@ import {
   Pencil,
   Trash2,
   X,
+  Clock3,
+  CircleDot,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket, joinChatRoom, leaveChatRoom } from "@/lib/socket";
 import { formatChatDateBadge, isDifferentDay, formatLastSeen } from "@/lib/chatHelper";
 import { UserLayout } from "@/components/user";
+import { useLanguage } from "@/lib/i18n";
 
 interface Conversation {
   id: string;
@@ -67,6 +70,13 @@ export default function UserMessagesPage() {
   const presenceSetRef = useRef<Set<string>>(new Set());
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, setPresenceTick] = useState(0);
+
+  // Refresh "X menit lalu" setiap 60 detik agar terlihat live
+  useEffect(() => {
+    const id = setInterval(() => setPresenceTick((t) => t + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     bottomRef.current?.scrollIntoView({ behavior });
@@ -230,12 +240,18 @@ export default function UserMessagesPage() {
           });
 
           setMessages((previous) => {
+            // Pertahankan status dibaca agar tidak revert saat polling race dengan event read (cegah flicker 2→1)
+            const merged = mapped.map((m) => {
+              const existing = previous.find((p) => p.id === m.id);
+              if (existing?.isRead && !m.isRead) return { ...m, isRead: true };
+              return m;
+            });
             const pending = previous.filter(
               (message) =>
                 message.id.startsWith("temp-") &&
-                !mapped.some((item) => item.text === message.text)
+                !merged.some((item) => item.text === message.text)
             );
-            const next = [...mapped, ...pending];
+            const next = [...merged, ...pending];
             const changed =
               next.length !== previous.length ||
               next.some(
@@ -473,19 +489,31 @@ export default function UserMessagesPage() {
       const ids = (Array.isArray(data) ? data : data?.onlineUserIds || []).map(String);
       presenceSetRef.current = new Set(ids);
       if (!Array.isArray(data) && data?.lastSeenMap) {
-        Object.entries(data.lastSeenMap).forEach(([uid, seen]) => {
+        const entries = Object.entries(data.lastSeenMap) as [string, string][];
+        if (entries.length > 0) {
+          const mapUpdate: Record<string, string> = {};
+          entries.forEach(([uid, seen]) => { mapUpdate[String(uid)] = String(seen); });
           setConversations((prev) =>
             prev.map((c) =>
-              String(c.adminId || "") === String(uid) ? { ...c, lastSeen: String(seen) } : c
+              mapUpdate[String(c.adminId || "")] ? { ...c, lastSeen: mapUpdate[String(c.adminId || "")] } : c
             )
           );
-        });
+          const activeAdminLs = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+          if (activeAdminLs && mapUpdate[activeAdminLs]) setAdminLastSeen(mapUpdate[activeAdminLs]);
+        }
       }
       const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
       setConversations((prev) =>
         prev.map((c) => ({ ...c, isOnline: ids.includes(String(c.adminId || "")) }))
       );
-      if (activeAdmin) setAdminOnline(ids.includes(String(activeAdmin)));
+      if (activeAdmin) {
+        const isOn = ids.includes(String(activeAdmin));
+        setAdminOnline(isOn);
+        // Saat offline, pastikan lastSeen terisi dari lastSeenMap
+        if (!isOn && !Array.isArray(data) && (data as any)?.lastSeenMap?.[activeAdmin]) {
+          setAdminLastSeen(String((data as any).lastSeenMap[activeAdmin]));
+        }
+      }
     };
 
     const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
@@ -511,8 +539,18 @@ export default function UserMessagesPage() {
     if (socket.connected) {
       socket.emit("get_online_users");
     }
+    // Polling status online agar Admin ↔ User saling lihat live (sebelumnya hanya sekali saat mount)
+    const presenceInterval = setInterval(() => {
+      if (socket.connected) socket.emit("get_online_users");
+    }, 10000);
+    const handleSocketReconnect = () => {
+      if (socket.connected) socket.emit("get_online_users");
+    };
+    window.addEventListener("socket-connected", handleSocketReconnect);
 
     return () => {
+      clearInterval(presenceInterval);
+      window.removeEventListener("socket-connected", handleSocketReconnect);
       socket.off("new_message", handleNewMessage);
       socket.off("messages_read", handleMessagesRead);
       socket.off("message_updated", handleMessageUpdated);
@@ -673,10 +711,10 @@ export default function UserMessagesPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-bold text-slate-900">Pesan Bantuan</h2>
               <span
-                className={`w-2.5 h-2.5 rounded-full ${
-                  adminOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
+                className={`w-2.5 h-2.5 rounded-full transition-colors duration-200 ${
+                  adminOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.7)]" : "bg-slate-300"
                 }`}
-                title={adminOnline ? "Admin Online" : "Admin Offline"}
+                title={adminOnline ? "Admin Online — siap membalas" : `Admin Offline — ${formatLastSeen(adminLastSeen, false).text}`}
               />
             </div>
 
@@ -724,10 +762,10 @@ export default function UserMessagesPage() {
                     <div className="w-10 h-10 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0 relative">
                       <Headphones className="w-5 h-5" />
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
-                          conv.isOnline ? "bg-emerald-500 animate-pulse" : "bg-slate-300"
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
+                          conv.isOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]" : "bg-slate-300"
                         }`}
-                        title={conv.isOnline ? "Admin online" : "Admin offline"}
+                        title={conv.isOnline ? "Admin online — siap membalas" : `Admin offline — ${formatLastSeen(conv.lastSeen || null, false).text}`}
                       />
                     </div>
 
@@ -762,7 +800,7 @@ export default function UserMessagesPage() {
                 <Shield className="w-5 h-5" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
                     Admin Support Sarpras
                   </h3>
@@ -770,21 +808,38 @@ export default function UserMessagesPage() {
                     const statusInfo = formatLastSeen(adminLastSeen, adminOnline);
                     if (statusInfo.isOnline) {
                       return (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold border bg-emerald-50 text-emerald-700 border-emerald-100 inline-flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          Online
+                        <span
+                          title="Admin sedang online — balasan akan cepat"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm"
+                        >
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                          </span>
+                          Online • Aktif sekarang
                         </span>
                       );
                     }
                     return (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-medium border bg-slate-50 text-slate-500 border-slate-200">
-                        {statusInfo.text}
+                      <span
+                        title={statusInfo.text}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200 shadow-sm max-w-[18rem]"
+                      >
+                        <Clock3 className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{statusInfo.text}</span>
                       </span>
                     );
                   })()}
                 </div>
-                <p className="text-[11px] text-slate-400 truncate">
-                  Petugas siap membantu kendala dan pengajuan fasilitas Anda
+                <p className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                  {adminOnline ? (
+                    <>
+                      <CircleDot className="w-3 h-3 text-emerald-500" />
+                      Petugas siap membalas — sedang online
+                    </>
+                  ) : (
+                    "Petugas siap membantu kendala dan pengajuan fasilitas Anda"
+                  )}
                 </p>
               </div>
             </div>
@@ -904,23 +959,25 @@ export default function UserMessagesPage() {
                             <span>{m.time}</span>
                             {(() => {
                               const isTemp = typeof m.id === "string" && m.id.startsWith("temp-");
-                              const tick = m.isRead ? "read" : isTemp || !adminOnline ? "sent" : "delivered";
+                              // Fixed: tidak bergantung adminOnline agar tick stabil (cegah flicker 2→1)
+                              const tick = m.isRead ? "read" : isTemp ? "sent" : "delivered";
                               return (
                                 <span
+                                  className="transition-colors duration-200"
                                   title={
                                     tick === "read"
-                                      ? "Dibaca oleh Admin"
+                                      ? "Dibaca oleh Admin ✓✓"
                                       : tick === "delivered"
-                                        ? "Diterima (Admin sedang online)"
-                                        : "Terkirim"
+                                        ? "Terkirim ke Admin ✓✓"
+                                        : "Terkirim ✓"
                                   }
                                 >
                                   {tick === "read" ? (
-                                    <CheckCheck className="w-3.5 h-3.5 text-cyan-300 stroke-[2.5]" />
+                                    <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
                                   ) : tick === "delivered" ? (
-                                    <CheckCheck className="w-3.5 h-3.5 text-white/70 stroke-[2]" />
+                                    <CheckCheck className="w-3.5 h-3.5 text-white/80 stroke-[2]" />
                                   ) : (
-                                    <Check className="w-3.5 h-3.5 text-white/70 stroke-[2]" />
+                                    <Check className="w-3.5 h-3.5 text-white/60 stroke-[2]" />
                                   )}
                                 </span>
                               );

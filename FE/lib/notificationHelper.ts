@@ -102,11 +102,12 @@ export function getNotificationTargetUrl(
   return isAdmin ? "/admin/dashboard_admin" : "/user/dashboard";
 }
 
-export function getNotificationActionLabel(type: string = "sistem"): string {
+export function getNotificationActionLabel(type: string = "sistem", lang: "id" | "en" = "id"): string {
   const t = type.toLowerCase();
-  if (t === "peminjaman" || t === "borrowing") return "Buka Transaksi";
-  if (t === "pengembalian" || t === "return") return "Lihat Pengembalian";
-  if (t === "laporan" || t === "kerusakan" || t === "damage") return "Periksa Laporan";
-  if (t === "chat" || t === "pesan") return "Buka Pesan";
-  return "Buka";
+  const en = lang === "en";
+  if (t === "peminjaman" || t === "borrowing") return en ? "Open Transaction" : "Buka Transaksi";
+  if (t === "pengembalian" || t === "return") return en ? "View Return" : "Lihat Pengembalian";
+  if (t === "laporan" || t === "kerusakan" || t === "damage") return en ? "Review Report" : "Periksa Laporan";
+  if (t === "chat" || t === "pesan" || t === "message") return en ? "Open Messages" : "Buka Pesan";
+  return en ? "Open" : "Buka";
 }

@@ -42,7 +42,7 @@ module.exports = (io, app) => {
     lastSeenMap: Object.fromEntries(lastSeenMap)
   });
 
-  // Middleware: Autentikasi socket connection
+  // Middleware: Autentikasi socket connection (wajib Supabase getUser, tanpa fallback decode)
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
@@ -51,10 +51,10 @@ module.exports = (io, app) => {
         return next(new Error('Authentication error: Token tidak ditemukan'));
       }
 
-      // 1. Verifikasi token dengan Supabase Auth
+      // Verifikasi token via Supabase Auth — wajib valid
       const { data: authData, error: authError } = await supabase.auth.getUser(token);
       if (authError || !authData?.user) {
-        return next(new Error('Authentication error: Token tidak valid'));
+        return next(new Error('Authentication error: Token tidak valid atau kadaluarsa'));
       }
       const userId = authData.user.id;
 

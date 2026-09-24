@@ -19,8 +19,10 @@ import {
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { UserLayout } from "@/components/user";
+import { useLanguage } from "@/lib/i18n";
 
 export default function UserProfilePage() {
+  const { t } = useLanguage();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<"profile" | "security">("profile");
@@ -60,8 +62,7 @@ export default function UserProfilePage() {
   // Load User Data & Sync with Server
   const loadProfile = useCallback(async () => {
     // 1. Initial load from localStorage
-    const local = getCurrentUser();
-    if (local) {
+    const local = getCurrentUser();    if (local) {
       setCurrentUser(local);
       setFullName(local.name || local.full_name || "");
       setEmail(local.email || "");
@@ -143,7 +144,7 @@ export default function UserProfilePage() {
 
         setFeedback({
           type: "success",
-          message: "Foto profil berhasil diperbarui di database!",
+          message: t("profile.msg_photo_ok"),
         });
         setTimeout(() => setFeedback(null), 4000);
       }
@@ -160,13 +161,13 @@ export default function UserProfilePage() {
     setFeedback(null);
 
     if (!fullName.trim()) {
-      setFeedback({ type: "error", message: "Nama lengkap tidak boleh kosong." });
+      setFeedback({ type: "error", message: t("profile.err_name_empty") });
       setSavingProfile(false);
       return;
     }
 
     if (!email.trim() || !email.includes("@")) {
-      setFeedback({ type: "error", message: "Masukkan alamat email yang valid." });
+      setFeedback({ type: "error", message: t("profile.err_email") });
       setSavingProfile(false);
       return;
     }
@@ -212,13 +213,13 @@ export default function UserProfilePage() {
 
       setFeedback({
         type: "success",
-        message: "Data nama dan email berhasil diperbarui ke database!",
+        message: t("profile.msg_profile_ok"),
       });
       setTimeout(() => setFeedback(null), 4000);
     } catch (err: any) {
       setFeedback({
         type: "error",
-        message: err.message || "Gagal memperbarui data profil.",
+        message: err.message || t("profile.err_profile_fail"),
       });
     } finally {
       setSavingProfile(false);
@@ -234,7 +235,7 @@ export default function UserProfilePage() {
     if (newPassword.length < 8) {
       setPwFeedback({
         type: "error",
-        message: "Kata sandi baru minimal harus 8 karakter.",
+        message: t("profile.err_pass_short"),
       });
       setSavingPassword(false);
       return;
@@ -243,7 +244,7 @@ export default function UserProfilePage() {
     if (newPassword !== confirmPassword) {
       setPwFeedback({
         type: "error",
-        message: "Konfirmasi kata sandi tidak cocok.",
+        message: t("profile.err_pass_mismatch"),
       });
       setSavingPassword(false);
       return;
@@ -253,10 +254,10 @@ export default function UserProfilePage() {
     if (user?.id) {
       try {
         const result = await api.auth.changePassword({ currentPassword, newPassword });
-        if (result.status !== "success") throw new Error(result.message || "Gagal mengubah kata sandi.");
+        if (result.status !== "success") throw new Error(result.message || t("profile.err_pass_fail"));
         setPwFeedback({
           type: "success",
-          message: "Kata sandi Anda berhasil diperbarui di database!",
+          message: t("profile.msg_pass_ok"),
         });
         setNewPassword("");
         setConfirmPassword("");
@@ -264,7 +265,7 @@ export default function UserProfilePage() {
       } catch (err: any) {
         setPwFeedback({
           type: "error",
-          message: err.message || "Gagal mengubah kata sandi.",
+          message: err.message || t("profile.err_pass_fail"),
         });
       }
     }
@@ -287,10 +288,10 @@ export default function UserProfilePage() {
         {/* ── Page Header ── */}
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Profil Pengguna
+            {t("profile.title")}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Kelola data pribadi, informasi kontak, dan kredensial akun Anda.
+            {t("profile.subtitle")}
           </p>
         </div>
 
@@ -302,7 +303,7 @@ export default function UserProfilePage() {
             <div className="absolute left-10 top-0 w-40 h-40 bg-[#0785BC]/30 rounded-full blur-xl pointer-events-none" />
             <span className="relative z-10 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs">
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              Member Terverifikasi
+              {t("profile.verified")}
             </span>
           </div>
 
@@ -331,14 +332,14 @@ export default function UserProfilePage() {
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingPhoto}
                       className="absolute inset-1.5 bg-black/40 hover:bg-black/60 rounded-2xl flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all cursor-pointer backdrop-blur-[2px]"
-                      title="Ganti Foto Profil"
+                      title={t("profile.change_photo_title")}
                     >
                       {uploadingPhoto ? (
                         <Loader2 className="w-6 h-6 animate-spin text-white" />
                       ) : (
                         <>
                           <Camera className="w-6 h-6 mb-1" />
-                          <span className="text-[10px] font-semibold">Ubah Foto</span>
+                          <span className="text-[10px] font-semibold">{t("profile.change_photo")}</span>
                         </>
                       )}
                     </button>
@@ -348,7 +349,7 @@ export default function UserProfilePage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     className="sm:hidden absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#0785BC] text-white flex items-center justify-center shadow-md border-2 border-white cursor-pointer"
-                    title="Ganti Foto"
+                    title={t("profile.change_photo")}
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -370,14 +371,14 @@ export default function UserProfilePage() {
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-blue-50 text-[#0785BC] border border-blue-100">
                       {role === "Admin"
-                        ? "Administrator"
+                        ? t("profile.role_admin")
                         : role === "Petugas"
-                        ? "Petugas"
-                        : "Peminjam"}
+                        ? t("profile.role_staff")
+                        : t("profile.role_borrower")}
                     </span>
                     <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                      Akun Aktif
+                      {t("profile.active")}
                     </span>
                     {nomorInduk && (
                       <span className="px-3 py-1 rounded-xl text-xs font-mono font-semibold bg-slate-100 text-slate-600 border border-slate-200">
@@ -392,7 +393,7 @@ export default function UserProfilePage() {
               <div className="flex items-center gap-3 pt-3 sm:pt-0 sm:pb-1">
                 <div className="w-full sm:w-auto px-6 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-center shadow-xs">
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                    Total Peminjaman
+                    {t("profile.total")}
                   </p>
                   <p className="text-2xl font-extrabold text-slate-900 tabular-nums mt-0.5">
                     {totalBorrowings}
@@ -414,7 +415,7 @@ export default function UserProfilePage() {
             }`}
           >
             <User className="w-4 h-4" />
-            Informasi Pribadi
+            {t("profile.tab_profile")}
           </button>
           <button
             onClick={() => setActiveTab("security")}
@@ -425,7 +426,7 @@ export default function UserProfilePage() {
             }`}
           >
             <Lock className="w-4 h-4" />
-            Keamanan & Kata Sandi
+            {t("profile.tab_security")}
           </button>
         </div>
 
@@ -435,10 +436,10 @@ export default function UserProfilePage() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h3 className="text-base font-bold text-slate-900">
-                  Data Pribadi & Kontak
+                  {t("profile.personal_title")}
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Perubahan nama dan email akan langsung disinkronkan ke database sistem.
+                  {t("profile.personal_sub")}
                 </p>
               </div>
             </div>
@@ -466,7 +467,7 @@ export default function UserProfilePage() {
                 {/* Full Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Nama Lengkap
+                    {t("profile.name_label")}
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -474,20 +475,20 @@ export default function UserProfilePage() {
                       type="text"
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Masukkan nama lengkap"
+                      placeholder={t("profile.name_ph")}
                       required
                       className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Nama ini akan muncul pada Navbar, tanda terima peminjaman, dan laporan.
+                    {t("profile.name_hint")}
                   </p>
                 </div>
 
                 {/* Email Address */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Alamat Email
+                    {t("profile.email_label")}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -495,20 +496,20 @@ export default function UserProfilePage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="contoh@email.com"
+                      placeholder={t("profile.email_ph")}
                       required
                       className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     />
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">
-                    Email digunakan untuk login dan notifikasi peminjaman barang.
+                    {t("profile.email_hint")}
                   </p>
                 </div>
 
                 {/* Phone / WhatsApp */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Nomor WhatsApp / Telepon
+                    {t("profile.phone_label")}
                   </label>
                   <div className="relative">
                     <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -516,7 +517,7 @@ export default function UserProfilePage() {
                       type="text"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      placeholder="08123456789"
+                      placeholder={t("profile.phone_ph")}
                       className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     />
                   </div>
@@ -525,7 +526,7 @@ export default function UserProfilePage() {
                 {/* Nomor Induk (NIM / NIP) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Nomor Induk (NIM / NIP)
+                    {t("profile.id_label")}
                   </label>
                   <div className="relative">
                     <Hash className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -533,7 +534,7 @@ export default function UserProfilePage() {
                       type="text"
                       value={nomorInduk}
                       onChange={(e) => setNomorInduk(e.target.value)}
-                      placeholder="NIM / NIP Anda"
+                      placeholder={t("profile.id_ph")}
                       className="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all font-mono"
                     />
                   </div>
@@ -542,7 +543,7 @@ export default function UserProfilePage() {
                 {/* Role */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Role Akun
+                    {t("profile.role_label")}
                   </label>
                   <div className="relative">
                     <Shield className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -563,7 +564,7 @@ export default function UserProfilePage() {
                   onClick={loadProfile}
                   className="px-4 py-2.5 text-xs sm:text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
-                  Reset Form
+                  {t("profile.reset")}
                 </button>
                 <button
                   type="submit"
@@ -573,12 +574,12 @@ export default function UserProfilePage() {
                   {savingProfile ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Menyimpan ke Database...
+                      {t("profile.saving")}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Simpan Perubahan
+                      {t("profile.save")}
                     </>
                   )}
                 </button>
@@ -592,10 +593,10 @@ export default function UserProfilePage() {
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xs p-6 sm:p-8 space-y-6">
             <div className="border-b border-slate-100 pb-4">
               <h3 className="text-base font-bold text-slate-900">
-                Ubah Kata Sandi
+                {t("profile.pass_title")}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Pastikan akun Anda menggunakan kombinasi kata sandi yang aman dan tidak mudah ditebak.
+                {t("profile.pass_sub")}
               </p>
             </div>
 
@@ -619,14 +620,14 @@ export default function UserProfilePage() {
 
             <form onSubmit={handleSavePassword} className="space-y-5 max-w-lg">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Kata Sandi Saat Ini</label>
-                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Masukkan kata sandi saat ini" required className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all" />
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">{t("profile.current_pass")}</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder={t("profile.current_ph")} required className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all" />
               </div>
 
               {/* New Password */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Kata Sandi Baru
+                  {t("profile.new_pass")}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -634,7 +635,7 @@ export default function UserProfilePage() {
                     type={showNewPw ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Minimal 8 karakter"
+                    placeholder={t("profile.new_ph")}
                     required
                     className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                   />
@@ -651,7 +652,7 @@ export default function UserProfilePage() {
               {/* Confirm New Password */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Ulangi Kata Sandi Baru
+                  {t("profile.confirm_pass")}
                 </label>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -659,7 +660,7 @@ export default function UserProfilePage() {
                     type={showConfirmPw ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Ketik ulang kata sandi baru"
+                    placeholder={t("profile.confirm_ph")}
                     required
                     className="w-full pl-10 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50/70 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                   />
@@ -682,12 +683,12 @@ export default function UserProfilePage() {
                   {savingPassword ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Memperbarui Sandi...
+                      {t("profile.updating")}
                     </>
                   ) : (
                     <>
                       <Save className="w-4 h-4" />
-                      Perbarui Kata Sandi
+                      {t("profile.update")}
                     </>
                   )}
                 </button>

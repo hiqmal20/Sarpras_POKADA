@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
+import { useLanguage } from "@/lib/i18n";
 
 function statusStyle(status: string) {
   const s = status.toLowerCase();
@@ -53,6 +54,12 @@ function statusStyle(status: string) {
 }
 
 export default function UserDamageReportsPage() {
+  const { t, lang } = useLanguage();
+  const tr = (k: string, fb: string) => {
+    const v = t(k);
+    return v === k ? fb : v;
+  };
+  const dateLocale = lang === "en" ? "en-US" : "id-ID";
   const [borrowings, setBorrowings] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [borrowingId, setBorrowingId] = useState("");
@@ -115,7 +122,7 @@ export default function UserDamageReportsPage() {
     const result = await api.damageReports.create({
       borrowing_id: borrowingId || undefined,
       item_id: itemId || undefined,
-      title: title.trim() || "Laporan Kerusakan Barang",
+      title: title.trim() || tr("damage.default_title", "Laporan Kerusakan Barang"),
       description: description.trim(),
       image_url: photoUrl || undefined,
       photo_url: photoUrl || undefined,
@@ -124,7 +131,7 @@ export default function UserDamageReportsPage() {
     if (result.status === "success") {
       setFeedback({
         type: "success",
-        text: "Laporan kerusakan berhasil dikirim dan menunggu pemeriksaan admin.",
+        text: tr("damage.success_msg", "Laporan kerusakan berhasil dikirim dan menunggu pemeriksaan admin."),
       });
       setTitle("");
       setDescription("");
@@ -133,7 +140,7 @@ export default function UserDamageReportsPage() {
       setPhotoUrl("");
       load();
     } else {
-      setFeedback({ type: "error", text: result.message || "Laporan gagal dikirim." });
+      setFeedback({ type: "error", text: result.message || tr("damage.fail_msg", "Laporan gagal dikirim.") });
     }
   };
 
@@ -151,17 +158,17 @@ export default function UserDamageReportsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Sarpras Pokada</p>
-              <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">Laporan Kerusakan</h1>
+              <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">{tr("damage.title", "Laporan Kerusakan")}</h1>
               <p className="text-sm text-white/85 mt-1 max-w-xl">
-                Laporkan kondisi barang yang rusak atau bermasalah agar segera ditindaklanjuti admin.
+                {tr("damage.subtitle", "Laporkan kondisi barang yang rusak atau bermasalah agar segera ditindaklanjuti admin.")}
               </p>
             </div>
             <div className="flex gap-2 shrink-0 text-xs font-bold">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
-                {stats.total} Laporan
+                {stats.total} {tr("damage.total", "Laporan")}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
-                {stats.done} Selesai
+                {stats.done} {tr("damage.done_label", "Selesai")}
               </span>
             </div>
           </div>
@@ -196,10 +203,10 @@ export default function UserDamageReportsPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Total Laporan", value: stats.total, icon: Package, bg: "bg-blue-50 text-[#0785BC]" },
-            { label: "Menunggu Review", value: stats.waiting, icon: Clock, bg: "bg-amber-50 text-amber-600" },
-            { label: "Sedang Diproses", value: stats.progress, icon: Wrench, bg: "bg-violet-50 text-violet-600" },
-            { label: "Selesai", value: stats.done, icon: ShieldCheck, bg: "bg-emerald-50 text-emerald-600" },
+            { label: tr("damage.total", "Total Laporan"), value: stats.total, icon: Package, bg: "bg-blue-50 text-[#0785BC]" },
+            { label: tr("damage.wait_review", "Menunggu Review"), value: stats.waiting, icon: Clock, bg: "bg-amber-50 text-amber-600" },
+            { label: tr("damage.in_progress", "Sedang Diproses"), value: stats.progress, icon: Wrench, bg: "bg-violet-50 text-violet-600" },
+            { label: tr("damage.done_label", "Selesai"), value: stats.done, icon: ShieldCheck, bg: "bg-emerald-50 text-emerald-600" },
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -222,7 +229,7 @@ export default function UserDamageReportsPage() {
         {loading ? (
           <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center">
             <Loader2 className="w-8 h-8 animate-spin text-[#0785BC] mx-auto" />
-            <p className="text-xs text-slate-400 mt-3">Memuat data laporan...</p>
+            <p className="text-xs text-slate-400 mt-3">{tr("damage.loading", "Memuat data laporan...")}</p>
           </div>
         ) : (
           <div className="grid lg:grid-cols-[380px_minmax(0,1fr)] gap-5 items-start">
@@ -235,15 +242,15 @@ export default function UserDamageReportsPage() {
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-extrabold text-slate-900">Buat Laporan Baru</h2>
-                  <p className="text-[11px] text-slate-400">Isi detail kerusakan dengan lengkap</p>
+                  <h2 className="text-sm font-extrabold text-slate-900">{tr("damage.form_title", "Buat Laporan Baru")}</h2>
+                  <p className="text-[11px] text-slate-400">{tr("damage.form_sub", "Isi detail kerusakan dengan lengkap")}</p>
                 </div>
               </div>
 
               <div className="p-6 space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Peminjaman Terkait
+                    {tr("damage.related_borrowing", "Peminjaman Terkait")}
                   </label>
                   <select
                     value={borrowingId}
@@ -260,65 +267,65 @@ export default function UserDamageReportsPage() {
                     }}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   >
-                    <option value="">Pilih peminjaman (opsional)</option>
+                    <option value="">{tr("damage.select_borrowing", "Pilih peminjaman (opsional)")}</option>
                     {borrowings.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.borrow_code} - {b.purpose || "Peminjaman"}
+                        {b.borrow_code} - {b.purpose || tr("damage.borrow_fallback", "Peminjaman")}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Barang Rusak</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("damage.damaged_item", "Barang Rusak")}</label>
                   <select
                     value={itemId}
                     onChange={(e) => setItemId(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   >
-                    <option value="">Pilih barang</option>
+                    <option value="">{tr("damage.select_item", "Pilih barang")}</option>
                     {selectedItems.map((row: any) => (
                       <option key={row.item_id || row.items?.id} value={row.item_id || row.items?.id}>
-                        {row.items?.name || "Barang"}
+                        {row.items?.name || tr("damage.item_fallback", "Barang")}
                       </option>
                     ))}
                   </select>
                   {selectedItemName && (
                     <p className="mt-1.5 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" /> {selectedItemName} terpilih
+                      <CheckCircle2 className="w-3.5 h-3.5" /> {selectedItemName} {tr("damage.selected_suffix", "terpilih")}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Judul Laporan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("damage.report_title", "Judul Laporan")}</label>
                   <input
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Contoh: Kabel projector rusak"
+                    placeholder={tr("damage.title_ph", "Contoh: Kabel projector rusak")}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    Deskripsi Kerusakan
+                    {tr("damage.desc_label", "Deskripsi Kerusakan")}
                   </label>
                   <textarea
                     required
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
-                    placeholder="Jelaskan kerusakan secara detail: bagian mana, sejak kapan, dan kronologinya..."
+                    placeholder={tr("damage.desc_ph", "Jelaskan kerusakan secara detail: bagian mana, sejak kapan, dan kronologinya...")}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 resize-none focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1.5">Foto Kerusakan</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("damage.photo_label", "Foto Kerusakan")}</label>
                   <label className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-200 hover:border-[#0785BC]/50 hover:bg-blue-50/30 p-5 text-sm text-slate-500 cursor-pointer transition-all">
                     <ImagePlus className="w-5 h-5 text-[#0785BC]" />
-                    <span className="font-semibold">Klik untuk pilih foto</span>
+                    <span className="font-semibold">{tr("damage.photo_cta", "Klik untuk pilih foto")}</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -334,7 +341,7 @@ export default function UserDamageReportsPage() {
                   </label>
                   {photoUrl && (
                     <div className="relative mt-2 rounded-xl overflow-hidden border border-slate-200">
-                      <img src={photoUrl} alt="Preview kerusakan" className="w-full h-40 object-cover" />
+                      <img src={photoUrl} alt={tr("damage.photo_alt", "Preview kerusakan")} className="w-full h-40 object-cover" />
                       <button
                         type="button"
                         onClick={() => setPhotoUrl("")}
@@ -351,7 +358,7 @@ export default function UserDamageReportsPage() {
                   className="w-full rounded-xl bg-[#0785BC] hover:bg-[#0672a0] active:scale-[0.99] text-white py-3 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all cursor-pointer shadow-sm"
                 >
                   {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Kirim Laporan
+                  {sending ? tr("damage.sending", "Mengirim...") : tr("damage.submit", "Kirim Laporan")}
                 </button>
               </div>
             </form>
@@ -359,7 +366,7 @@ export default function UserDamageReportsPage() {
             <div className="space-y-4 min-w-0">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-extrabold text-slate-900">
-                  Riwayat Laporan <span className="text-slate-400 font-semibold">({reports.length})</span>
+                  {tr("damage.history_title", "Riwayat Laporan")} <span className="text-slate-400 font-semibold">({reports.length})</span>
                 </h2>
               </div>
 
@@ -368,15 +375,15 @@ export default function UserDamageReportsPage() {
                   <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
                     <Package className="w-7 h-7 text-slate-300" />
                   </div>
-                  <p className="text-sm font-bold text-slate-600">Belum ada laporan kerusakan</p>
+                  <p className="text-sm font-bold text-slate-600">{tr("damage.empty_title", "Belum ada laporan kerusakan")}</p>
                   <p className="text-xs text-slate-400 mt-1">
-                    Laporan yang Anda kirim akan tampil di sini.
+                    {tr("damage.empty_sub", "Laporan yang Anda kirim akan tampil di sini.")}
                   </p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {reports.map((report) => {
-                    const st = statusStyle(report.status || "Menunggu Review");
+                    const st = statusStyle(report.status || tr("damage.wait_review", "Menunggu Review"));
                     const img = report.image_url || report.photo_url;
                     return (
                       <article
@@ -391,11 +398,11 @@ export default function UserDamageReportsPage() {
                               </div>
                               <div className="min-w-0">
                                 <h3 className="text-sm font-extrabold text-slate-900 leading-snug">
-                                  {report.title || "Laporan Kerusakan"}
+                                  {report.title || tr("damage.report_fallback", "Laporan Kerusakan")}
                                 </h3>
                                 <p className="text-xs text-slate-500 mt-1 flex items-center gap-1.5">
                                   <Package className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                                  <span className="truncate">{report.items?.name || "Barang terkait"}</span>
+                                  <span className="truncate">{report.items?.name || tr("damage.related_borrowing", "Barang terkait")}</span>
                                 </p>
                               </div>
                             </div>
@@ -409,14 +416,14 @@ export default function UserDamageReportsPage() {
                           </div>
 
                           <p className="text-[13px] leading-relaxed text-slate-600 mt-3">
-                            {report.description || "Tidak ada deskripsi."}
+                            {report.description || tr("damage.no_desc", "Tidak ada deskripsi.")}
                           </p>
 
                           {img && (
                             <div className="mt-3 rounded-2xl overflow-hidden border border-slate-100 bg-slate-50">
                               <img
                                 src={img}
-                                alt="Foto kerusakan"
+                                alt={tr("damage.photo_damage_alt", "Foto kerusakan")}
                                 className="w-full h-48 object-cover"
                               />
                             </div>
@@ -426,7 +433,7 @@ export default function UserDamageReportsPage() {
                             <span className="inline-flex items-center gap-1.5">
                               <CalendarDays className="w-3.5 h-3.5" />
                               {report.created_at
-                                ? new Date(report.created_at).toLocaleString("id-ID", {
+                                ? new Date(report.created_at).toLocaleString(dateLocale, {
                                     day: "numeric",
                                     month: "short",
                                     year: "numeric",
@@ -437,7 +444,7 @@ export default function UserDamageReportsPage() {
                             </span>
                             {report.borrowing_id && (
                               <span className="inline-flex items-center gap-0.5 font-bold text-[#0785BC]">
-                                Detail <ChevronRight className="w-3.5 h-3.5" />
+                                {tr("damage.detail", "Detail")} <ChevronRight className="w-3.5 h-3.5" />
                               </span>
                             )}
                           </div>

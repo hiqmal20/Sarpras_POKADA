@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import api, { getAuthToken, getCurrentUser, isPrivilegedUser } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -18,10 +19,11 @@ export default function AdminLayout({
   children,
   showSearch = false,
   searchValue = "",
-  searchPlaceholder = "Cari data...",
+  searchPlaceholder,
   onSearchChange,
 }: AdminLayoutProps) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const [authorized, setAuthorized] = useState(false);
 
@@ -76,7 +78,7 @@ export default function AdminLayout({
 
       const ms = minutes * 60 * 1000;
       timeoutId = setTimeout(() => {
-        alert(`Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`);
+        alert(t("admin.nav.session_timeout", `Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`));
         try {
           api.auth.logout();
         } catch {}
@@ -130,7 +132,7 @@ export default function AdminLayout({
         <Navbar
           showSearch={showSearch}
           searchValue={searchValue}
-          searchPlaceholder={searchPlaceholder}
+          searchPlaceholder={searchPlaceholder || t("admin.nav.search_ph_layout", "Cari data...")}
           onSearchChange={onSearchChange}
         />
 

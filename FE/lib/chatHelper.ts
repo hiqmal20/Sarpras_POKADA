@@ -1,11 +1,15 @@
 /**
  * Helper utilitas untuk Chat (WhatsApp style date badge & Last Seen status)
+ * Mendukung EN/ID via param lang ("id" | "en").
  */
 
-export function formatChatDateBadge(dateStr?: string): string {
-  if (!dateStr) return "Hari ini";
+export function formatChatDateBadge(dateStr?: string, lang: "id" | "en" = "id"): string {
+  const todayLabel = lang === "en" ? "Today" : "Hari ini";
+  const yesterdayLabel = lang === "en" ? "Yesterday" : "Kemarin";
+  const locale = lang === "en" ? "en-US" : "id-ID";
+  if (!dateStr) return todayLabel;
   const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "Hari ini";
+  if (isNaN(date.getTime())) return todayLabel;
 
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -14,12 +18,12 @@ export function formatChatDateBadge(dateStr?: string): string {
   const diffTime = today.getTime() - target.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return "Hari ini";
-  if (diffDays === 1) return "Kemarin";
+  if (diffDays === 0) return todayLabel;
+  if (diffDays === 1) return yesterdayLabel;
 
   // Kurang dari 7 hari: tampilkan nama hari lengkap
   if (diffDays > 1 && diffDays < 7) {
-    return date.toLocaleDateString("id-ID", {
+    return date.toLocaleDateString(locale, {
       weekday: "long",
       day: "numeric",
       month: "short",
@@ -27,7 +31,7 @@ export function formatChatDateBadge(dateStr?: string): string {
   }
 
   // Lebih dari 7 hari: format lengkap
-  return date.toLocaleDateString("id-ID", {
+  return date.toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -49,8 +53,11 @@ export function isDifferentDay(date1?: string, date2?: string): boolean {
 
 export function formatLastSeen(
   dateStr?: string | null,
-  isOnline?: boolean
+  isOnline?: boolean,
+  lang: "id" | "en" = "id"
 ): { text: string; isOnline: boolean } {
+  const locale = lang === "en" ? "en-US" : "id-ID";
+  const suffix = lang === "en" ? "" : " WIB";
   if (isOnline) {
     return { text: "Online", isOnline: true };
   }
@@ -65,32 +72,44 @@ export function formatLastSeen(
   }
 
   const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+
+  // Relatif untuk hari ini (lebih hidup & akurat)
+  if (diffMs >= 0 && diffMin < 1) {
+    return { text: lang === "en" ? "Last seen just now" : "Terakhir dilihat baru saja", isOnline: false };
+  }
+  if (diffMs >= 0 && diffMin < 60) {
+    return { text: lang === "en" ? `Last seen ${diffMin} min ago` : `Terakhir dilihat ${diffMin} menit lalu`, isOnline: false };
+  }
+  if (diffMs >= 0 && diffMin < 1440) {
+    const timeStr = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) + suffix;
+    return { text: lang === "en" ? `Last seen today at ${timeStr}` : `Terakhir dilihat hari ini pukul ${timeStr}`, isOnline: false };
+  }
+
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
   const diffTime = today.getTime() - target.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
   const timeStr =
-    date.toLocaleTimeString("id-ID", {
+    date.toLocaleTimeString(locale, {
       hour: "2-digit",
       minute: "2-digit",
-    }) + " WIB";
+    }) + suffix;
 
-  if (diffDays === 0) {
-    return { text: `Terakhir dilihat hari ini pukul ${timeStr}`, isOnline: false };
-  }
   if (diffDays === 1) {
-    return { text: `Terakhir dilihat kemarin pukul ${timeStr}`, isOnline: false };
+    return { text: lang === "en" ? `Last seen yesterday at ${timeStr}` : `Terakhir dilihat kemarin pukul ${timeStr}`, isOnline: false };
   }
   if (diffDays < 7 && diffDays > 1) {
-    const dayName = date.toLocaleDateString("id-ID", { weekday: "long" });
-    return { text: `Terakhir dilihat ${dayName} pukul ${timeStr}`, isOnline: false };
+    const dayName = date.toLocaleDateString(locale, { weekday: "long" });
+    return { text: lang === "en" ? `Last seen ${dayName} at ${timeStr}` : `Terakhir dilihat ${dayName} pukul ${timeStr}`, isOnline: false };
   }
 
-  const dateFormatted = date.toLocaleDateString("id-ID", {
+  const dateFormatted = date.toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
+    year: diffDays > 365 ? "numeric" : undefined,
   });
-  return { text: `Terakhir dilihat ${dateFormatted} pukul ${timeStr}`, isOnline: false };
+  return { text: lang === "en" ? `Last seen ${dateFormatted} at ${timeStr}` : `Terakhir dilihat ${dateFormatted} pukul ${timeStr}`, isOnline: false };
 }

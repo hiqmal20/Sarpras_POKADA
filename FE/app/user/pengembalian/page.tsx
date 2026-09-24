@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
+import { useLanguage } from "@/lib/i18n";
 
 interface ReturnRequest {
   borrowing_id: string;
@@ -47,6 +48,8 @@ function isOverdue(b: any) {
 }
 
 export default function UserReturnPage() {
+  const { t, lang } = useLanguage();
+  const tr = (k: string, fb: string) => { const v = t(k); return v === k ? fb : v; };
   const [borrowings, setBorrowings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
@@ -56,6 +59,7 @@ export default function UserReturnPage() {
   const [sending, setSending] = useState(false);
   const [requests, setRequests] = useState<ReturnRequest[]>([]);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const locale = lang === "en" ? "en-US" : "id-ID";
 
   const load = async () => {
     const res = await api.borrowings.getAll({ limit: 50 });
@@ -132,7 +136,7 @@ export default function UserReturnPage() {
     setNotes("");
     setFeedback({
       type: "success",
-      text: `Pengajuan terkirim ke petugas. Bawa KTM + kode ${selected.borrow_code || ""} ke loket untuk verifikasi fisik. Status Selesai hanya diterbitkan petugas.`,
+      text: `${tr("return.success_msg", "Pengajuan terkirim ke petugas. Bawa KTM + kode")} ${selected.borrow_code || ""} ${tr("return.success_msg2", "ke loket untuk verifikasi fisik. Status Selesai hanya diterbitkan petugas.")}`,
     });
   };
 
@@ -148,21 +152,21 @@ export default function UserReturnPage() {
               <RotateCcw className="w-6 h-6" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">Sarpras Pokada</p>
-              <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">Pengembalian Barang</h1>
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">{tr("return.brand", "Sarpras Pokada")}</p>
+              <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">{tr("return.title", "Pengembalian Barang")}</h1>
               <p className="text-sm text-white/85 mt-1 max-w-xl">
-                Ajukan kesiapan kembali di sini, lalu selesaikan verifikasi fisik di loket. Status Selesai hanya diterbitkan petugas (REQ-RET-02).
+                {tr("return.subtitle", "Ajukan kesiapan kembali di sini, lalu selesaikan verifikasi fisik di loket.")}
               </p>
             </div>
             <div className="flex gap-2 shrink-0 text-xs font-bold">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
-                <Package className="w-3.5 h-3.5 text-[#0785BC]" /> {stats.active} Aktif
+                <Package className="w-3.5 h-3.5 text-[#0785BC]" /> {stats.active} {tr("return.active", "Aktif")}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
-                <Clock className="w-3.5 h-3.5" /> {stats.late} Terlambat
+                <Clock className="w-3.5 h-3.5" /> {stats.late} {tr("return.late_short", "Terlambat")}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
-                <ShieldCheck className="w-3.5 h-3.5" /> {stats.waiting} Diajukan
+                <ShieldCheck className="w-3.5 h-3.5" /> {stats.waiting} {tr("damage.new", "Lapor Baru") === "New Report" ? "Submitted" : "Diajukan"}
               </span>
             </div>
           </div>
@@ -171,10 +175,10 @@ export default function UserReturnPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { n: "1", t: "Pilih peminjaman aktif", icon: Package },
-            { n: "2", t: "Isi kesiapan & kondisi", icon: CalendarDays },
-            { n: "3", t: "Kirim ke petugas", icon: MessageSquare },
-            { n: "4", t: "Verifikasi di loket", icon: IdCard },
+            { n: "1", t: tr("return.step1", "Pilih peminjaman aktif"), icon: Package },
+            { n: "2", t: tr("return.step2", "Isi kesiapan & kondisi"), icon: CalendarDays },
+            { n: "3", t: tr("return.step3", "Kirim ke petugas"), icon: MessageSquare },
+            { n: "4", t: tr("return.step4", "Verifikasi di loket"), icon: IdCard },
           ].map((s) => {
             const Icon = s.icon;
             return (
@@ -215,27 +219,27 @@ export default function UserReturnPage() {
         {loading ? (
           <div className="bg-white rounded-2xl border border-slate-200/70 p-14 text-center">
             <Loader2 className="w-7 h-7 text-[#0785BC] animate-spin mx-auto" />
-            <p className="text-xs text-slate-400 mt-3">Memuat peminjaman aktif...</p>
+            <p className="text-xs text-slate-400 mt-3">{tr("return.loading", "Memuat peminjaman aktif...")}</p>
           </div>
         ) : (
           <div className="grid lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
             <div className="space-y-3 min-w-0">
               <h2 className="text-[13px] font-extrabold text-slate-900">
-                Peminjaman Aktif <span className="text-slate-400 font-semibold">({borrowings.length})</span>
+                {tr("return.active_list", "Peminjaman Aktif")} <span className="text-slate-400 font-semibold">({borrowings.length})</span>
               </h2>
               {borrowings.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-slate-200/70 p-10 text-center">
                   <Package className="w-9 h-9 mx-auto text-slate-200 mb-3" />
-                  <p className="text-sm font-bold text-slate-600">Tidak ada barang yang perlu dikembalikan.</p>
-                  <p className="text-xs text-slate-400 mt-1">Peminjaman aktif Anda akan tampil di sini.</p>
+                  <p className="text-sm font-bold text-slate-600">{tr("return.empty_title", "Tidak ada barang yang perlu dikembalikan.")}</p>
+                  <p className="text-xs text-slate-400 mt-1">{tr("return.empty_sub", "Peminjaman aktif Anda akan tampil di sini.")}</p>
                 </div>
               ) : (
                 borrowings.map((b) => {
                   const firstItem = b.borrowings_items?.[0]?.items;
                   const extraCount = (b.borrowings_items?.length || 1) - 1;
                   const title = firstItem?.name
-                    ? `${firstItem.name}${extraCount > 0 ? ` + ${extraCount} item lain` : ""}`
-                    : b.purpose || "Barang Peminjaman";
+                    ? `${firstItem.name}${extraCount > 0 ? ` + ${extraCount} ${tr("return.other_items", "item lain")}` : ""}`
+                    : b.purpose || tr("damage.borrow_fallback", "Peminjaman");
                   const requested = requests.some((r) => r.borrowing_id === b.id);
                   const late = isOverdue(b);
                   return (
@@ -254,17 +258,17 @@ export default function UserReturnPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-bold text-slate-900 truncate">{title}</p>
                         <p className="text-[11px] text-slate-400 mt-1 truncate">
-                          {b.borrow_code} · Dipinjam {b.borrow_date ? new Date(b.borrow_date).toLocaleDateString("id-ID") : "-"}
+                          {b.borrow_code} · {tr("return.borrowed", "Dipinjam")} {b.borrow_date ? new Date(b.borrow_date).toLocaleDateString(locale) : "-"}
                         </p>
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {late && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
-                              <AlertTriangle className="w-3 h-3" /> Terlambat — hubungi petugas
+                              <AlertTriangle className="w-3 h-3" /> {tr("return.late", "Terlambat — hubungi petugas")}
                             </span>
                           )}
                           {requested && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                              <Clock className="w-3 h-3" /> Menunggu verifikasi loket
+                              <Clock className="w-3 h-3" /> {tr("return.waiting_verify", "Menunggu verifikasi loket")}
                             </span>
                           )}
                         </div>
@@ -277,7 +281,7 @@ export default function UserReturnPage() {
 
               {requests.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200/70 p-4">
-                  <h3 className="text-[13px] font-extrabold text-slate-900 mb-3">Pengajuan Saya</h3>
+                  <h3 className="text-[13px] font-extrabold text-slate-900 mb-3">{tr("return.my_requests", "Pengajuan Saya")}</h3>
                   <div className="space-y-2">
                     {requests.map((r) => {
                       const stillActive = borrowings.some((b) => b.id === r.borrowing_id);
@@ -286,16 +290,16 @@ export default function UserReturnPage() {
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-slate-800 font-mono truncate">{r.borrow_code}</p>
                             <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                              Rencana: {r.planned_date} · Kondisi: {r.condition}
+                              {tr("return.plan", "Rencana")}: {r.planned_date} · {tr("return.condition", "Kondisi")}: {r.condition}
                             </p>
                           </div>
                           {stillActive ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                              <Clock className="w-3 h-3" /> Menunggu verifikasi
+                              <Clock className="w-3 h-3" /> {tr("return.waiting_verify_short", "Menunggu verifikasi")}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                              <CheckCircle2 className="w-3 h-3" /> Selesai oleh petugas
+                              <CheckCircle2 className="w-3 h-3" /> {tr("return.done_by_staff", "Selesai oleh petugas")}
                             </span>
                           )}
                         </div>
@@ -309,13 +313,13 @@ export default function UserReturnPage() {
             <div className="space-y-4 min-w-0 lg:sticky lg:top-6">
               {selected ? (
                 <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 space-y-4">
-                  <h2 className="text-[13px] font-extrabold text-slate-900">Form Kesiapan Kembali</h2>
+                  <h2 className="text-[13px] font-extrabold text-slate-900">{tr("return.form_title", "Form Kesiapan Kembali")}</h2>
                   <div className="rounded-xl bg-[#0785BC]/5 border border-[#0785BC]/15 p-3 text-xs text-slate-600">
                     <b className="text-slate-900 font-mono">{selected.borrow_code}</b>
-                    <span className="text-slate-400"> — pengajuan ini tidak langsung menyelesaikan status.</span>
+                    <span className="text-slate-400"> {tr("return.form_note", "— pengajuan ini tidak langsung menyelesaikan status.")}</span>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Rencana Tanggal Kembali</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("return.plan_date", "Rencana Tanggal Kembali")}</label>
                     <input
                       type="date"
                       value={planDate}
@@ -324,25 +328,25 @@ export default function UserReturnPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Kondisi Menurut Anda</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("return.cond_label", "Kondisi Menurut Anda")}</label>
                     <select
                       value={condition}
                       onChange={(e) => setCondition(e.target.value)}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
                     >
-                      <option>Baik</option>
-                      <option>Rusak Ringan</option>
-                      <option>Rusak Berat</option>
+                      <option value="Baik">{tr("return.cond_good", "Baik")}</option>
+                      <option value="Rusak Ringan">{tr("return.cond_light", "Rusak Ringan")}</option>
+                      <option value="Rusak Berat">{tr("return.cond_heavy", "Rusak Berat")}</option>
                     </select>
-                    <p className="text-[11px] text-slate-400 mt-1.5">Kondisi final ditentukan petugas saat cek fisik.</p>
+                    <p className="text-[11px] text-slate-400 mt-1.5">{tr("return.cond_hint", "Kondisi final ditentukan petugas saat cek fisik.")}</p>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Catatan untuk Petugas</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("return.note_label", "Catatan untuk Petugas")}</label>
                     <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
-                      placeholder="Contoh: kabel sudah digulung, tas ada, siap dicek jam 10.00..."
+                      placeholder={tr("return.note_ph", "Contoh: kabel sudah digulung, tas ada, siap dicek jam 10.00...")}
                       className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm resize-none placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
                     />
                   </div>
@@ -350,13 +354,13 @@ export default function UserReturnPage() {
                     disabled={sending}
                     className="w-full rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-sm font-bold py-3 disabled:opacity-50 transition-colors cursor-pointer"
                   >
-                    {sending ? "Mengirim..." : "Kirim Pengajuan ke Petugas"}
+                    {sending ? tr("return.sending", "Mengirim...") : tr("return.submit", "Kirim Pengajuan ke Petugas")}
                   </button>
                 </form>
               ) : (
                 <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
                   <Package className="w-8 h-8 mx-auto text-slate-200 mb-2" />
-                  <p className="text-xs text-slate-400 font-medium">Pilih salah satu peminjaman aktif untuk mengajukan pengembalian.</p>
+                  <p className="text-xs text-slate-400 font-medium">{tr("return.pick_hint", "Pilih salah satu peminjaman aktif untuk mengajukan pengembalian.")}</p>
                 </div>
               )}
 
@@ -364,15 +368,15 @@ export default function UserReturnPage() {
                 <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10" />
                 <div className="relative">
                   <h3 className="text-[13px] font-extrabold flex items-center gap-2">
-                    <IdCard className="w-4 h-4 text-emerald-300" /> Wajib di Loket
+                    <IdCard className="w-4 h-4 text-emerald-300" /> {tr("return.counter_title", "Wajib di Loket")}
                   </h3>
                   <ul className="mt-2.5 space-y-1.5 text-xs text-white/80 leading-relaxed">
-                    <li>· Tunjukkan KTM / identitas + kode peminjaman.</li>
-                    <li>· Petugas cek kelengkapan & fungsi barang.</li>
-                    <li>· Status Selesai + stok pulih oleh petugas.</li>
+                    <li>· {tr("return.counter_li1", "Tunjukkan KTM / identitas + kode peminjaman.")}</li>
+                    <li>· {tr("return.counter_li2", "Petugas cek kelengkapan & fungsi barang.")}</li>
+                    <li>· {tr("return.counter_li3", "Status Selesai + stok pulih oleh petugas.")}</li>
                   </ul>
                   <Link href="/user/messages" className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100 transition-colors">
-                    <MessageSquare className="w-3.5 h-3.5 text-[#0785BC]" /> Chat Petugas
+                    <MessageSquare className="w-3.5 h-3.5 text-[#0785BC]" /> {tr("return.chat_staff", "Chat Petugas")}
                   </Link>
                 </div>
               </div>

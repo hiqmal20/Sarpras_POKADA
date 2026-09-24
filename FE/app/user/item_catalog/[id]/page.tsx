@@ -7,6 +7,7 @@ import Image from "next/image";
 import { ArrowLeft, ChevronDown, CheckCircle2 } from "lucide-react";
 import api from "@/lib/api";
 import { normalizeItem } from "@/lib/item";
+import { useLanguage } from "@/lib/i18n";
 
 // ── Types ──
 interface ItemDetail {
@@ -52,6 +53,11 @@ export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router  = useRouter();
   const mounted = useMount();
+  const { t } = useLanguage();
+  const tr = (k: string, fb: string) => {
+    const v = t(k);
+    return v === k ? fb : v;
+  };
 
   const [item, setItem]       = useState<ItemDetail | null>(null);
   const [availableItems, setAvailableItems] = useState<ItemDetail[]>([]);
@@ -94,11 +100,11 @@ export default function ItemDetailPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.borrow_date || !form.return_date || !form.purpose.trim()) {
-      setError("Semua field wajib diisi.");
+      setError(tr("catdetail.err_required", "Semua field wajib diisi."));
       return;
     }
     if (form.return_date < form.borrow_date) {
-      setError("Tanggal selesai tidak boleh sebelum tanggal mulai.");
+      setError(tr("catdetail.err_date", "Tanggal selesai tidak boleh sebelum tanggal mulai."));
       return;
     }
     setSubmitting(true);
@@ -113,7 +119,7 @@ export default function ItemDetailPage() {
       setSuccess(true);
     } else {
       const details = res.errors?.map((entry) => entry.message).join(", ");
-      setError(details || res.message || "Gagal mengirim permintaan.");
+      setError(details || res.message || tr("catdetail.err_fail", "Gagal mengirim permintaan."));
     }
   }
 
@@ -125,22 +131,22 @@ export default function ItemDetailPage() {
           <div className="w-14 h-14 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-7 h-7 text-emerald-500" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 mb-1">Permintaan Terkirim!</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-1">{tr("catdetail.success_title", "Permintaan Terkirim!")}</h2>
           <p className="text-sm text-slate-500 mb-6">
-            Permintaan peminjaman <span className="font-semibold text-slate-700">{item?.name}</span> sedang menunggu persetujuan admin.
+            {tr("catdetail.success_prefix", "Permintaan peminjaman")} <span className="font-semibold text-slate-700">{item?.name}</span> {tr("catdetail.success_suffix", "sedang menunggu persetujuan admin.")}
           </p>
           <div className="flex gap-3">
             <Link
               href="/user/item_catalog"
               className="flex-1 py-2.5 text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 active:scale-95 transition-all text-center"
             >
-              Kembali ke Katalog
+              {tr("catdetail.back", "Kembali ke Katalog")}
             </Link>
             <Link
               href="/user/riwayat_peminjaman"
               className="flex-1 py-2.5 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all text-center"
             >
-              Lihat Riwayat
+              {tr("catdetail.view_history", "Lihat Riwayat")}
             </Link>
           </div>
         </div>
@@ -157,14 +163,14 @@ export default function ItemDetailPage() {
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0785BC] hover:text-[#0672a0] transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Catalog
+          {tr("catdetail.back", "Kembali ke Katalog")}
         </Link>
       </header>
 
       <div className={`max-w-[1120px] mx-auto px-5 sm:px-8 py-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">Item Detail</h1>
-          <p className="text-sm text-slate-500 mt-1">Please review the item and complete the loan request form.</p>
+          <h1 className="text-3xl font-bold text-slate-900">{tr("catdetail.title", "Detail Barang")}</h1>
+          <p className="text-sm text-slate-500 mt-1">{tr("catdetail.subtitle", "Periksa barang dan lengkapi formulir pengajuan peminjaman.")}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[352px_minmax(0,1fr)] gap-5 items-start">
@@ -194,18 +200,18 @@ export default function ItemDetailPage() {
               ) : (
                 <>
                   {/* Status badge */}
-                  <p className="text-xs font-bold uppercase tracking-wider text-[#0785BC] mb-2">{item?.category || "Barang"}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#0785BC] mb-2">{item?.category || tr("catdetail.goods", "Barang")}</p>
                   <h2 className="text-2xl font-bold text-slate-900 mb-3">{item?.name}</h2>
                   <p className="text-sm text-slate-500 leading-relaxed mb-6">{item?.description}</p>
 
                   <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-5">
                     <div>
-                       <p className="text-xs text-slate-400">Status</p>
-                       <p className="font-semibold text-emerald-600 mt-1">{item?.status === "available" ? "Tersedia" : "Tidak tersedia"}</p>
+                       <p className="text-xs text-slate-400">{tr("catdetail.status", "Status")}</p>
+                       <p className="font-semibold text-emerald-600 mt-1">{item?.status === "available" ? tr("catdetail.available", "Tersedia") : tr("catdetail.unavailable", "Tidak tersedia")}</p>
                     </div>
                     <div>
-                       <p className="text-xs text-slate-400">Jenis</p>
-                       <p className="font-semibold text-slate-800 mt-1">Per Item</p>
+                       <p className="text-xs text-slate-400">{tr("catdetail.type", "Jenis")}</p>
+                       <p className="font-semibold text-slate-800 mt-1">{tr("catdetail.per_item", "Per Item")}</p>
                     </div>
                   </div>
                 </>
@@ -217,19 +223,19 @@ export default function ItemDetailPage() {
           <div className="w-full bg-white rounded-3xl shadow-sm p-7">
             <div className="flex items-center justify-between mb-5">
               <div>
-                <p className="text-xs font-semibold text-[#0785BC] uppercase">Borrow Summary</p>
-                <h2 className="text-xl font-bold text-slate-900 mt-1">Ajukan Peminjaman</h2>
+                <p className="text-xs font-semibold text-[#0785BC] uppercase">{tr("catdetail.summary", "Ringkasan Peminjaman")}</p>
+                <h2 className="text-xl font-bold text-slate-900 mt-1">{tr("catdetail.form_title", "Ajukan Peminjaman")}</h2>
               </div>
-              <button type="button" onClick={() => router.back()} className="text-2xl text-slate-400 hover:text-slate-600" aria-label="Tutup">×</button>
+              <button type="button" onClick={() => router.back()} className="text-2xl text-slate-400 hover:text-slate-600" aria-label={tr("catdetail.close", "Tutup")}>×</button>
             </div>
             <div className="rounded-xl bg-blue-50 p-3 text-sm text-[#0785BC] mb-5">
               <b>{item?.category || item?.name}</b>
-              <p className="text-xs mt-1">1 unit barang</p>
+              <p className="text-xs mt-1">{tr("catdetail.unit", "1 unit barang")}</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">Tambahkan barang lain</label>
+                <label className="text-sm font-semibold text-slate-700 mb-1.5 block">{tr("catdetail.add_extra", "Tambahkan barang lain")}</label>
                 <select
                   value=""
                   onChange={(event) => {
@@ -238,7 +244,7 @@ export default function ItemDetailPage() {
                   }}
                   className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl text-slate-700 bg-white"
                 >
-                  <option value="">Pilih barang tambahan...</option>
+                  <option value="">{tr("catdetail.pick_extra", "Pilih barang tambahan...")}</option>
                   {availableItems.filter((entry) => !selectedItems.some((selectedEntry) => selectedEntry.id === entry.id)).map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}
                 </select>
                 {selectedItems.length > 0 && <div className="flex flex-wrap gap-2 mt-2">{selectedItems.map((entry) => <button type="button" key={entry.id} onClick={() => setSelectedItems((current) => current.filter((selectedEntry) => selectedEntry.id !== entry.id))} className="px-2.5 py-1 rounded-lg bg-slate-100 text-xs text-slate-700">{entry.name} ×</button>)}</div>}
@@ -248,7 +254,7 @@ export default function ItemDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
-                    Tanggal Mulai
+                    {tr("catdetail.start", "Tanggal Mulai")}
                   </label>
                   <input
                     type="date"
@@ -262,7 +268,7 @@ export default function ItemDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
-                    Tanggal Selesai
+                    {tr("catdetail.end", "Tanggal Selesai")}
                   </label>
                   <input
                     type="date"
@@ -298,13 +304,13 @@ export default function ItemDetailPage() {
               {/* Keperluan */}
               <div>
                 <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
-                  Keperluan Peminjaman
+                  {tr("catdetail.purpose", "Keperluan Peminjaman")}
                 </label>
                 <textarea
                   name="purpose"
                   value={form.purpose}
                   onChange={handleChange}
-                  placeholder="Jelaskan tujuan penggunaan barang..."
+                  placeholder={tr("catdetail.purpose_ph", "Jelaskan tujuan penggunaan barang...")}
                   rows={4}
                   required
                   className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all resize-none text-slate-700"
@@ -323,7 +329,7 @@ export default function ItemDetailPage() {
                   disabled={submitting || item?.status !== "available"}
                   className="px-6 py-2.5 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "Mengirim..." : "Ajukan Peminjaman"}
+                  {submitting ? tr("catdetail.sending", "Mengirim...") : tr("catdetail.submit", "Ajukan Peminjaman")}
                 </button>
               </div>
             </form>
