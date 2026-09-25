@@ -307,7 +307,7 @@ function SettingsContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           {/* Sidebar Tabs */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-2.5 shadow-xs flex lg:flex-col gap-1 overflow-x-auto">
+          <div className="bg-[var(--card)] rounded-2xl border border-slate-100 p-2.5 shadow-xs flex lg:flex-col gap-1 overflow-x-auto">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -332,7 +332,7 @@ function SettingsContent() {
           <div className="lg:col-span-3">
             {/* 1. Tab Profil */}
             {activeTab === "profile" && (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+              <div className="bg-[var(--card)] rounded-2xl border border-slate-100 p-6 shadow-xs">
                 <h2 className="text-base font-bold text-slate-900 mb-1">{tr("settings.profile_title", "Informasi Profil")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
                   {tr("settings.profile_sub", "Perbarui informasi pribadi dan foto profil Anda untuk verifikasi peminjaman.")}
@@ -374,7 +374,7 @@ function SettingsContent() {
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                       />
                     </div>
 
@@ -387,7 +387,7 @@ function SettingsContent() {
                         value={nomorInduk}
                         onChange={(e) => setNomorInduk(e.target.value)}
                         placeholder={tr("settings.id_ph", "Contoh: 21010102")}
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                       />
                     </div>
 
@@ -402,7 +402,7 @@ function SettingsContent() {
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
-                          className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                          className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                         />
                       </div>
                     </div>
@@ -418,7 +418,7 @@ function SettingsContent() {
                           value={noHp}
                           onChange={(e) => setNoHp(e.target.value)}
                           placeholder={tr("settings.phone_ph", "Contoh: 08123456789")}
-                          className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                          className="w-full pl-9 pr-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                         />
                       </div>
                     </div>
@@ -440,7 +440,7 @@ function SettingsContent() {
 
             {/* 2. Tab Notifikasi */}
             {activeTab === "notifications" && (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+              <div className="bg-[var(--card)] rounded-2xl border border-slate-100 p-6 shadow-xs">
                 <h2 className="text-base font-bold text-slate-900 mb-1">{tr("settings.notif_title", "Pengaturan Notifikasi")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
                   {tr("settings.notif_sub", "Atur pemberitahuan yang ingin Anda terima saat proses peminjaman berjalan.")}
@@ -523,7 +523,7 @@ function SettingsContent() {
 
             {/* 3. Tab Keamanan */}
             {activeTab === "security" && (
-              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-xs">
+              <div className="bg-[var(--card)] rounded-2xl border border-slate-100 p-6 shadow-xs">
                 <h2 className="text-base font-bold text-slate-900 mb-1">{tr("settings.sec_title", "Ubah Kata Sandi")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
                   {tr("settings.sec_sub", "Pastikan akun Anda tetap terlindungi dengan kata sandi yang aman dan tidak mudah ditebak.")}
@@ -540,7 +540,7 @@ function SettingsContent() {
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all pr-9"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all pr-9"
                       />
                     </div>
                   </div>
@@ -555,7 +555,7 @@ function SettingsContent() {
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all pr-9"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all pr-9"
                       />
                     </div>
                   </div>
@@ -570,7 +570,7 @@ function SettingsContent() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
-                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all pr-9"
+                        className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all pr-9"
                       />
                     </div>
                   </div>
@@ -609,7 +609,7 @@ function SettingsContent() {
 
             {/* 4. Tab Preferensi */}
             {activeTab === "preferences" && (
-              <div className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-xs">
+              <div className="bg-[var(--card)] dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 p-6 shadow-xs">
                 <h2 className="text-base font-bold text-slate-900 dark:text-white mb-1">{tr("settings.pref_title", "Preferensi Tampilan")}</h2>
                 <p className="text-xs text-slate-400 mb-6">
                   {tr("settings.pref_sub", "Sesuaikan bahasa (EN/ID), tema gelap-terang, dan format tanggal.")}
@@ -659,7 +659,7 @@ function SettingsContent() {
                     <select
                       value={dateFormat}
                       onChange={(e) => setDateFormat(e.target.value)}
-                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                      className="w-full px-3.5 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
                     >
                       <option value="DD/MM/YYYY">DD/MM/YYYY ({lang === "en" ? "Example" : "Contoh"}: 15/09/2026)</option>
                       <option value="YYYY-MM-DD">YYYY-MM-DD ({lang === "en" ? "Example" : "Contoh"}: 2026-09-15)</option>

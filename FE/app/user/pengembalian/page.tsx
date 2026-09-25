@@ -144,11 +144,11 @@ export default function UserReturnPage() {
     <UserLayout showSearch={false}>
       <div className="user-page-shell w-full min-w-0 space-y-6">
         <div className="user-page-hero relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(16,185,129,0.55)] bg-gradient-to-br from-[#0785BC] via-[#0aa5e0] to-[#10b981]">
-          <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-white/15" />
-          <div className="absolute right-28 top-1/2 -translate-y-1/2 hidden md:block w-32 h-32 rounded-full bg-white/10" />
-          <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
+          <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-[var(--card)]/15" />
+          <div className="absolute right-28 top-1/2 -translate-y-1/2 hidden md:block w-32 h-32 rounded-full bg-[var(--card)]/10" />
+          <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-[var(--card)]/10 blur-2xl" />
           <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white text-[#0785BC] flex items-center justify-center shrink-0 shadow-lg">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--card)] text-[#0785BC] flex items-center justify-center shrink-0 shadow-lg">
               <RotateCcw className="w-6 h-6" />
             </div>
             <div className="flex-1 min-w-0">
@@ -159,13 +159,13 @@ export default function UserReturnPage() {
               </p>
             </div>
             <div className="flex gap-2 shrink-0 text-xs font-bold">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card)] px-3 py-1.5 text-slate-900 shadow-sm">
                 <Package className="w-3.5 h-3.5 text-[#0785BC]" /> {stats.active} {tr("return.active", "Aktif")}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-[var(--card)]/15 px-3 py-1.5 text-white backdrop-blur">
                 <Clock className="w-3.5 h-3.5" /> {stats.late} {tr("return.late_short", "Terlambat")}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-[var(--card)]/15 px-3 py-1.5 text-white backdrop-blur">
                 <ShieldCheck className="w-3.5 h-3.5" /> {stats.waiting} {tr("damage.new", "Lapor Baru") === "New Report" ? "Submitted" : "Diajukan"}
               </span>
             </div>
@@ -182,7 +182,7 @@ export default function UserReturnPage() {
           ].map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.n} className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-3.5 flex items-center gap-3">
+              <div key={s.n} className="bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-3.5 flex items-center gap-3">
                 <span className="w-8 h-8 rounded-xl bg-[#0785BC]/10 text-[#0785BC] text-xs font-extrabold flex items-center justify-center shrink-0">{s.n}</span>
                 <Icon className="w-4 h-4 text-slate-400 shrink-0" />
                 <p className="text-xs font-bold text-slate-700 leading-snug">{s.t}</p>
@@ -217,7 +217,7 @@ export default function UserReturnPage() {
           </div>
         )}
         {loading ? (
-          <div className="bg-white rounded-2xl border border-slate-200/70 p-14 text-center">
+          <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 p-14 text-center">
             <Loader2 className="w-7 h-7 text-[#0785BC] animate-spin mx-auto" />
             <p className="text-xs text-slate-400 mt-3">{tr("return.loading", "Memuat peminjaman aktif...")}</p>
           </div>
@@ -228,7 +228,7 @@ export default function UserReturnPage() {
                 {tr("return.active_list", "Peminjaman Aktif")} <span className="text-slate-400 font-semibold">({borrowings.length})</span>
               </h2>
               {borrowings.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200/70 p-10 text-center">
+                <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 p-10 text-center">
                   <Package className="w-9 h-9 mx-auto text-slate-200 mb-3" />
                   <p className="text-sm font-bold text-slate-600">{tr("return.empty_title", "Tidak ada barang yang perlu dikembalikan.")}</p>
                   <p className="text-xs text-slate-400 mt-1">{tr("return.empty_sub", "Peminjaman aktif Anda akan tampil di sini.")}</p>
@@ -246,7 +246,7 @@ export default function UserReturnPage() {
                     <button
                       key={b.id}
                       onClick={() => { setSelected(b); setFeedback(null); }}
-                      className={`w-full text-left bg-white rounded-2xl border p-4 flex gap-3.5 items-center transition-all cursor-pointer hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] ${
+                      className={`w-full text-left bg-[var(--card)] rounded-2xl border p-4 flex gap-3.5 items-center transition-all cursor-pointer hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] ${
                         selected?.id === b.id
                           ? "border-[#0785BC] ring-2 ring-[#0785BC]/15"
                           : "border-slate-200/70 hover:border-[#0785BC]/40"
@@ -280,7 +280,7 @@ export default function UserReturnPage() {
               )}
 
               {requests.length > 0 && (
-                <div className="bg-white rounded-2xl border border-slate-200/70 p-4">
+                <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 p-4">
                   <h3 className="text-[13px] font-extrabold text-slate-900 mb-3">{tr("return.my_requests", "Pengajuan Saya")}</h3>
                   <div className="space-y-2">
                     {requests.map((r) => {
@@ -312,7 +312,7 @@ export default function UserReturnPage() {
 
             <div className="space-y-4 min-w-0 lg:sticky lg:top-6">
               {selected ? (
-                <form onSubmit={submit} className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 space-y-4">
+                <form onSubmit={submit} className="bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 space-y-4">
                   <h2 className="text-[13px] font-extrabold text-slate-900">{tr("return.form_title", "Form Kesiapan Kembali")}</h2>
                   <div className="rounded-xl bg-[#0785BC]/5 border border-[#0785BC]/15 p-3 text-xs text-slate-600">
                     <b className="text-slate-900 font-mono">{selected.borrow_code}</b>
@@ -324,7 +324,7 @@ export default function UserReturnPage() {
                       type="date"
                       value={planDate}
                       onChange={(e) => setPlanDate(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
                     />
                   </div>
                   <div>
@@ -332,7 +332,7 @@ export default function UserReturnPage() {
                     <select
                       value={condition}
                       onChange={(e) => setCondition(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
                     >
                       <option value="Baik">{tr("return.cond_good", "Baik")}</option>
                       <option value="Rusak Ringan">{tr("return.cond_light", "Rusak Ringan")}</option>
@@ -347,7 +347,7 @@ export default function UserReturnPage() {
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
                       placeholder={tr("return.note_ph", "Contoh: kabel sudah digulung, tas ada, siap dicek jam 10.00...")}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm resize-none placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm resize-none placeholder:text-slate-400 focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
                     />
                   </div>
                   <button
@@ -358,14 +358,14 @@ export default function UserReturnPage() {
                   </button>
                 </form>
               ) : (
-                <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center">
+                <div className="bg-[var(--card)] rounded-2xl border border-dashed border-slate-200 p-8 text-center">
                   <Package className="w-8 h-8 mx-auto text-slate-200 mb-2" />
                   <p className="text-xs text-slate-400 font-medium">{tr("return.pick_hint", "Pilih salah satu peminjaman aktif untuk mengajukan pengembalian.")}</p>
                 </div>
               )}
 
               <div className="bg-slate-900 rounded-2xl p-5 text-white overflow-hidden relative">
-                <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-white/10" />
+                <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[var(--card)]/10" />
                 <div className="relative">
                   <h3 className="text-[13px] font-extrabold flex items-center gap-2">
                     <IdCard className="w-4 h-4 text-emerald-300" /> {tr("return.counter_title", "Wajib di Loket")}
@@ -375,7 +375,7 @@ export default function UserReturnPage() {
                     <li>· {tr("return.counter_li2", "Petugas cek kelengkapan & fungsi barang.")}</li>
                     <li>· {tr("return.counter_li3", "Status Selesai + stok pulih oleh petugas.")}</li>
                   </ul>
-                  <Link href="/user/messages" className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100 transition-colors">
+                  <Link href="/user/messages" className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl bg-[var(--card)] px-3.5 py-2 text-xs font-bold text-slate-900 hover:bg-slate-100 transition-colors">
                     <MessageSquare className="w-3.5 h-3.5 text-[#0785BC]" /> {tr("return.chat_staff", "Chat Petugas")}
                   </Link>
                 </div>
