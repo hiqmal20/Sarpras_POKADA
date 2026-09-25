@@ -155,39 +155,44 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     throw new AppError('Email/Nama Pengguna, Nomor Induk, dan Password wajib diisi', 400);
   }
 
-  // 1. Verifikasi kecocokan Email atau Name dengan Nomor Induk di tabel users
-  const isEmail = cleanIdentifier.includes('@');
-  const noSpaces = cleanIdentifier.replace(/\s+/g, '');
-  
+  // 1. Verifikasi identitas pada tabel users.
+  // Jangan memakai satu query `.or()` untuk email/nama: email tertentu
+  // dapat mengandung karakter yang ditafsirkan sebagai sintaks PostgREST.
+  // Ambil kandidat berdasarkan satu field lalu cocokkan setelah dinormalisasi.
+  const normalizedIdentifier = cleanIdentifier.replace(/\s+/g, '').toLowerCase();
+  const normalizedNomorInduk = cleanNomorInduk.replace(/\s+/g, '').toLowerCase();
   let userProfile = null;
-  if (isEmail) {
-    const { data } = await supabase
+
+  const { data: candidates, error: lookupError } = await supabase
+    .from('users')
+    .select('*')
+    .ilike('nomor_induk', `%${cleanNomorInduk}%`)
+    .limit(20);
+
+  if (lookupError) {
+    throw new AppError('Gagal memeriksa data akun. Silakan coba lagi.', 500);
+  }
+
+  userProfile = (candidates || []).find((candidate) => {
+    const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
+    const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase();
+    const candidateName = String(candidate.name || '').replace(/\s+/g, '').toLowerCase();
+    return candidateNomorInduk === normalizedNomorInduk && (
+      candidateEmail === normalizedIdentifier || candidateName === normalizedIdentifier
+    );
+  }) || null;
+
+  // Fallback untuk database lama yang menyimpan nomor induk dengan format
+  // berbeda, tetapi tetap wajib mencocokkan email/nama secara normal.
+  if (!userProfile) {
+    const { data: byIdentifier } = await supabase
       .from('users')
       .select('*')
       .ilike('email', cleanIdentifier)
-      .ilike('nomor_induk', cleanNomorInduk)
-      .maybeSingle();
-    userProfile = data;
-  } else {
-    // Cari berdasarkan nama persis, tanpa spasi, atau substring
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('nomor_induk', cleanNomorInduk)
-      .or(`name.ilike.${cleanIdentifier},name.ilike.${noSpaces},name.ilike.%${cleanIdentifier}%`)
-      .maybeSingle();
-    userProfile = data;
-  }
-
-  // Jika belum ditemukan, coba cari berdasarkan email atau nama sekaligus dengan nomor_induk
-  if (!userProfile) {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('nomor_induk', cleanNomorInduk)
-      .or(`email.ilike.${cleanIdentifier},name.ilike.%${cleanIdentifier}%`)
-      .maybeSingle();
-    userProfile = data;
+      .limit(20);
+    userProfile = (byIdentifier || []).find((candidate) =>
+      String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase() === normalizedNomorInduk
+    ) || null;
   }
 
   if (!userProfile) {
