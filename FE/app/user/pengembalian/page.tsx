@@ -59,10 +59,15 @@ export default function UserReturnPage() {
   const [sending, setSending] = useState(false);
   const [requests, setRequests] = useState<ReturnRequest[]>([]);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [serverRequests, setServerRequests] = useState<any[]>([]);
   const locale = lang === "en" ? "en-US" : "id-ID";
 
   const load = async () => {
-    const res = await api.borrowings.getAll({ limit: 50 });
+    const [res, requestRes] = await Promise.all([
+      api.borrowings.getAll({ limit: 50 }),
+      api.returnRequests.getAll(),
+    ]);
+    if (requestRes.status === "success" && Array.isArray(requestRes.data)) setServerRequests(requestRes.data);
     if (res.status === "success" && Array.isArray(res.data)) {
       const active = res.data.filter((b: any) => {
         const s = (b.status || "").toLowerCase();
@@ -83,7 +88,10 @@ export default function UserReturnPage() {
 
   const stats = useMemo(() => {
     const late = borrowings.filter(isOverdue).length;
-    const requestedIds = new Set(requests.map((r) => r.borrowing_id));
+    const requestedIds = new Set([
+      ...requests.map((r) => r.borrowing_id),
+      ...serverRequests.filter((r) => r.status !== "Ditolak").map((r) => r.borrowing_id),
+    ]);
     const waiting = borrowings.filter((b) => requestedIds.has(b.id)).length;
     return { active: borrowings.length, late, waiting };
   }, [borrowings, requests]);
@@ -118,6 +126,17 @@ export default function UserReturnPage() {
     setSending(true);
     setFeedback(null);
     const payload = { planned: planDate, cond: condition, note: notes.trim() };
+    const result = await api.returnRequests.create({
+      borrowing_id: selected.id,
+      planned_return_date: planDate,
+      condition,
+      note: notes.trim(),
+    });
+    if (result.status !== "success") {
+      setSending(false);
+      setFeedback({ type: "error", text: result.message || tr("return.fail_msg", "Permintaan gagal dikirim.") });
+      return;
+    }
     await notifyPetugas(selected, payload);
     const entry: ReturnRequest = {
       borrowing_id: selected.id,

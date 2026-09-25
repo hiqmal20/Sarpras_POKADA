@@ -345,6 +345,17 @@ export const api = {
       }),
   },
 
+  returnRequests: {
+    getAll: (params?: { status?: string }) => {
+      const q = toQueryString(params);
+      return apiFetch<any[]>(`/return-requests${q}`, { method: "GET" });
+    },
+    create: (payload: { borrowing_id: string; planned_return_date: string; condition?: string; note?: string }) =>
+      apiFetch<any>("/return-requests", { method: "POST", body: JSON.stringify(payload) }),
+    updateStatus: (id: string, payload: { status: string; admin_note?: string }) =>
+      apiFetch<any>(`/return-requests/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  },
+
   returns: {
     getAll: (params?: { limit?: number; page?: number }) => {
       const q = params ? toQueryString(params as any) : "";
