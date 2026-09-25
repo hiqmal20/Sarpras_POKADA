@@ -363,7 +363,7 @@ function RiwayatPeminjamanContent() {
         </div>
 
         <div
-          className={`flex gap-6 border-b border-slate-200 ${
+          className={`user-toolbar flex gap-2 sm:gap-6 overflow-x-auto px-3 sm:px-4 pt-3 border-b border-slate-200 ${
             mounted ? "animate-fade-up delay-75" : "opacity-0"
           }`}
         >

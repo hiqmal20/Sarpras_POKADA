@@ -201,7 +201,7 @@ export default function UserDamageReportsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: tr("damage.total", "Total Laporan"), value: stats.total, icon: Package, bg: "bg-blue-50 text-[#0785BC]" },
             { label: tr("damage.wait_review", "Menunggu Review"), value: stats.waiting, icon: Clock, bg: "bg-amber-50 text-amber-600" },

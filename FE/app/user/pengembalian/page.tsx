@@ -173,7 +173,7 @@ export default function UserReturnPage() {
           <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-white/70 via-white/30 to-transparent" />
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { n: "1", t: tr("return.step1", "Pilih peminjaman aktif"), icon: Package },
             { n: "2", t: tr("return.step2", "Isi kesiapan & kondisi"), icon: CalendarDays },

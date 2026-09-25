@@ -350,7 +350,7 @@ function UserCatalogContent() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div key={i} className="bg-[var(--card)] rounded-2xl border border-slate-200/70 overflow-hidden">
                     <div className="h-[148px] bg-slate-100 animate-pulse" />
@@ -369,7 +369,7 @@ function UserCatalogContent() {
                 <p className="text-xs text-slate-400 mt-1">{tr("catalog.no_match_sub", "Coba kata kunci lain atau hubungi admin sarpras.")}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
                 {visibleCatalogs.map((cat, idx) => {
                   const Icon = catalogIcon(cat.name);
                   return (
