@@ -905,7 +905,7 @@ export default function UserMessagesPage() {
                         </div>
                       )}
                       <div className="flex justify-end items-end gap-2">
-                        <div className="max-w-md sm:max-w-lg bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 shadow-xs">
+                        <div className="relative w-[min(100%,22rem)] min-w-[172px] bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 pt-9 shadow-xs">
                           {editingMessageId === m.id ? (
                             <div className="flex items-center gap-2">
                               <input
@@ -944,7 +944,7 @@ export default function UserMessagesPage() {
                           {editingMessageId !== m.id &&
                             typeof m.id === "string" &&
                             !m.id.startsWith("temp-") && (
-                                                             <details className="relative">
+                                                             <details className="absolute left-3 top-2 z-10">
                                  <summary className="list-none cursor-pointer rounded-full p-1 text-white/60 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
                                  <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
                                    <button type="button" onClick={() => { setEditingMessageId(m.id); setEditingText(m.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
