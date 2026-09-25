@@ -205,27 +205,26 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     throw new AppError('Akun Anda telah dinonaktifkan. Hubungi admin SARPRAS.', 403);
   }
 
-  // 2. Autentikasi dengan Supabase Auth via email terdaftar & password
+  // 2. Autentikasi dengan email yang tersimpan di Supabase Auth.
+  // Email pada public.users bisa berbeda jika pernah diubah dari profil.
+  // Gunakan email Auth berdasarkan user id agar login tidak gagal hanya karena
+  // data profil dan data authentication belum sinkron.
   const authClient = createAuthClient();
-  let { data: authData, error: authError } = await authClient.auth.signInWithPassword({
-    email: userProfile.email,
+  let authEmail = String(userProfile.email || '').trim().toLowerCase();
+  const { data: authUserData } = await supabase.auth.admin.getUserById(userProfile.id);
+  if (authUserData?.user?.email) {
+    authEmail = authUserData.user.email.trim().toLowerCase();
+  }
+
+  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+    email: authEmail,
     password
   });
 
-  // Toleransi jika user lupa tanda seru (!) di password
-  if (authError && !password.endsWith('!')) {
-    const retry = await authClient.auth.signInWithPassword({
-      email: userProfile.email,
-      password: `${password}!`
-    });
-    if (!retry.error && retry.data?.user) {
-      authData = retry.data;
-      authError = null;
-    }
-  }
-
-  if (authError || !authData.user) {
-    throw new AppError('Kombinasi Email/Nama, Nomor Induk, atau password salah', 401);
+  if (authError || !authData?.user) {
+    // Jangan mencoba password alternatif. Password harus selalu diverifikasi
+    // persis oleh Supabase Auth.
+    throw new AppError('Password salah atau akun belum tersinkron dengan Supabase Auth. Silakan gunakan password akun saat ini atau hubungi admin.', 401);
   }
 
   return {
