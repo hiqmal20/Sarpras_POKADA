@@ -12,6 +12,7 @@ import {
   Headphones,
   Pencil,
   Trash2,
+  MoreVertical,
   X,
   Clock3,
   CircleDot,
@@ -63,6 +64,7 @@ export default function UserMessagesPage() {
   const [isAdminTyping, setIsAdminTyping] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
 
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
@@ -942,27 +944,13 @@ export default function UserMessagesPage() {
                           {editingMessageId !== m.id &&
                             typeof m.id === "string" &&
                             !m.id.startsWith("temp-") && (
-                              <div className="mt-1 flex justify-end gap-2 text-white/70 hover:text-white">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingMessageId(m.id);
-                                    setEditingText(m.text);
-                                  }}
-                                  title="Edit pesan"
-                                  className="hover:text-white transition-colors"
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMessage(m.id)}
-                                  title="Hapus pesan"
-                                  className="hover:text-rose-200 transition-colors"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
+                                                             <details className="relative">
+                                 <summary className="list-none cursor-pointer rounded-full p-1 text-white/60 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
+                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
+                                   <button type="button" onClick={() => { setEditingMessageId(m.id); setEditingText(m.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                                   <button type="button" onClick={() => handleDeleteMessage(m.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
+                                 </div>
+                               </details>
                             )}
 
                           <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-white/80 font-mono">
@@ -1087,3 +1075,4 @@ export default function UserMessagesPage() {
     </UserLayout>
   );
 }
+

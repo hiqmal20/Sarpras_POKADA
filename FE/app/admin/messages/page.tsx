@@ -11,6 +11,7 @@ import {
   Check,
   CheckCheck,
   Pencil,
+  MoreVertical,
   X,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
@@ -56,6 +57,7 @@ export default function MessagesPage() {
   const presenceHydratedRef = useRef(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
 
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
@@ -1057,27 +1059,13 @@ export default function MessagesPage() {
                             editingMessageId !== msg.id &&
                             typeof msg.id === "string" &&
                             !msg.id.startsWith("temp-") && (
-                              <div className="mt-1 flex justify-end gap-2 text-sky-200/80">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingMessageId(msg.id);
-                                    setEditingText(msg.text);
-                                  }}
-                                  title="Edit pesan"
-                                  className="hover:text-white transition-colors"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSingleMessage(msg.id)}
-                                  title="Hapus pesan"
-                                  className="hover:text-rose-200 transition-colors"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
+                                                             <details className="relative">
+                                 <summary className="list-none cursor-pointer rounded-full p-1 text-sky-200/80 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
+                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
+                                   <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                                   <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
+                                 </div>
+                               </details>
                             )}
 
                           <div
@@ -1172,3 +1160,4 @@ export default function MessagesPage() {
     </AdminLayout>
   );
 }
+
