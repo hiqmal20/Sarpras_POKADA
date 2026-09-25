@@ -307,7 +307,7 @@ function UserCatalogContent() {
       onSearchChange={setSearch}
       searchPlaceholder={tr("catalog.search_ph", "Cari katalog atau barang...")}
     >
-      <div className="w-full min-w-0 space-y-6 pb-10">
+      <div className="user-page-shell w-full min-w-0 space-y-6">
         {feedback && !selectedPkg && (
           <div
             className={`rounded-xl border p-4 text-sm flex items-center justify-between gap-2 ${

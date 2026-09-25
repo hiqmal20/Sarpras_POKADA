@@ -52,6 +52,36 @@ input, button, select, textarea {
   font-family: inherit;
 }
 
+/* ── User workspace visual system: calm, focused, ChatGPT/Claude-inspired ── */
+.user-page-shell {
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-bottom: 2.5rem;
+}
+.user-page-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, var(--card), color-mix(in srgb, var(--primary-light) 72%, var(--card)));
+  box-shadow: 0 12px 32px -24px rgba(7, 133, 188, .55);
+}
+.user-surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+}
+.user-toolbar {
+  background: color-mix(in srgb, var(--card) 92%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: .9rem;
+}
+.user-section-title { color: var(--foreground); letter-spacing: -.015em; }
+.user-muted { color: var(--muted); }
+.dark .user-page-hero { background: linear-gradient(135deg, #111c30, #0e2a3d); }
+.dark .user-surface, .dark .user-toolbar { box-shadow: none; }
+
 /* ── Admin Page Animations & Micro-interactions ── */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(12px); }

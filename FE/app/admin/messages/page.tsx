@@ -166,7 +166,7 @@ export default function MessagesPage() {
 
         // API hanya mengisi snapshot awal; event Socket.IO tetap menjadi sumber utama.
         if (!presenceHydratedRef.current) {
-          setOnlineUserIds(new Set(onlineIds));
+          setOnlineUserIds(new Set(apiOnlineIds));
           presenceHydratedRef.current = true;
         }
 
