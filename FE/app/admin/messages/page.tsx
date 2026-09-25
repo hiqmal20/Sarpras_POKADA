@@ -1059,7 +1059,7 @@ export default function MessagesPage() {
                             editingMessageId !== msg.id &&
                             typeof msg.id === "string" &&
                             !msg.id.startsWith("temp-") && (
-                                                             <details className="absolute left-3 top-2 z-10">
+                                                             <details className="absolute right-3 top-2 z-10">
                                  <summary className="list-none cursor-pointer rounded-full p-1 text-sky-200/80 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
                                  <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
                                    <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
