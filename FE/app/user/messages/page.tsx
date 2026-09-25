@@ -905,7 +905,7 @@ export default function UserMessagesPage() {
                         </div>
                       )}
                       <div className="flex justify-end items-end gap-2">
-                        <div className="relative w-[min(100%,22rem)] min-w-[172px] bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 pt-9 shadow-xs">
+                        <div className="relative w-fit min-w-[120px] max-w-[min(22rem,78vw)] bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 pt-9 shadow-xs">
                           {editingMessageId === m.id ? (
                             <div className="flex items-center gap-2">
                               <input
