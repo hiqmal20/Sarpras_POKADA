@@ -216,15 +216,27 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     authEmail = authUserData.user.email.trim().toLowerCase();
   }
 
-  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
+  // Coba email Auth terlebih dahulu. Fallback ke email public.users diperlukan
+  // untuk akun lama yang pernah dibuat sebelum sinkronisasi profile diperbaiki.
+  let { data: authData, error: authError } = await authClient.auth.signInWithPassword({
     email: authEmail,
     password
   });
 
+  const profileEmail = String(userProfile.email || '').trim().toLowerCase();
+  if ((authError || !authData?.user) && profileEmail && profileEmail !== authEmail) {
+    const retry = await authClient.auth.signInWithPassword({
+      email: profileEmail,
+      password
+    });
+    authData = retry.data;
+    authError = retry.error;
+  }
+
   if (authError || !authData?.user) {
-    // Jangan mencoba password alternatif. Password harus selalu diverifikasi
-    // persis oleh Supabase Auth.
-    throw new AppError('Password salah atau akun belum tersinkron dengan Supabase Auth. Silakan gunakan password akun saat ini atau hubungi admin.', 401);
+    // Jangan mencoba password alternatif. Password harus diverifikasi persis
+    // oleh Supabase Auth.
+    throw new AppError('Password tidak cocok dengan akun Supabase Auth. Silakan reset password atau hubungi admin.', 401);
   }
 
   return {
