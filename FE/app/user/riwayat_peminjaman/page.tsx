@@ -311,7 +311,7 @@ function RiwayatPeminjamanContent() {
   return (
     <UserLayout showSearch={false}>
       <div className="user-page-shell w-full min-w-0 space-y-6">
-        <div className={`relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#7c3aed] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+        <div className={`user-page-hero relative overflow-hidden rounded-[1.35rem] px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#7c3aed] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div className="absolute inset-0 bg-dot-grid-dark opacity-50" />
           <div className="absolute -right-14 -top-24 w-72 h-72 rounded-full bg-sky-400/30 blur-2xl" />
           <div className="absolute -left-16 -bottom-28 w-72 h-72 rounded-full bg-fuchsia-500/25 blur-2xl" />

@@ -356,7 +356,7 @@ function ItemCatalogContent() {
       searchPlaceholder={tr("borrow.search_ph", "Cari barang untuk dipinjam...")}
     >
       <div className="user-page-shell w-full min-w-0 space-y-6">
-        <div className="user-page-hero relative overflow-hidden rounded-2xl bg-slate-900 px-5 py-6 md:px-7 text-white shadow-sm">
+        <div className="user-page-hero relative overflow-hidden rounded-[1.35rem] bg-slate-950 px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_16px_38px_-18px_rgba(7,133,188,0.65)]">
           <div className="absolute inset-0 bg-gradient-to-br from-[#0B3B60] via-[#0785BC]/60 to-transparent" />
           <div className="absolute inset-0 bg-dot-grid-dark opacity-60" />
           <div className="absolute -left-12 -bottom-16 w-52 h-52 rounded-full bg-[#0aa5e0]/30 blur-2xl" />

@@ -63,7 +63,7 @@ input, button, select, textarea {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
   border-radius: 1.25rem;
-  background: linear-gradient(135deg, var(--card), color-mix(in srgb, var(--primary-light) 72%, var(--card)));
+  /* The page provides its own gradient/background; this class only standardizes the frame. */
   box-shadow: 0 12px 32px -24px rgba(7, 133, 188, .55);
 }
 .user-surface {
