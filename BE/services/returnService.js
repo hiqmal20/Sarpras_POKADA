@@ -1,26 +1,33 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 
-exports.findAllReturns = async ({ page = 1, limit = 20 }) => {
+exports.findAllReturns = async ({ user_id, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
 
-  const { data: returns, count, error } = await supabase
+  const borrowingsRelation = user_id ? 'borrowings!inner' : 'borrowings';
+  let query = supabase
     .from('returns')
     .select(`
       *,
-      borrowings (
+      borrowings:${borrowingsRelation} (
         id,
         borrow_code,
         purpose,
         borrow_date,
         planned_return_date,
         actual_return_date,
+        user_id,
         users (id, name, email, no_hp)
       ),
       receiver:users!returns_received_by_fkey (id, name, role)
     `, { count: 'exact' })
-    .order('created_at', { ascending: false })
-    .range(offset, offset + Number(limit) - 1);
+    .order('created_at', { ascending: false });
+
+  if (user_id) {
+    query = query.eq('borrowings.user_id', user_id);
+  }
+
+  const { data: returns, count, error } = await query.range(offset, offset + Number(limit) - 1);
 
   if (error) throw error;
 

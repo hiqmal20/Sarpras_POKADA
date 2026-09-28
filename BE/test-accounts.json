@@ -100,6 +100,11 @@
   "login_credentials": {
     "note": "Untuk login, gunakan email + nomor_induk + password",
     "examples": {
+      "admin_sarpras": {
+        "email": "Sarpraspokada@gmail.com",
+        "nomor_induk": "2026",
+        "password": "Admin123!"
+      },
       "mahasiswa_1": {
         "email": "zaki@gmail.com",
         "nomor_induk": "2021010001",

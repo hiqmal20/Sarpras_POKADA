@@ -102,7 +102,7 @@ function RentalCard({
     <Link
       href={`/user/peminjaman/${rental.id}`}
       style={{ animationDelay: `${delay}ms` }}
-      className={`group bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden flex flex-col h-full hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all duration-200 ${
+      className={`group bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden flex flex-col h-full hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all duration-200 ${
         mounted ? "animate-fade-up" : "opacity-0"
       }`}
     >
@@ -117,7 +117,7 @@ function RentalCard({
           <Package className="w-8 h-8 text-slate-300" />
         )}
         {rental.category && (
-          <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg text-[10px] font-bold bg-white/95 text-slate-600 shadow-sm backdrop-blur max-w-[55%] truncate">
+          <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg text-[10px] font-bold bg-[var(--card)]/95 text-slate-600 shadow-sm backdrop-blur max-w-[55%] truncate">
             {rental.category}
           </span>
         )}
@@ -310,20 +310,20 @@ function RiwayatPeminjamanContent() {
 
   return (
     <UserLayout showSearch={false}>
-      <div className="w-full min-w-0 space-y-6 pb-10">
-        <div className={`relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#7c3aed] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+      <div className="user-page-shell w-full min-w-0 space-y-6">
+        <div className={`user-page-hero relative overflow-hidden rounded-[1.35rem] px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#7c3aed] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div className="absolute inset-0 bg-dot-grid-dark opacity-50" />
           <div className="absolute -right-14 -top-24 w-72 h-72 rounded-full bg-sky-400/30 blur-2xl" />
           <div className="absolute -left-16 -bottom-28 w-72 h-72 rounded-full bg-fuchsia-500/25 blur-2xl" />
           <div className="absolute right-24 top-1/2 -translate-y-1/2 hidden xl:block w-44 h-44 rounded-full border-[22px] border-white/10" />
-          <div className="absolute right-10 bottom-[-1.8rem] hidden xl:block w-16 h-16 rounded-2xl bg-white/15 backdrop-blur rotate-12" />
-          <div className="absolute right-6 top-6 hidden sm:flex items-center gap-1.5 rounded-full bg-white/15 border border-white/20 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white">
+          <div className="absolute right-10 bottom-[-1.8rem] hidden xl:block w-16 h-16 rounded-2xl bg-[var(--card)]/15 backdrop-blur rotate-12" />
+          <div className="absolute right-6 top-6 hidden sm:flex items-center gap-1.5 rounded-full bg-[var(--card)]/15 border border-white/20 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             {tr("history.connected", "Terhubung")}
           </div>
           <div className="relative flex flex-col lg:flex-row lg:items-center gap-5">
             <div className="flex items-start gap-4 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-white text-[#0785BC] flex items-center justify-center shadow-lg shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-[var(--card)] text-[#0785BC] flex items-center justify-center shadow-lg shrink-0">
                 <ClipboardList className="w-6 h-6" />
               </div>
               <div className="min-w-0">
@@ -333,24 +333,24 @@ function RiwayatPeminjamanContent() {
                   {tr("history.subtitle", "Lihat seluruh riwayat peminjaman, pengembalian, dan laporan kerusakan Anda.")}
                 </p>
                 <div className="mt-3.5 flex flex-wrap gap-2 text-xs font-bold">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card)] px-3 py-1.5 text-slate-900 shadow-sm">
                     <ClipboardList className="w-3.5 h-3.5 text-[#0785BC]" /> {rentals.length} {tr("history.count_borrow", "Peminjaman")}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-white backdrop-blur">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[var(--card)]/10 px-3 py-1.5 text-white backdrop-blur">
                     <Clock className="w-3.5 h-3.5 text-sky-200" /> {countActive} {tr("history.count_active", "Dipinjam")}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-white backdrop-blur">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[var(--card)]/10 px-3 py-1.5 text-white backdrop-blur">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> {countReturned} {tr("history.count_done", "Selesai")}
                   </span>
                 </div>
               </div>
             </div>
             <div className="hidden lg:grid grid-cols-3 gap-2.5 shrink-0 w-[300px]">
-              <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur p-3 text-center">
+              <div className="rounded-xl border border-white/20 bg-[var(--card)]/10 backdrop-blur p-3 text-center">
                 <p className="text-lg font-extrabold tabular-nums">{rentals.length}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/70 mt-0.5">{tr("history.total", "Total")}</p>
               </div>
-              <div className="rounded-xl bg-white text-[#0785BC] p-3 text-center shadow-lg">
+              <div className="rounded-xl bg-[var(--card)] text-[#0785BC] p-3 text-center shadow-lg">
                 <p className="text-lg font-extrabold tabular-nums">{countActive}</p>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">{tr("history.active", "Aktif")}</p>
               </div>
@@ -363,7 +363,7 @@ function RiwayatPeminjamanContent() {
         </div>
 
         <div
-          className={`flex gap-6 border-b border-slate-200 ${
+          className={`user-toolbar flex gap-2 sm:gap-6 overflow-x-auto px-3 sm:px-4 pt-3 border-b border-slate-200 ${
             mounted ? "animate-fade-up delay-75" : "opacity-0"
           }`}
         >
@@ -384,14 +384,14 @@ function RiwayatPeminjamanContent() {
         </div>
 
         {activeTab === "kerusakan" ? (
-          reports.length === 0 ? <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200/70"><AlertTriangle className="w-9 h-9 mx-auto mb-3 text-slate-200" /><p className="text-sm font-bold text-slate-600">{tr("history.empty_damage_title", "Belum ada riwayat laporan kerusakan.")}</p><p className="text-xs text-slate-400 mt-1">{tr("history.empty_damage_sub", "Laporan kerusakan Anda akan tampil di sini.")}</p></div> :
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">{reports.map((report) => <Link key={report.id} href={report.borrowing_id ? `/user/peminjaman/${report.borrowing_id}` : "/user/laporan_kerusakan"} className="group bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all flex flex-col h-full"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[13px] font-bold text-slate-900 leading-snug line-clamp-2 min-h-[2.6rem] group-hover:text-[#0785BC] transition-colors">{report.title || tr("damage.report_fallback", "Laporan Kerusakan")}</p><p className="text-xs text-slate-500 mt-1 truncate">{report.items?.name || tr("history.related_item", "Barang terkait")}</p></div><span className="px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold shrink-0">{report.status || tr("history.wait_review", "Menunggu Review")}</span></div><p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">{report.description}</p><div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2"><p className="text-[10px] text-slate-400 truncate">{report.created_at ? new Date(report.created_at).toLocaleString(locale) : "-"}</p><span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#0785BC] shrink-0">{tr("history.see", "Lihat")} <ChevronRight className="w-3.5 h-3.5" /></span></div></Link>)}</div>
+          reports.length === 0 ? <div className="text-center py-12 text-slate-400 text-sm bg-[var(--card)] rounded-2xl border border-slate-200/70"><AlertTriangle className="w-9 h-9 mx-auto mb-3 text-slate-200" /><p className="text-sm font-bold text-slate-600">{tr("history.empty_damage_title", "Belum ada riwayat laporan kerusakan.")}</p><p className="text-xs text-slate-400 mt-1">{tr("history.empty_damage_sub", "Laporan kerusakan Anda akan tampil di sini.")}</p></div> :
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-stretch">{reports.map((report) => <Link key={report.id} href={report.borrowing_id ? `/user/peminjaman/${report.borrowing_id}` : "/user/laporan_kerusakan"} className="group bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all flex flex-col h-full"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-[13px] font-bold text-slate-900 leading-snug line-clamp-2 min-h-[2.6rem] group-hover:text-[#0785BC] transition-colors">{report.title || tr("damage.report_fallback", "Laporan Kerusakan")}</p><p className="text-xs text-slate-500 mt-1 truncate">{report.items?.name || tr("history.related_item", "Barang terkait")}</p></div><span className="px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-bold shrink-0">{report.status || tr("history.wait_review", "Menunggu Review")}</span></div><p className="text-xs text-slate-500 mt-2 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">{report.description}</p><div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2"><p className="text-[10px] text-slate-400 truncate">{report.created_at ? new Date(report.created_at).toLocaleString(locale) : "-"}</p><span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#0785BC] shrink-0">{tr("history.see", "Lihat")} <ChevronRight className="w-3.5 h-3.5" /></span></div></Link>)}</div>
         ) : loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden"
+                className="bg-[var(--card)] rounded-2xl border border-slate-200/70 overflow-hidden"
               >
                 <div className="h-[152px] bg-slate-100 animate-pulse" />
                 <div className="p-4 space-y-2">
@@ -403,7 +403,7 @@ function RiwayatPeminjamanContent() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-sm bg-white rounded-2xl border border-slate-200/70">
+          <div className="text-center py-12 text-slate-400 text-sm bg-[var(--card)] rounded-2xl border border-slate-200/70">
             <ClipboardList className="w-9 h-9 mx-auto mb-3 text-slate-200" />
             <p className="text-sm font-bold text-slate-600">{tr("history.empty_tab_title", "Tidak ada riwayat peminjaman pada kategori ini.")}</p>
             <p className="text-xs text-slate-400 mt-1">{tr("history.empty_tab_sub", "Coba tab lain atau ajukan peminjaman baru.")}</p>
@@ -424,9 +424,9 @@ function RiwayatPeminjamanContent() {
 
          {activeTab !== "kerusakan" && filtered.length > pageSize && (
            <div className="flex items-center justify-center gap-3">
-             <button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">{tr("history.prev", "Sebelumnya")}</button>
+             <button disabled={page === 1} onClick={() => setPage((current) => current - 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-[var(--card)] text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">{tr("history.prev", "Sebelumnya")}</button>
              <span className="text-xs text-slate-500">{tr("history.page", "Halaman")} {page} {tr("history.of", "dari")} {totalPages}</span>
-             <button disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">{tr("history.next", "Berikutnya")}</button>
+             <button disabled={page === totalPages} onClick={() => setPage((current) => current + 1)} className="px-4 py-2 rounded-xl border border-slate-200 bg-[var(--card)] text-xs font-bold text-slate-600 disabled:opacity-40 hover:border-[#0785BC]/40 hover:text-[#0785BC] transition-colors cursor-pointer">{tr("history.next", "Berikutnya")}</button>
            </div>
          )}
        </div>

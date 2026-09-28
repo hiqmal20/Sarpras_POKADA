@@ -55,7 +55,11 @@ exports.createBorrowing = async (req, res, next) => {
 
 exports.updateBorrowingStatus = async (req, res, next) => {
   try {
-    const data = await borrowingService.updateStatus(req.params.id, req.body);
+    const payload = { ...req.body };
+    if (payload.admin_notes && !payload.admin_note) {
+      payload.admin_note = payload.admin_notes;
+    }
+    const data = await borrowingService.updateStatus(req.params.id, payload);
     return sendSuccess(res, `Status peminjaman berhasil diperbarui menjadi ${req.body.status}`, data, 200);
   } catch (err) {
     next(err);

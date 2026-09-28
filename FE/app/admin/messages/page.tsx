@@ -11,6 +11,7 @@ import {
   Check,
   CheckCheck,
   Pencil,
+  MoreVertical,
   X,
   Clock3,
   CircleDot,
@@ -58,8 +59,19 @@ export default function MessagesPage() {
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
   const [partnerOnline, setPartnerOnline] = useState<boolean>(false);
   const [partnerLastSeen, setPartnerLastSeen] = useState<string | null>(null);
+  const presenceHydratedRef = useRef(false);
+
+  const checkUserOnline = (userId?: string, convIsOnline?: boolean): boolean => {
+    if (!userId) return false;
+    const uid = userId.toLowerCase();
+    if (presenceHydratedRef.current || presenceSetRef.current.size > 0) {
+      return presenceSetRef.current.has(uid);
+    }
+    return Boolean(convIsOnline);
+  };
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
 
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
@@ -138,12 +150,13 @@ export default function MessagesPage() {
           const partner = (c.user && c.user.id !== user?.id ? c.user : c.admin) || c.user || c.admin || {};
           const resolvedUserId = String(partner.id || (c.user_id !== user?.id ? c.user_id : c.admin_id) || c.user_id || "");
           const partnerLastSeen = c.partner_last_seen || partner.update_at || partner.last_seen || null;
-          if (resolvedUserId && partnerLastSeen) {
-            initialLastSeen[resolvedUserId] = partnerLastSeen;
+          const uidLower = resolvedUserId.toLowerCase();
+          if (uidLower && partnerLastSeen) {
+            initialLastSeen[uidLower] = partnerLastSeen;
           }
-          const online = presenceSet.size > 0 ? presenceSet.has(resolvedUserId) : Boolean(c.is_partner_online);
-          if (online && resolvedUserId) {
-            presenceSetRef.current.add(resolvedUserId);
+          const online = presenceSet.size > 0 ? presenceSet.has(uidLower) : Boolean(c.is_partner_online);
+          if (online && uidLower) {
+            presenceSetRef.current.add(uidLower);
           }
           return {
             id: c.id,
@@ -169,6 +182,7 @@ export default function MessagesPage() {
         }
 
         setOnlineUserIds(new Set(presenceSetRef.current));
+        presenceHydratedRef.current = true;
         setConversations(mapped);
         mapped.forEach((c) => {
           if (c.userId) convUserRef.current[c.id] = c.userId.toLowerCase();
@@ -471,12 +485,12 @@ export default function MessagesPage() {
 
     const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
       const uid = String((data as any)?.userId || (data as any)?.id || "");
-      if (uid) applyPresence(uid, false, data.lastSeen || null);
+      if (uid) applyPresence(uid, false, data?.lastSeen || null);
     };
 
     const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
       const uid = String((data as any)?.userId || (data as any)?.id || "");
-      if (uid) applyPresence(uid, Boolean(data.online), data.last_seen || null);
+      if (uid) applyPresence(uid, Boolean(data?.online), data?.last_seen || null);
     };
 
     const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
@@ -530,7 +544,6 @@ export default function MessagesPage() {
         setIsTyping(false);
       }
     };
-
     const handleMessageUpdated = (data: any) => {
       if (!data) return;
       const msgId = String(data.id || data.messageId || "");
@@ -551,6 +564,7 @@ export default function MessagesPage() {
     };
 
     const handleSocketReconnect = () => {
+      presenceHydratedRef.current = false;
       const current = selectedConvRef.current;
       if (current) joinChatRoom(current.id);
       requestOnlineUsers();
@@ -595,14 +609,29 @@ export default function MessagesPage() {
     socket.on("user_stop_typing", handleUserStopTyping);
     socket.on("chat_cleared", handleChatCleared);
     socket.on("chat_deleted", handleChatDeleted);
+    // Dengarkan koneksi socket secara langsung. Event window tetap dipertahankan
+    // sebagai fallback untuk kompatibilitas dengan inisialisasi socket lama.
+    const handleSocketDisconnect = () => {
+      // Socket admin sendiri terputus; jangan menganggap user online sampai
+      // snapshot baru diterima setelah reconnect.
+      setOnlineUserIds(new Set());
+    };
+    socket.on("connect", handleSocketReconnect);
+    socket.on("disconnect", handleSocketDisconnect);
     window.addEventListener("socket-connected", handleSocketReconnect);
 
-    // Initial check online users & periodic sync
+    // Initial check online users & fallback sync ringan.
     requestOnlineUsers();
-    const onlineInterval = setInterval(requestOnlineUsers, 5000);
+    const onlineInterval = setInterval(requestOnlineUsers, 3000);
+    // Refresh daftar percakapan hanya untuk user baru; jangan gunakan hasilnya
+    // untuk menimpa presence realtime yang sudah diterima dari socket.
+    const chatListInterval = setInterval(() => fetchChats(true), 30000);
 
     return () => {
       clearInterval(onlineInterval);
+      clearInterval(chatListInterval);
+      socket.off("connect", handleSocketReconnect);
+      socket.off("disconnect", handleSocketDisconnect);
       socket.off("new_message", handleNewMessage);
       socket.off("notification", handleNotification);
       socket.off("chat_updated", handleChatUpdated);
@@ -646,7 +675,7 @@ export default function MessagesPage() {
     setSelectedConversation(conv);
     selectedConvRef.current = conv;
     activeIdRef.current = conv.id;
-    const isUserOn = presenceSetRef.current.has(conv.userId.toLowerCase()) || Boolean(conv.isOnline);
+    const isUserOn = checkUserOnline(conv.userId, conv.isOnline);
     setPartnerOnline(isUserOn);
     setPartnerLastSeen(conv.lastSeen || lastSeenMap[conv.userId.toLowerCase()] || null);
 
@@ -886,11 +915,11 @@ export default function MessagesPage() {
                       )}
                       <span
                         className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
-                          (conv.isOnline ?? presenceSetRef.current.has(conv.userId.toLowerCase()))
+                          checkUserOnline(conv.userId, conv.isOnline)
                             ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]"
                             : "bg-slate-300"
                         }`}
-                        title={(conv.isOnline ?? presenceSetRef.current.has(conv.userId.toLowerCase())) ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(conv.lastSeen || lastSeenMap[conv.userId.toLowerCase()] || null, false).text}`}
+                        title={checkUserOnline(conv.userId, conv.isOnline) ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(conv.lastSeen || lastSeenMap[conv.userId.toLowerCase()] || null, false).text}`}
                       />
                     </div>
 
@@ -900,7 +929,7 @@ export default function MessagesPage() {
                           <h3 className={`font-semibold text-xs truncate ${isSelected ? "text-[#0785BC]" : "text-slate-900"}`}>
                             {conv.userName}
                           </h3>
-                          {(conv.isOnline ?? presenceSetRef.current.has(conv.userId.toLowerCase())) ? (
+                          {checkUserOnline(conv.userId, conv.isOnline) ? (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                               <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                               Online
@@ -1066,7 +1095,7 @@ export default function MessagesPage() {
                         className={`flex ${msg.senderRole === "admin" ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`max-w-[72%] px-3.5 py-2.5 rounded-xl text-xs ${
+                          className={`relative w-[min(100%,22rem)] min-w-[172px] px-3.5 py-2.5 pt-9 rounded-xl text-xs ${
                             msg.senderRole === "admin"
                               ? "bg-[#0785BC] text-white rounded-br-none shadow-xs"
                               : "bg-white text-slate-800 border border-slate-200/80 shadow-2xs rounded-bl-none"
@@ -1115,27 +1144,13 @@ export default function MessagesPage() {
                             editingMessageId !== msg.id &&
                             typeof msg.id === "string" &&
                             !msg.id.startsWith("temp-") && (
-                              <div className="mt-1 flex justify-end gap-2 text-sky-200/80">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingMessageId(msg.id);
-                                    setEditingText(msg.text);
-                                  }}
-                                  title="Edit pesan"
-                                  className="hover:text-white transition-colors"
-                                >
-                                  <Pencil className="w-3 h-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteSingleMessage(msg.id)}
-                                  title="Hapus pesan"
-                                  className="hover:text-rose-200 transition-colors"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </button>
-                              </div>
+                                                             <details className="absolute right-3 top-2 z-10">
+                                 <summary className="list-none cursor-pointer rounded-full p-1 text-sky-200/80 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
+                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
+                                   <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                                   <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
+                                 </div>
+                               </details>
                             )}
 
                           <div
@@ -1230,3 +1245,4 @@ export default function MessagesPage() {
     </AdminLayout>
   );
 }
+

@@ -307,7 +307,7 @@ function UserCatalogContent() {
       onSearchChange={setSearch}
       searchPlaceholder={tr("catalog.search_ph", "Cari katalog atau barang...")}
     >
-      <div className="w-full min-w-0 space-y-6 pb-10">
+      <div className="user-page-shell w-full min-w-0 space-y-6">
         {feedback && !selectedPkg && (
           <div
             className={`rounded-xl border p-4 text-sm flex items-center justify-between gap-2 ${
@@ -333,8 +333,8 @@ function UserCatalogContent() {
         {!selectedCatalog ? (
           <>
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0785BC] to-[#0aa5e0] px-5 py-6 md:px-7 text-white shadow-sm">
-              <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/10" />
-              <div className="absolute right-20 bottom-[-3rem] w-32 h-32 rounded-full bg-white/10" />
+              <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-[var(--card)]/10" />
+              <div className="absolute right-20 bottom-[-3rem] w-32 h-32 rounded-full bg-[var(--card)]/10" />
               <div className="relative">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{tr("catalog.brand", "Sarpras Pokada")}</p>
                 <h1 className="mt-1 text-2xl md:text-3xl font-extrabold tracking-tight">{tr("catalog.title", "Katalog Barang")}</h1>
@@ -342,17 +342,17 @@ function UserCatalogContent() {
                   {tr("catalog.hero_desc", "Jelajahi katalog yang tersedia, lalu klik salah satu katalog untuk melihat daftar barang per item dan per paket di dalamnya.")}
                 </p>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
-                  <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">{catalogs.length} {tr("catalog.catalogs", "Katalog")}</span>
-                  <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">{items.length} {tr("catalog.items", "Barang")}</span>
-                  <span className="rounded-full bg-white/15 px-3 py-1.5 backdrop-blur">{packages.length} {tr("catalog.packages", "Paket")}</span>
+                  <span className="rounded-full bg-[var(--card)]/15 px-3 py-1.5 backdrop-blur">{catalogs.length} {tr("catalog.catalogs", "Katalog")}</span>
+                  <span className="rounded-full bg-[var(--card)]/15 px-3 py-1.5 backdrop-blur">{items.length} {tr("catalog.items", "Barang")}</span>
+                  <span className="rounded-full bg-[var(--card)]/15 px-3 py-1.5 backdrop-blur">{packages.length} {tr("catalog.packages", "Paket")}</span>
                 </div>
               </div>
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5 items-stretch">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-slate-200/70 overflow-hidden">
+                  <div key={i} className="bg-[var(--card)] rounded-2xl border border-slate-200/70 overflow-hidden">
                     <div className="h-[148px] bg-slate-100 animate-pulse" />
                     <div className="p-4 space-y-2">
                       <div className="h-3.5 bg-slate-100 rounded animate-pulse w-2/3" />
@@ -363,13 +363,13 @@ function UserCatalogContent() {
                 ))}
               </div>
             ) : visibleCatalogs.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200/70 p-12 text-center">
+              <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 p-12 text-center">
                 <LayoutGrid className="w-9 h-9 mx-auto mb-3 text-slate-200" />
                 <p className="text-sm font-bold text-slate-600">{tr("catalog.no_match", "Belum ada katalog yang sesuai pencarian.")}</p>
                 <p className="text-xs text-slate-400 mt-1">{tr("catalog.no_match_sub", "Coba kata kunci lain atau hubungi admin sarpras.")}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5 items-stretch">
                 {visibleCatalogs.map((cat, idx) => {
                   const Icon = catalogIcon(cat.name);
                   return (
@@ -377,7 +377,7 @@ function UserCatalogContent() {
                       key={cat.id}
                       type="button"
                       onClick={() => openCatalog(cat)}
-                      className="group text-left bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all duration-200 cursor-pointer flex flex-col"
+                      className="group text-left bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 transition-all duration-200 cursor-pointer flex flex-col"
                     >
                       <div className={`relative h-[148px] bg-gradient-to-br ${COVERS[idx % COVERS.length]} flex items-center justify-center overflow-hidden shrink-0`}>
                         {cat.image ? (
@@ -388,7 +388,7 @@ function UserCatalogContent() {
                         ) : (
                           <Icon className="w-12 h-12 text-white/90 group-hover:scale-110 transition-transform duration-300" />
                         )}
-                        <span className="absolute top-2.5 left-2.5 rounded-full bg-white/95 px-2.5 py-1 text-[10px] font-bold text-slate-700 shadow-sm">
+                        <span className="absolute top-2.5 left-2.5 rounded-full bg-[var(--card)]/95 px-2.5 py-1 text-[10px] font-bold text-slate-700 shadow-sm">
                           {tr("catalog.catalogs", "Katalog")}
                         </span>
                         <span className="absolute bottom-2.5 left-2.5 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur">
@@ -427,7 +427,7 @@ function UserCatalogContent() {
               <ArrowLeft className="w-4 h-4" /> {tr("common.back_catalog", "Kembali ke Katalog")}
             </button>
 
-            <div className="bg-white rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3.5">
+            <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3.5">
               <div className="w-12 h-12 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
                 {(() => {
                   const Icon = catalogIcon(selectedCatalog.name);
@@ -472,16 +472,16 @@ function UserCatalogContent() {
 
             {detailTab === "item" ? (
               detailItems.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200/70 p-12 text-center text-sm text-slate-400">
+                <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 p-12 text-center text-sm text-slate-400">
                   <Package className="w-9 h-9 mx-auto mb-2 text-slate-200" />
                   {tr("catalog.empty_items", "Tidak ada barang per item dalam katalog ini.")}
                 </div>
               ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
                   {detailItems.map((it: any) => {
                     const empty = isItemEmptyStock(it);
                     return (
-                      <div key={it.id} className={`group bg-white rounded-2xl border overflow-hidden transition-all flex flex-col ${empty ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30"}`}>
+                      <div key={it.id} className={`group bg-[var(--card)] rounded-2xl border overflow-hidden transition-all flex flex-col ${empty ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30"}`}>
                         <div className="relative h-[148px] bg-slate-100 overflow-hidden shrink-0">
                           {it.image ? (
                             <img src={it.image} alt={it.name} className={`w-full h-full object-cover transition-transform duration-300 ${empty ? "grayscale opacity-60" : "group-hover:scale-105"}`} />
@@ -491,7 +491,7 @@ function UserCatalogContent() {
                             </div>
                           )}
                           {empty && <div className="absolute inset-0 bg-slate-900/25" />}
-                          <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
+                          <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg bg-[var(--card)]/95 text-[10px] font-bold text-slate-600 shadow-sm">
                             {tr("catalog.per_item_badge", "Per Item")}
                           </span>
                           {empty ? (
@@ -529,12 +529,12 @@ function UserCatalogContent() {
                 </div>
               )
             ) : detailPackages.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-slate-200/70 p-12 text-center text-sm text-slate-400">
+              <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 p-12 text-center text-sm text-slate-400">
                 <Layers className="w-9 h-9 mx-auto mb-2 text-slate-200" />
                 {tr("catalog.empty_packages", "Tidak ada paket barang dalam katalog ini.")}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
                 {detailPackages.map((pkg: any) => {
                   const isi = (pkg.packages_items || [])
                     .map((r: any) => r.items?.name)
@@ -542,7 +542,7 @@ function UserCatalogContent() {
                     .join(", ");
                   const empty = isPackageEmptyStock(pkg);
                   return (
-                    <div key={pkg.id} className={`group bg-white rounded-2xl border overflow-hidden transition-all flex flex-col ${empty ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30"}`}>
+                    <div key={pkg.id} className={`group bg-[var(--card)] rounded-2xl border overflow-hidden transition-all flex flex-col ${empty ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]" : "border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30"}`}>
                       <div className="relative h-[148px] bg-slate-100 overflow-hidden flex items-center justify-center shrink-0">
                         {pkg.image_url ? (
                           <img src={pkg.image_url} alt={pkg.name} className={`w-full h-full object-cover transition-transform duration-300 ${empty ? "grayscale opacity-60" : "group-hover:scale-105"}`} />
@@ -550,7 +550,7 @@ function UserCatalogContent() {
                           <Layers className="w-8 h-8 text-slate-300" />
                         )}
                         {empty && <div className="absolute inset-0 bg-slate-900/25" />}
-                        <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg bg-white/95 text-[10px] font-bold text-slate-600 shadow-sm">
+                        <span className="absolute top-2.5 left-2.5 px-2 py-1 rounded-lg bg-[var(--card)]/95 text-[10px] font-bold text-slate-600 shadow-sm">
                           {tr("catalog.per_package_badge", "Per Paket")}
                         </span>
                         {empty ? (
@@ -611,7 +611,7 @@ function UserCatalogContent() {
               </button>
             </div>
             <div className="w-full max-w-[1120px] mx-auto grid grid-cols-1 lg:grid-cols-[352px_minmax(0,1fr)] gap-5 items-start">
-              <section className="bg-white rounded-3xl shadow-sm overflow-hidden">
+              <section className="bg-[var(--card)] rounded-3xl shadow-sm overflow-hidden">
                 <div className="h-[210px] bg-slate-100 flex items-center justify-center overflow-hidden">
                   {selectedPkg.image_url ? (
                     <img src={selectedPkg.image_url} alt={selectedPkg.name} className="w-full h-full object-cover" />
@@ -633,7 +633,7 @@ function UserCatalogContent() {
                   </div>
                 </div>
               </section>
-              <form onSubmit={submitPackage} className="bg-white rounded-3xl shadow-sm p-6 space-y-4">
+              <form onSubmit={submitPackage} className="bg-[var(--card)] rounded-3xl shadow-sm p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-semibold text-[#0785BC] uppercase">{tr("catalog.summary", "Borrow Summary")}</p>

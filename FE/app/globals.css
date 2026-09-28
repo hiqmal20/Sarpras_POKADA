@@ -52,6 +52,74 @@ input, button, select, textarea {
   font-family: inherit;
 }
 
+/* ── User workspace visual system: calm, focused, ChatGPT/Claude-inspired ── */
+.user-page-shell {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: .25rem .25rem 2.5rem;
+}
+.user-page-shell > * {
+  min-width: 0;
+}
+.user-page-hero {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
+  border-radius: 1.25rem;
+  /* The page provides its own gradient/background; this class only standardizes the frame. */
+  box-shadow: 0 12px 32px -24px rgba(7, 133, 188, .55);
+}
+.user-surface {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+}
+.user-toolbar {
+  background: color-mix(in srgb, var(--card) 92%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: .9rem;
+}
+.user-section-title { color: var(--foreground); letter-spacing: -.015em; }
+.user-muted { color: var(--muted); }
+.dark .user-page-hero { background: linear-gradient(135deg, #111c30, #0e2a3d); }
+.dark .user-surface, .dark .user-toolbar { box-shadow: none; }
+
+/* Soft workspace surfaces inspired by calm productivity tools. */
+.user-page-shell > * { animation: fade-up .35s ease both; }
+.user-page-shell > *:nth-child(2) { animation-delay: .04s; }
+
+/* Consistent card language across user pages. Apply the utility to cards that
+   already use rounded/border classes without changing their content layout. */
+.user-card {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+}
+.user-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  box-shadow: 0 14px 30px -18px rgba(7, 133, 188, .38);
+}
+
+@media (max-width: 640px) {
+  .user-page-shell { padding-inline: 0; }
+  .user-page-shell { gap: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-page-shell > *, .user-page-shell button, .user-page-shell a { animation: none; transition: none; }
+}
+
+.user-page-shell > *:nth-child(3) { animation-delay: .08s; }
+.user-page-shell button, .user-page-shell a { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.user-page-shell button:not(:disabled):hover, .user-page-shell a:hover { transform: translateY(-1px); }
+.user-page-shell input, .user-page-shell select, .user-page-shell textarea { background: color-mix(in srgb, var(--card) 94%, var(--surface)); border-color: var(--border); color: var(--foreground); }
+.user-page-shell input:focus, .user-page-shell select:focus, .user-page-shell textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent); }
+
+
 /* ── Admin Page Animations & Micro-interactions ── */
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(12px); }

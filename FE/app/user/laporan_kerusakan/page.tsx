@@ -146,14 +146,14 @@ export default function UserDamageReportsPage() {
 
   return (
     <UserLayout showSearch={false}>
-      <div className="w-full min-w-0 space-y-5 pb-10">
-        <div className="relative overflow-hidden rounded-2xl px-5 py-6 md:px-7 text-white shadow-[0_12px_32px_-12px_rgba(16,185,129,0.55)] bg-gradient-to-br from-[#0785BC] via-[#0aa5e0] to-[#10b981]">
-          <div className="absolute inset-0 bg-white/10 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_65%)]" />
-          <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-white/15" />
-          <div className="absolute right-28 top-1/2 -translate-y-1/2 hidden md:block w-32 h-32 rounded-full bg-white/10" />
-          <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-white/10 blur-2xl" />
+      <div className="user-page-shell w-full min-w-0 space-y-5">
+        <div className="user-page-hero relative overflow-hidden rounded-[1.35rem] px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_16px_38px_-18px_rgba(7,133,188,0.65)] bg-gradient-to-br from-[#0b3b60] via-[#0785BC] to-[#0aa5e0]">
+          <div className="absolute inset-0 bg-[var(--card)]/10 [mask-image:radial-gradient(ellipse_at_top_right,black,transparent_65%)]" />
+          <div className="absolute -right-14 top-1/2 -translate-y-1/2 hidden md:block w-52 h-52 rounded-full bg-[var(--card)]/15" />
+          <div className="absolute right-28 top-1/2 -translate-y-1/2 hidden md:block w-32 h-32 rounded-full bg-[var(--card)]/10" />
+          <div className="absolute -left-16 -bottom-24 w-64 h-64 rounded-full bg-[var(--card)]/10 blur-2xl" />
           <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white text-[#0785BC] flex items-center justify-center shrink-0 shadow-lg">
+            <div className="w-12 h-12 rounded-2xl bg-[var(--card)] text-[#0785BC] flex items-center justify-center shrink-0 shadow-lg">
               <Wrench className="w-6 h-6" />
             </div>
             <div className="flex-1 min-w-0">
@@ -164,10 +164,10 @@ export default function UserDamageReportsPage() {
               </p>
             </div>
             <div className="flex gap-2 shrink-0 text-xs font-bold">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-slate-900 shadow-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--card)] px-3 py-1.5 text-slate-900 shadow-sm">
                 {stats.total} {tr("damage.total", "Laporan")}
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-white backdrop-blur">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-[var(--card)]/15 px-3 py-1.5 text-white backdrop-blur">
                 {stats.done} {tr("damage.done_label", "Selesai")}
               </span>
             </div>
@@ -201,7 +201,7 @@ export default function UserDamageReportsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
           {[
             { label: tr("damage.total", "Total Laporan"), value: stats.total, icon: Package, bg: "bg-blue-50 text-[#0785BC]" },
             { label: tr("damage.wait_review", "Menunggu Review"), value: stats.waiting, icon: Clock, bg: "bg-amber-50 text-amber-600" },
@@ -212,7 +212,7 @@ export default function UserDamageReportsPage() {
             return (
               <div
                 key={s.label}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3"
+                className="bg-[var(--card)] rounded-2xl border border-slate-100 shadow-sm p-4 flex items-center gap-3"
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.bg}`}>
                   <Icon className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function UserDamageReportsPage() {
         </div>
 
         {loading ? (
-          <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center">
+          <div className="bg-[var(--card)] rounded-3xl border border-slate-100 p-14 text-center">
             <Loader2 className="w-8 h-8 animate-spin text-[#0785BC] mx-auto" />
             <p className="text-xs text-slate-400 mt-3">{tr("damage.loading", "Memuat data laporan...")}</p>
           </div>
@@ -235,7 +235,7 @@ export default function UserDamageReportsPage() {
           <div className="grid lg:grid-cols-[380px_minmax(0,1fr)] gap-5 items-start">
             <form
               onSubmit={submit}
-              className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden lg:sticky lg:top-6"
+              className="bg-[var(--card)] rounded-3xl border border-slate-100 shadow-sm overflow-hidden lg:sticky lg:top-6"
             >
               <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
@@ -265,7 +265,7 @@ export default function UserDamageReportsPage() {
                         setItemId("");
                       }
                     }}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   >
                     <option value="">{tr("damage.select_borrowing", "Pilih peminjaman (opsional)")}</option>
                     {borrowings.map((b) => (
@@ -281,7 +281,7 @@ export default function UserDamageReportsPage() {
                   <select
                     value={itemId}
                     onChange={(e) => setItemId(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   >
                     <option value="">{tr("damage.select_item", "Pilih barang")}</option>
                     {selectedItems.map((row: any) => (
@@ -303,7 +303,7 @@ export default function UserDamageReportsPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder={tr("damage.title_ph", "Contoh: Kabel projector rusak")}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   />
                 </div>
 
@@ -317,7 +317,7 @@ export default function UserDamageReportsPage() {
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
                     placeholder={tr("damage.desc_ph", "Jelaskan kerusakan secara detail: bagian mana, sejak kapan, dan kronologinya...")}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 resize-none focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 resize-none focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
                   />
                 </div>
 
@@ -345,7 +345,7 @@ export default function UserDamageReportsPage() {
                       <button
                         type="button"
                         onClick={() => setPhotoUrl("")}
-                        className="absolute top-2 right-2 rounded-full bg-white/95 p-1.5 text-slate-600 hover:text-rose-600 shadow cursor-pointer"
+                        className="absolute top-2 right-2 rounded-full bg-[var(--card)]/95 p-1.5 text-slate-600 hover:text-rose-600 shadow cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -371,7 +371,7 @@ export default function UserDamageReportsPage() {
               </div>
 
               {reports.length === 0 ? (
-                <div className="bg-white rounded-3xl border border-slate-100 p-14 text-center">
+                <div className="bg-[var(--card)] rounded-3xl border border-slate-100 p-14 text-center">
                   <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
                     <Package className="w-7 h-7 text-slate-300" />
                   </div>
@@ -388,7 +388,7 @@ export default function UserDamageReportsPage() {
                     return (
                       <article
                         key={report.id}
-                        className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                        className="bg-[var(--card)] rounded-3xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
                       >
                         <div className="p-5">
                           <div className="flex items-start justify-between gap-3">

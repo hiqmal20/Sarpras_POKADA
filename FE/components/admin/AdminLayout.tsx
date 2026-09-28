@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import api, { getAuthToken, getCurrentUser, isPrivilegedUser } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { useLanguage } from "@/lib/i18n";
 
 interface AdminLayoutProps {
@@ -58,6 +59,14 @@ export default function AdminLayout({
       }
     } catch {}
   }, []);
+
+  useEffect(() => {
+    if (!authorized || !getAuthToken()) return;
+    const socket = getSocket();
+    return () => {
+      void socket;
+    };
+  }, [authorized]);
 
   // Idle Session Timeout Enforcer
   useEffect(() => {

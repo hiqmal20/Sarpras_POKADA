@@ -77,7 +77,15 @@ exports.changePassword = async (req, res, next) => {
 // Logout
 exports.logout = async (req, res, next) => {
   try {
-    await supabase.auth.signOut();
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      if (token) {
+        try {
+          await supabase.auth.admin.signOut(token);
+        } catch (_) {}
+      }
+    }
     return sendSuccess(res, 'Berhasil logout', null, 200);
   } catch (err) {
     next(err);

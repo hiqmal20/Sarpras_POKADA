@@ -4,7 +4,12 @@ const { sendSuccess } = require('../utils/responseHandler');
 // Get all returns
 exports.getAllReturns = async (req, res, next) => {
   try {
-    const result = await returnService.findAllReturns(req.query);
+    const isPrivileged = ['Admin', 'Petugas'].includes(req.user.role);
+    const query = { ...req.query };
+    if (!isPrivileged) {
+      query.user_id = req.user.id;
+    }
+    const result = await returnService.findAllReturns(query);
     return sendSuccess(
       res,
       'Data pengembalian berhasil dimuat',

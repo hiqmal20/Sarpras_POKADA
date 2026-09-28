@@ -252,9 +252,9 @@ exports.updateStatus = async (id, { status, admin_note }) => {
   }
 
   const allowedTransitions = {
-    Pending: ['Disetujui', 'Ditolak', 'Dibatalkan'],
-    Disetujui: ['Dipinjam', 'Dibatalkan', 'Ditolak'],
-    Dipinjam: ['Dikembalikan'],
+    Pending: ['Disetujui', 'Dipinjam', 'Ditolak', 'Dibatalkan'],
+    Disetujui: ['Dipinjam', 'Dibatalkan', 'Ditolak', 'Dikembalikan'],
+    Dipinjam: ['Dikembalikan', 'Dibatalkan'],
     Ditolak: [],
     Dibatalkan: [],
     Dikembalikan: []
@@ -291,12 +291,17 @@ exports.updateStatus = async (id, { status, admin_note }) => {
     }
   }
 
+  const updatePayload = {
+    status,
+    ...(admin_note !== undefined && { admin_note })
+  };
+  if (status === 'Dikembalikan' && !currentBorrowing.actual_return_date) {
+    updatePayload.actual_return_date = new Date().toISOString();
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from('borrowings')
-    .update({
-      status,
-      ...(admin_note !== undefined && { admin_note })
-    })
+    .update(updatePayload)
     .eq('id', id)
     .select()
     .single();

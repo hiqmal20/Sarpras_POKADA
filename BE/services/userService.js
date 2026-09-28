@@ -90,7 +90,13 @@ exports.createUserProfile = async ({ nomor_induk, name, email, password, role = 
 
   if (authError) {
     if (authError.message.includes('not authorized') || authError.status === 403) {
-      const { data: fallbackAuth, error: fallbackErr } = await supabase.auth.signUp({
+      const { createClient } = require('@supabase/supabase-js');
+      const fallbackClient = createClient(
+        process.env.SUPABASE_URL.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, ''),
+        process.env.SUPABASE_KEY,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+      const { data: fallbackAuth, error: fallbackErr } = await fallbackClient.auth.signUp({
         email: cleanEmail,
         password: userPassword,
         options: {

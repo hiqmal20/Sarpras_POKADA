@@ -12,6 +12,7 @@ import {
   Headphones,
   Pencil,
   Trash2,
+  MoreVertical,
   X,
   Clock3,
   CircleDot,
@@ -63,6 +64,7 @@ export default function UserMessagesPage() {
   const [isAdminTyping, setIsAdminTyping] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
 
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
@@ -458,10 +460,15 @@ export default function UserMessagesPage() {
       }
     };
 
+    const isStaffUser = (role?: string) => {
+      const r = String(role || "").toLowerCase();
+      return r === "admin" || r === "petugas";
+    };
+
     const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
         const adminIds = users
-          .filter((u) => u.role === "Admin" || u.role === "Petugas")
+          .filter((u) => isStaffUser(u.role))
           .map((u) => String((u as any).userId || (u as any).id || ""))
           .filter(Boolean);
         presenceSetRef.current = new Set(adminIds);
@@ -474,14 +481,18 @@ export default function UserMessagesPage() {
     };
 
     const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
-      if (data?.role === "Admin" || data?.role === "Petugas") {
-        applyPresence(String((data as any).userId || (data as any).id || ""), true);
+      const uid = String((data as any)?.userId || (data as any)?.id || "");
+      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+      if (isStaffUser(data?.role) || (activeAdmin && activeAdmin === uid)) {
+        applyPresence(uid, true);
       }
     };
 
     const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
-      if (data?.role === "Admin" || data?.role === "Petugas") {
-        applyPresence(String((data as any).userId || (data as any).id || ""), false, data.lastSeen || null);
+      const uid = String((data as any)?.userId || (data as any)?.id || "");
+      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+      if (isStaffUser(data?.role) || (activeAdmin && activeAdmin === uid)) {
+        applyPresence(uid, false, data?.lastSeen || null);
       }
     };
 
@@ -509,7 +520,6 @@ export default function UserMessagesPage() {
       if (activeAdmin) {
         const isOn = ids.includes(String(activeAdmin));
         setAdminOnline(isOn);
-        // Saat offline, pastikan lastSeen terisi dari lastSeenMap
         if (!isOn && !Array.isArray(data) && (data as any)?.lastSeenMap?.[activeAdmin]) {
           setAdminLastSeen(String((data as any).lastSeenMap[activeAdmin]));
         }
@@ -517,8 +527,10 @@ export default function UserMessagesPage() {
     };
 
     const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
-      if (data?.role === "Admin" || data?.role === "Petugas") {
-        applyPresence(String((data as any).userId || (data as any).id || ""), Boolean(data.online), data.last_seen || null);
+      const uid = String((data as any)?.userId || (data as any)?.id || "");
+      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+      if (isStaffUser(data?.role) || (activeAdmin && activeAdmin === uid)) {
+        applyPresence(uid, Boolean(data.online), data.last_seen || null);
       }
     };
 
@@ -536,20 +548,30 @@ export default function UserMessagesPage() {
     socket.on("user_offline", handleUserOffline);
     socket.on("user_status_change", handleUserStatusChange);
 
-    if (socket.connected) {
-      socket.emit("get_online_users");
-    }
-    // Polling status online agar Admin ↔ User saling lihat live (sebelumnya hanya sekali saat mount)
-    const presenceInterval = setInterval(() => {
-      if (socket.connected) socket.emit("get_online_users");
-    }, 10000);
-    const handleSocketReconnect = () => {
+    const requestPresence = () => {
       if (socket.connected) socket.emit("get_online_users");
     };
+
+    // Minta snapshot segera saat halaman/socket aktif dan setiap reconnect.
+    requestPresence();
+    const handleSocketReconnect = () => requestPresence();
+    const handleSocketDisconnect = () => {
+      // Jangan menunggu pindah halaman: jika koneksi socket user putus,
+      // refresh snapshot ketika koneksi kembali agar status admin langsung akurat.
+      setIsAdminTyping(false);
+    };
+    socket.on("connect", handleSocketReconnect);
+    socket.on("disconnect", handleSocketDisconnect);
     window.addEventListener("socket-connected", handleSocketReconnect);
+
+    // Fallback ringan berbasis socket (bukan HTTP polling), untuk menangani
+    // event presence yang terlewat saat koneksi sempat reconnect.
+    const presenceInterval = setInterval(requestPresence, 3000);
 
     return () => {
       clearInterval(presenceInterval);
+      socket.off("connect", handleSocketReconnect);
+      socket.off("disconnect", handleSocketDisconnect);
       window.removeEventListener("socket-connected", handleSocketReconnect);
       socket.off("new_message", handleNewMessage);
       socket.off("messages_read", handleMessagesRead);
@@ -893,7 +915,7 @@ export default function UserMessagesPage() {
                         </div>
                       )}
                       <div className="flex justify-end items-end gap-2">
-                        <div className="max-w-md sm:max-w-lg bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 shadow-xs">
+                        <div className="relative w-fit min-w-[120px] max-w-[min(22rem,78vw)] bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 pt-9 shadow-xs">
                           {editingMessageId === m.id ? (
                             <div className="flex items-center gap-2">
                               <input
@@ -932,27 +954,13 @@ export default function UserMessagesPage() {
                           {editingMessageId !== m.id &&
                             typeof m.id === "string" &&
                             !m.id.startsWith("temp-") && (
-                              <div className="mt-1 flex justify-end gap-2 text-white/70 hover:text-white">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingMessageId(m.id);
-                                    setEditingText(m.text);
-                                  }}
-                                  title="Edit pesan"
-                                  className="hover:text-white transition-colors"
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteMessage(m.id)}
-                                  title="Hapus pesan"
-                                  className="hover:text-rose-200 transition-colors"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
+                                                             <details className="absolute right-3 top-2 z-10">
+                                 <summary className="list-none cursor-pointer rounded-full p-1 text-white/60 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
+                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
+                                   <button type="button" onClick={() => { setEditingMessageId(m.id); setEditingText(m.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                                   <button type="button" onClick={() => handleDeleteMessage(m.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
+                                 </div>
+                               </details>
                             )}
 
                           <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-white/80 font-mono">
@@ -1077,3 +1085,4 @@ export default function UserMessagesPage() {
     </UserLayout>
   );
 }
+

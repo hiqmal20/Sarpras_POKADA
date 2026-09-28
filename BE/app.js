@@ -119,6 +119,14 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+
 server.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`🌐 HTTP API: http://localhost:${PORT}`);

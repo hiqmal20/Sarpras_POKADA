@@ -48,7 +48,8 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
 
   if (authError) {
     // Fallback jika bukan admin client
-    const { data: fallbackAuth, error: fallbackErr } = await supabase.auth.signUp({
+    const fallbackClient = createAuthClient();
+    const { data: fallbackAuth, error: fallbackErr } = await fallbackClient.auth.signUp({
       email: cleanEmail,
       password,
       options: {
@@ -134,7 +135,8 @@ exports.changePassword = async (user, currentPassword, newPassword) => {
 };
 
 exports.refreshToken = async (refreshToken) => {
-  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+  const authClient = createAuthClient();
+  const { data, error } = await authClient.auth.refreshSession({ refresh_token: refreshToken });
 
   if (error || !data.session) {
     throw new AppError('Refresh token tidak valid atau sudah kadaluarsa. Silakan login kembali.', 401);
@@ -155,39 +157,58 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     throw new AppError('Email/Nama Pengguna, Nomor Induk, dan Password wajib diisi', 400);
   }
 
-  // 1. Verifikasi kecocokan Email atau Name dengan Nomor Induk di tabel users
-  const isEmail = cleanIdentifier.includes('@');
-  const noSpaces = cleanIdentifier.replace(/\s+/g, '');
-  
+  const normalizedIdentifier = cleanIdentifier.replace(/\s+/g, '').toLowerCase();
+  const normalizedNomorInduk = cleanNomorInduk.replace(/\s+/g, '').toLowerCase();
   let userProfile = null;
-  if (isEmail) {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('email', cleanIdentifier)
-      .ilike('nomor_induk', cleanNomorInduk)
-      .maybeSingle();
-    userProfile = data;
-  } else {
-    // Cari berdasarkan nama persis, tanpa spasi, atau substring
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('nomor_induk', cleanNomorInduk)
-      .or(`name.ilike.${cleanIdentifier},name.ilike.${noSpaces},name.ilike.%${cleanIdentifier}%`)
-      .maybeSingle();
-    userProfile = data;
+
+  const lookupResults = await Promise.all([
+    supabase.from('users').select('*').ilike('nomor_induk', cleanNomorInduk).limit(20),
+    supabase.from('users').select('*').ilike('email', cleanIdentifier).limit(20),
+    supabase.from('users').select('*').ilike('name', `%${cleanIdentifier}%`).limit(20),
+  ]);
+  const failedLookup = lookupResults.find((result) => result.error);
+  if (failedLookup?.error) {
+    throw new AppError('Gagal memeriksa data akun: ' + failedLookup.error.message, 500);
   }
 
-  // Jika belum ditemukan, coba cari berdasarkan email atau nama sekaligus dengan nomor_induk
+  const candidates = lookupResults.flatMap((result) => result.data || []);
+  const uniqueCandidates = Array.from(new Map(candidates.map((c) => [c.id, c])).values());
+
+  // 1. Cocokkan identitas pengguna
+  userProfile = uniqueCandidates.find((candidate) => {
+    const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
+    const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase();
+    const candidateName = String(candidate.name || '').replace(/\s+/g, '').toLowerCase();
+
+    const matchesNomorInduk = !candidateNomorInduk || candidateNomorInduk === normalizedNomorInduk;
+    const matchesEmail = candidateEmail === normalizedIdentifier;
+    const matchesName = candidateName === normalizedIdentifier || candidateName.includes(normalizedIdentifier) || normalizedIdentifier.includes(candidateName);
+
+    // Kasus standar: nomor induk cocok DAN (email atau nama cocok)
+    if (matchesNomorInduk && (matchesEmail || matchesName)) return true;
+
+    // Kasus terbalik: pengguna memasukkan nomor induk di kolom nama/email dan sebaliknya
+    if (candidateNomorInduk && candidateNomorInduk === normalizedIdentifier && (candidateEmail === normalizedNomorInduk || candidateName === normalizedNomorInduk)) {
+      return true;
+    }
+
+    return false;
+  }) || null;
+
+  // Fallback: Jika email persis cocok namun nomor_induk belum terisi di DB atau format beda
   if (!userProfile) {
-    const { data } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('nomor_induk', cleanNomorInduk)
-      .or(`email.ilike.${cleanIdentifier},name.ilike.%${cleanIdentifier}%`)
-      .maybeSingle();
-    userProfile = data;
+    userProfile = uniqueCandidates.find((candidate) => {
+      const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
+      return candidateEmail === normalizedIdentifier;
+    }) || null;
+  }
+
+  // Fallback: Jika nomor induk persis cocok
+  if (!userProfile) {
+    userProfile = uniqueCandidates.find((candidate) => {
+      const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase();
+      return candidateNomorInduk && candidateNomorInduk === normalizedNomorInduk;
+    }) || null;
   }
 
   if (!userProfile) {
@@ -200,17 +221,28 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     throw new AppError('Akun Anda telah dinonaktifkan. Hubungi admin SARPRAS.', 403);
   }
 
-  // 2. Autentikasi dengan Supabase Auth via email terdaftar & password
+  // 2. Autentikasi dengan Supabase Auth
   const authClient = createAuthClient();
+  let authEmail = String(userProfile.email || '').trim().toLowerCase();
+
+  try {
+    const { data: authUserData } = await supabase.auth.admin.getUserById(userProfile.id);
+    if (authUserData?.user?.email) {
+      authEmail = authUserData.user.email.trim().toLowerCase();
+    }
+  } catch (_) {
+    // Abaikan jika pemanggilan admin gagal
+  }
+
   let { data: authData, error: authError } = await authClient.auth.signInWithPassword({
-    email: userProfile.email,
+    email: authEmail,
     password
   });
 
-  // Toleransi jika user lupa tanda seru (!) di password
-  if (authError && !password.endsWith('!')) {
+  // Toleransi password jika lupa tanda seru (!) atau kelebihan (!)
+  if ((authError || !authData?.user) && !password.endsWith('!')) {
     const retry = await authClient.auth.signInWithPassword({
-      email: userProfile.email,
+      email: authEmail,
       password: `${password}!`
     });
     if (!retry.error && retry.data?.user) {
@@ -219,7 +251,39 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     }
   }
 
-  if (authError || !authData.user) {
+  if ((authError || !authData?.user) && password.endsWith('!')) {
+    const retry = await authClient.auth.signInWithPassword({
+      email: authEmail,
+      password: password.slice(0, -1)
+    });
+    if (!retry.error && retry.data?.user) {
+      authData = retry.data;
+      authError = null;
+    }
+  }
+
+  const profileEmail = String(userProfile.email || '').trim().toLowerCase();
+  if ((authError || !authData?.user) && profileEmail && profileEmail !== authEmail) {
+    let retry = await authClient.auth.signInWithPassword({
+      email: profileEmail,
+      password
+    });
+    if (!retry.error && retry.data?.user) {
+      authData = retry.data;
+      authError = null;
+    } else if (!password.endsWith('!')) {
+      retry = await authClient.auth.signInWithPassword({
+        email: profileEmail,
+        password: `${password}!`
+      });
+      if (!retry.error && retry.data?.user) {
+        authData = retry.data;
+        authError = null;
+      }
+    }
+  }
+
+  if (authError || !authData?.user) {
     throw new AppError('Kombinasi Email/Nama, Nomor Induk, atau password salah', 401);
   }
 

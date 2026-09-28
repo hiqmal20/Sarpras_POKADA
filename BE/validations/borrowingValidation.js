@@ -27,7 +27,8 @@ const updateBorrowingStatusSchema = Joi.object({
   status: Joi.string().valid('Pending', 'Disetujui', 'Ditolak', 'Dipinjam', 'Dikembalikan', 'Dibatalkan').required().messages({
     'string.empty': 'Status wajib diisi'
   }),
-  admin_note: Joi.string().allow('', null)
+  admin_note: Joi.string().allow('', null),
+  admin_notes: Joi.string().allow('', null)
 });
 
 module.exports = {
