@@ -8,13 +8,14 @@ import {
   AlertTriangle,
   Loader2,
   X,
-  CalendarDays,
   Clock,
   ChevronRight,
   RotateCcw,
   ShieldCheck,
   MessageSquare,
   IdCard,
+  Info,
+  CalendarDays,
 } from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
@@ -88,14 +89,11 @@ export default function UserReturnPage() {
 
   const stats = useMemo(() => {
     const late = borrowings.filter(isOverdue).length;
-    const requestedIds = new Set([
-      ...requests.map((r) => r.borrowing_id),
-      ...serverRequests.filter((r) => r.status !== "Ditolak").map((r) => r.borrowing_id),
-    ]);
-    const waiting = borrowings.filter((b) => requestedIds.has(b.id)).length;
-    return { active: borrowings.length, late, waiting };
-  }, [borrowings, requests]);
+    const returned = serverRequests.filter((r) => ["returned", "completed", "selesai", "dikembalikan"].some((s) => String(r.status || "").toLowerCase().includes(s))).length;
+    return { active: borrowings.length, late, returned };
+  }, [borrowings, serverRequests]);
 
+  /* Pengembalian dilakukan langsung di loket Sarpras; halaman ini hanya informasi. */
   async function notifyPetugas(b: any, payload: { planned: string; cond: string; note: string }) {
     const text =
       `Pengajuan Siap Kembali\n` +
@@ -174,7 +172,7 @@ export default function UserReturnPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-white/80">{tr("return.brand", "Sarpras Pokada")}</p>
               <h1 className="mt-1 text-xl md:text-2xl font-extrabold tracking-tight">{tr("return.title", "Pengembalian Barang")}</h1>
               <p className="text-sm text-white/85 mt-1 max-w-xl">
-                {tr("return.subtitle", "Ajukan kesiapan kembali di sini, lalu selesaikan verifikasi fisik di loket.")}
+                {tr("return.subtitle", "Lihat barang yang perlu dikembalikan dan riwayat pengembalian Anda. Barang dikembalikan langsung ke bagian Sarpras.")}
               </p>
             </div>
             <div className="flex gap-2 shrink-0 text-xs font-bold">
@@ -185,7 +183,7 @@ export default function UserReturnPage() {
                 <Clock className="w-3.5 h-3.5" /> {stats.late} {tr("return.late_short", "Terlambat")}
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-[var(--card)]/15 px-3 py-1.5 text-white backdrop-blur">
-                <ShieldCheck className="w-3.5 h-3.5" /> {stats.waiting} {tr("damage.new", "Lapor Baru") === "New Report" ? "Submitted" : "Diajukan"}
+                <ShieldCheck className="w-3.5 h-3.5" /> {stats.returned} {tr("return.completed_short", "Selesai")}
               </span>
             </div>
           </div>
@@ -330,59 +328,18 @@ export default function UserReturnPage() {
             </div>
 
             <div className="space-y-4 min-w-0 lg:sticky lg:top-6">
-              {selected ? (
-                <form onSubmit={submit} className="bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-[0_1px_2px_rgba(15,23,42,0.05)] p-5 space-y-4">
-                  <h2 className="text-[13px] font-extrabold text-slate-900">{tr("return.form_title", "Form Kesiapan Kembali")}</h2>
-                  <div className="rounded-xl bg-[#0785BC]/5 border border-[#0785BC]/15 p-3 text-xs text-slate-600">
-                    <b className="text-slate-900 font-mono">{selected.borrow_code}</b>
-                    <span className="text-slate-400"> {tr("return.form_note", "— pengajuan ini tidak langsung menyelesaikan status.")}</span>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("return.plan_date", "Rencana Tanggal Kembali")}</label>
-                    <input
-                      type="date"
-                      value={planDate}
-                      onChange={(e) => setPlanDate(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("return.cond_label", "Kondisi Menurut Anda")}</label>
-                    <select
-                      value={condition}
-                      onChange={(e) => setCondition(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
-                    >
-                      <option value="Baik">{tr("return.cond_good", "Baik")}</option>
-                      <option value="Rusak Ringan">{tr("return.cond_light", "Rusak Ringan")}</option>
-                      <option value="Rusak Berat">{tr("return.cond_heavy", "Rusak Berat")}</option>
-                    </select>
-                    <p className="text-[11px] text-slate-400 mt-1.5">{tr("return.cond_hint", "Kondisi final ditentukan petugas saat cek fisik.")}</p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{tr("return.note_label", "Catatan untuk Petugas")}</label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows={3}
-                      placeholder={tr("return.note_ph", "Contoh: kabel sudah digulung, tas ada, siap dicek jam 10.00...")}
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm resize-none placeholder:text-slate-400 focus:bg-[var(--card)] focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC]"
-                    />
-                  </div>
-                  <button
-                    disabled={sending}
-                    className="w-full rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-sm font-bold py-3 disabled:opacity-50 transition-colors cursor-pointer"
-                  >
-                    {sending ? tr("return.sending", "Mengirim...") : tr("return.submit", "Kirim Pengajuan ke Petugas")}
-                  </button>
-                </form>
-              ) : (
-                <div className="bg-[var(--card)] rounded-2xl border border-dashed border-slate-200 p-8 text-center">
-                  <Package className="w-8 h-8 mx-auto text-slate-200 mb-2" />
-                  <p className="text-xs text-slate-400 font-medium">{tr("return.pick_hint", "Pilih salah satu peminjaman aktif untuk mengajukan pengembalian.")}</p>
+              <div className="bg-[var(--card)] rounded-2xl border border-slate-200/70 shadow-sm p-5 space-y-4">
+                <h2 className="text-[13px] font-extrabold text-slate-900">Informasi Pengembalian</h2>
+                <div className="rounded-xl bg-[#0785BC]/5 border border-[#0785BC]/15 p-4 text-sm text-slate-600">
+                  <div className="flex gap-2"><Info className="w-4 h-4 text-[#0785BC] shrink-0" /><p>Pengembalian tidak perlu diajukan melalui sistem. Silakan bawa barang langsung ke bagian Sarpras.</p></div>
                 </div>
-              )}
-
+                <ol className="space-y-3 text-xs text-slate-600">
+                  <li><b>1. Siapkan barang</b><br />Pastikan barang dan seluruh aksesorinya lengkap.</li>
+                  <li><b>2. Datang ke loket Sarpras</b><br />Tunjukkan identitas dan kode peminjaman.</li>
+                  <li><b>3. Tunggu pemeriksaan petugas</b><br />Admin akan mengecek kondisi dan kelengkapan barang.</li>
+                  <li><b>4. Status diperbarui</b><br />Peminjaman menjadi Selesai setelah diverifikasi admin.</li>
+                </ol>
+              </div>
               <div className="bg-slate-900 rounded-2xl p-5 text-white overflow-hidden relative">
                 <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[var(--card)]/10" />
                 <div className="relative">
@@ -406,3 +363,5 @@ export default function UserReturnPage() {
     </UserLayout>
   );
 }
+
+

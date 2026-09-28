@@ -350,7 +350,7 @@ function UserCatalogContent() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5 items-stretch">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <div key={i} className="bg-[var(--card)] rounded-2xl border border-slate-200/70 overflow-hidden">
                     <div className="h-[148px] bg-slate-100 animate-pulse" />
@@ -369,7 +369,7 @@ function UserCatalogContent() {
                 <p className="text-xs text-slate-400 mt-1">{tr("catalog.no_match_sub", "Coba kata kunci lain atau hubungi admin sarpras.")}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-5 items-stretch">
                 {visibleCatalogs.map((cat, idx) => {
                   const Icon = catalogIcon(cat.name);
                   return (
@@ -477,7 +477,7 @@ function UserCatalogContent() {
                   {tr("catalog.empty_items", "Tidak ada barang per item dalam katalog ini.")}
                 </div>
               ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
                   {detailItems.map((it: any) => {
                     const empty = isItemEmptyStock(it);
                     return (
@@ -534,7 +534,7 @@ function UserCatalogContent() {
                 {tr("catalog.empty_packages", "Tidak ada paket barang dalam katalog ini.")}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-stretch">
                 {detailPackages.map((pkg: any) => {
                   const isi = (pkg.packages_items || [])
                     .map((r: any) => r.items?.name)

@@ -163,17 +163,21 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
   const normalizedNomorInduk = cleanNomorInduk.replace(/\s+/g, '').toLowerCase();
   let userProfile = null;
 
-  const { data: candidates, error: lookupError } = await supabase
-    .from('users')
-    .select('*')
-    .ilike('nomor_induk', `%${cleanNomorInduk}%`)
-    .limit(20);
-
+  // Cari berdasarkan nomor induk secara exact terlebih dahulu. Query lama memakai
+  // ilike(`%...%`), sehingga data lama/format NIM tertentu dapat menghasilkan
+  // kandidat yang salah atau tidak ditemukan setelah session kedaluwarsa.
+  const lookupResults = await Promise.all([
+    supabase.from('users').select('*').eq('nomor_induk', cleanNomorInduk).limit(20),
+    supabase.from('users').select('*').ilike('email', cleanIdentifier).limit(20),
+    supabase.from('users').select('*').ilike('name', cleanIdentifier).limit(20),
+  ]);
+  const lookupError = lookupResults.find((result) => result.error)?.error;
   if (lookupError) {
     throw new AppError('Gagal memeriksa data akun. Silakan coba lagi.', 500);
   }
 
-  userProfile = (candidates || []).find((candidate) => {
+  const candidates = lookupResults.flatMap((result) => result.data || []);
+  userProfile = candidates.find((candidate) => {
     const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
     const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase();
     const candidateName = String(candidate.name || '').replace(/\s+/g, '').toLowerCase();
@@ -182,17 +186,13 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     );
   }) || null;
 
-  // Fallback untuk database lama yang menyimpan nomor induk dengan format
-  // berbeda, tetapi tetap wajib mencocokkan email/nama secara normal.
+  // Fallback untuk data lama yang memiliki spasi/format berbeda pada nomor induk.
   if (!userProfile) {
-    const { data: byIdentifier } = await supabase
-      .from('users')
-      .select('*')
-      .ilike('email', cleanIdentifier)
-      .limit(20);
-    userProfile = (byIdentifier || []).find((candidate) =>
-      String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase() === normalizedNomorInduk
-    ) || null;
+    userProfile = candidates.find((candidate) => {
+      const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
+      const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase();
+      return candidateNomorInduk === normalizedNomorInduk && candidateEmail === normalizedIdentifier;
+    }) || null;
   }
 
   if (!userProfile) {

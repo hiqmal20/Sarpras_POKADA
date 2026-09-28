@@ -54,9 +54,13 @@ input, button, select, textarea {
 
 /* ── User workspace visual system: calm, focused, ChatGPT/Claude-inspired ── */
 .user-page-shell {
+  width: 100%;
   max-width: 1280px;
   margin-inline: auto;
-  padding-bottom: 2.5rem;
+  padding: .25rem .25rem 2.5rem;
+}
+.user-page-shell > * {
+  min-width: 0;
 }
 .user-page-hero {
   position: relative;
@@ -85,6 +89,30 @@ input, button, select, textarea {
 /* Soft workspace surfaces inspired by calm productivity tools. */
 .user-page-shell > * { animation: fade-up .35s ease both; }
 .user-page-shell > *:nth-child(2) { animation-delay: .04s; }
+
+/* Consistent card language across user pages. Apply the utility to cards that
+   already use rounded/border classes without changing their content layout. */
+.user-card {
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+}
+.user-card:hover {
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
+  box-shadow: 0 14px 30px -18px rgba(7, 133, 188, .38);
+}
+
+@media (max-width: 640px) {
+  .user-page-shell { padding-inline: 0; }
+  .user-page-shell { gap: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .user-page-shell > *, .user-page-shell button, .user-page-shell a { animation: none; transition: none; }
+}
+
 .user-page-shell > *:nth-child(3) { animation-delay: .08s; }
 .user-page-shell button, .user-page-shell a { transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
 .user-page-shell button:not(:disabled):hover, .user-page-shell a:hover { transform: translateY(-1px); }
