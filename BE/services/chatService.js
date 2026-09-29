@@ -157,10 +157,12 @@ exports.postMessage = async (chatId, { sender_id, message, attachment_url }, use
 
   if (msgError) throw msgError;
 
-  await supabase
+  supabase
     .from('chats')
     .update({ updated_at: now })
-    .eq('id', chatId);
+    .eq('id', chatId)
+    .then(() => {})
+    .catch((err) => console.error('Error updating chat timestamp:', err));
 
   return newMsg;
 };

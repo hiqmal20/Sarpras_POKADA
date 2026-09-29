@@ -63,6 +63,8 @@ exports.sendMessage = async (req, res, next) => {
     if (io) {
       io.to(req.params.chatId).emit('new_message', data);
       io.to(req.params.chatId).emit('chat_updated', { chatId: req.params.chatId, message: data });
+      io.to('admins').emit('new_message', data);
+      io.to('admins').emit('chat_updated', { chatId: req.params.chatId, message: data });
     }
     return sendSuccess(res, 'Pesan terkirim', data, 201);
   } catch (err) {

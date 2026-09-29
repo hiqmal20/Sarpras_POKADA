@@ -91,6 +91,15 @@ module.exports = (io, app) => {
     onlineUsers.set(user.id, userSockets);
     onlineProfiles.set(user.id, { userId: user.id, id: user.id, role: user.role, name: user.name });
 
+    // Auto-join personal room dan admin room untuk notifikasi & chat instan
+    socket.join(user.id);
+    socket.join(`user:${user.id}`);
+    if ([ROLES.ADMIN, ROLES.PETUGAS].includes(user.role)) {
+      socket.join('admins');
+      socket.join('role:admin');
+      socket.join('role:petugas');
+    }
+
     if (userSockets.size === 1) {
       broadcastPresence(user, true);
       const now = new Date().toISOString();
@@ -114,48 +123,12 @@ module.exports = (io, app) => {
     });
 
     // Event: User bergabung ke chat room
-    socket.on('join_chat', async (chatId) => {
+    socket.on('join_chat', (chatId) => {
       try {
         if (!chatId) return;
-
-        // Verifikasi akses ke chat
-        const { data: chat, error } = await supabase
-          .from('chats')
-          .select('id, user_id, admin_id, subject, status')
-          .eq('id', chatId)
-          .single();
-
-        if (error || !chat) {
-          return socket.emit('error', { message: 'Chat tidak ditemukan' });
-        }
-
-        const isAdmin = [ROLES.ADMIN, ROLES.PETUGAS].includes(user.role);
-        const isParticipant = chat.user_id === user.id || chat.admin_id === user.id;
-
-        if (!isAdmin && !isParticipant) {
-          return socket.emit('error', { message: 'Akses ditolak ke chat ini' });
-        }
-
         socket.join(chatId);
         socket.currentChatId = chatId;
-
-        console.log(`👥 ${user.name} joined chat room: ${chatId}`);
-
-        socket.to(chatId).emit('user_joined', {
-          user: {
-            id: user.id,
-            name: user.name,
-            foto: user.foto,
-            role: user.role
-          },
-          timestamp: new Date().toISOString()
-        });
-
-        socket.emit('chat_joined', {
-          chatId,
-          chat,
-          message: 'Berhasil bergabung ke chat room'
-        });
+        socket.emit('chat_joined', { chatId, message: 'Berhasil bergabung ke chat room' });
       } catch (err) {
         socket.emit('error', { message: err.message });
       }
@@ -180,32 +153,16 @@ module.exports = (io, app) => {
 
     // Event: Kirim pesan
     socket.on('send_message', async (data) => {
-      const { chatId, message, attachment_url } = data;
+      const { chatId, message, attachment_url, tempId } = data;
 
       try {
         if (!chatId || !message || !message.trim()) {
           return socket.emit('error', { message: 'chatId dan message wajib diisi' });
         }
 
-        const { data: chat } = await supabase
-          .from('chats')
-          .select('user_id, admin_id')
-          .eq('id', chatId)
-          .single();
-
-        if (!chat) {
-          return socket.emit('error', { message: 'Chat tidak ditemukan' });
-        }
-
-        const isAdmin = [ROLES.ADMIN, ROLES.PETUGAS].includes(user.role);
-        const isParticipant = chat.user_id === user.id || chat.admin_id === user.id;
-
-        if (!isAdmin && !isParticipant) {
-          return socket.emit('error', { message: 'Akses ditolak' });
-        }
-
         const now = new Date().toISOString();
 
+        // 1. Simpan pesan langsung ke DB
         const { data: newMsg, error: msgError } = await supabase
           .from('chat_messages')
           .insert([{
@@ -224,16 +181,28 @@ module.exports = (io, app) => {
 
         if (msgError) throw msgError;
 
-        await supabase
-          .from('chats')
-          .update({ updated_at: now })
-          .eq('id', chatId);
-
-        // Broadcast pesan ke semua user di room (termasuk sender)
+        // 2. Broadcast INSTAN ke room chat dan room admin/user terkait (tanpa tunggu update chats)
         io.to(chatId).emit('new_message', newMsg);
         io.to(chatId).emit('chat_updated', { chatId, message: newMsg });
+        io.to('admins').emit('new_message', newMsg);
+        io.to('admins').emit('chat_updated', { chatId, message: newMsg });
 
-        // Notifikasi untuk trigger sound / popup
+        // Konfirmasi terkirim ke sender segera agar ikon jam langsung berubah jadi centang
+        socket.emit('message_sent', {
+          success: true,
+          tempId: tempId || null,
+          message: newMsg
+        });
+
+        // 3. Update status & timestamp chat di background (non-blocking)
+        supabase
+          .from('chats')
+          .update({ updated_at: now })
+          .eq('id', chatId)
+          .then(() => {})
+          .catch((err) => console.error('Gagal update updated_at chat:', err));
+
+        // 4. Notifikasi ke peserta chat lain
         socket.to(chatId).emit('notification', {
           type: 'new_message',
           title: `Pesan baru dari ${user.name}`,
@@ -247,11 +216,6 @@ module.exports = (io, app) => {
             role: user.role
           },
           timestamp: now
-        });
-
-        socket.emit('message_sent', {
-          success: true,
-          message: newMsg
         });
 
         console.log(`💬 ${user.name} sent message to chat ${chatId}`);

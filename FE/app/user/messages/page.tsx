@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   MoreVertical,
+  ChevronDown,
   X,
   Clock3,
   CircleDot,
@@ -79,6 +80,21 @@ export default function UserMessagesPage() {
     const id = setInterval(() => setPresenceTick((t) => t + 1), 60000);
     return () => clearInterval(id);
   }, []);
+
+  // Close message dropdown menu on click outside or escape
+  useEffect(() => {
+    if (!openMessageMenu) return;
+    const handleClickOutside = () => setOpenMessageMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMessageMenu(null);
+    };
+    window.addEventListener("click", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openMessageMenu]);
 
   const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
     bottomRef.current?.scrollIntoView({ behavior });
@@ -297,7 +313,7 @@ export default function UserMessagesPage() {
 
     const interval = setInterval(() => {
       fetchMessages(true);
-    }, 10000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [activeId, fetchMessages]);
@@ -534,6 +550,30 @@ export default function UserMessagesPage() {
       }
     };
 
+    const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
+      if (!data?.message) return;
+      const realMsg = data.message;
+      setMessages((prev) =>
+        prev.map((m) =>
+          (data.tempId && m.id === data.tempId) || (m.id.startsWith("temp-") && m.text === realMsg.message)
+            ? {
+                ...m,
+                id: String(realMsg.id),
+                rawDate: realMsg.created_at || m.rawDate,
+                time: realMsg.created_at
+                  ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : m.time,
+                isRead: Boolean(realMsg.is_read),
+              }
+            : m
+        )
+      );
+    };
+
+    socket.on("message_sent", handleMessageSent);
     socket.on("new_message", handleNewMessage);
     socket.on("messages_read", handleMessagesRead);
     socket.on("message_updated", handleMessageUpdated);
@@ -573,6 +613,7 @@ export default function UserMessagesPage() {
       socket.off("connect", handleSocketReconnect);
       socket.off("disconnect", handleSocketDisconnect);
       window.removeEventListener("socket-connected", handleSocketReconnect);
+      socket.off("message_sent", handleMessageSent);
       socket.off("new_message", handleNewMessage);
       socket.off("messages_read", handleMessagesRead);
       socket.off("message_updated", handleMessageUpdated);
@@ -645,6 +686,7 @@ export default function UserMessagesPage() {
         socket.emit("send_message", {
           chatId: activeId,
           message: text,
+          tempId,
         });
       } else {
         const result = await api.chats.sendMessage(activeId, { message: text });
@@ -914,83 +956,149 @@ export default function UserMessagesPage() {
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-end items-end gap-2">
-                        <div className="relative w-fit min-w-[120px] max-w-[min(22rem,78vw)] bg-[#0785BC] text-white rounded-2xl rounded-br-xs px-4 py-3 pt-9 shadow-xs">
+                      <div className="flex justify-end items-end gap-1.5 group/bubble">
+                        <div
+                          className={`relative w-fit max-w-[min(26rem,82vw)] bg-[#0785BC] text-white rounded-2xl rounded-tr-xs shadow-xs transition-all ${
+                            editingMessageId === m.id
+                              ? "p-3 w-full max-w-sm"
+                              : "pl-3.5 pr-7 py-2"
+                          }`}
+                        >
                           {editingMessageId === m.id ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col gap-2 w-full">
+                              <span className="text-[11px] font-medium text-white/90">
+                                Edit Pesan
+                              </span>
                               <input
                                 value={editingText}
                                 onChange={(e) => setEditingText(e.target.value)}
-                                className="min-w-40 rounded px-2 py-1 text-xs text-slate-900 bg-white focus:outline-none"
+                                className="w-full rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300"
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") handleEditMessage(m);
                                   if (e.key === "Escape") setEditingMessageId(null);
                                 }}
                               />
-                              <button
-                                type="button"
-                                onClick={() => handleEditMessage(m)}
-                                title="Simpan"
-                                className="p-1 hover:bg-white/20 rounded transition-colors text-white"
-                              >
-                                <CheckCheck className="h-4 w-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingMessageId(null)}
-                                title="Batal"
-                                className="p-1 hover:bg-white/20 rounded transition-colors text-white/80"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
+                              <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingMessageId(null)}
+                                  className="px-2 py-0.5 rounded text-[11px] text-white/80 hover:bg-white/20 transition-colors"
+                                >
+                                  Batal
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditMessage(m)}
+                                  className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-white text-[#0785BC] hover:bg-white/90 shadow-xs transition-colors flex items-center gap-1"
+                                >
+                                  <CheckCheck className="w-3 h-3" />
+                                  Simpan
+                                </button>
+                              </div>
                             </div>
                           ) : (
-                            <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
-                              {m.text}
-                            </p>
-                          )}
+                            <>
+                              <div className="flex flex-wrap items-end justify-end gap-x-2 gap-y-0.5">
+                                <p className="text-xs sm:text-[13px] whitespace-pre-wrap leading-relaxed break-words">
+                                  {m.text}
+                                </p>
+                                <div className="flex items-center gap-1 text-[10px] text-white/80 font-mono select-none shrink-0 self-end ml-auto pb-0.5">
+                                  <span>{m.time}</span>
+                                  {(() => {
+                                    const isTemp = typeof m.id === "string" && m.id.startsWith("temp-");
+                                    if (isTemp) {
+                                      return (
+                                        <span title="Mengirim...">
+                                          <Clock3 className="w-3 h-3 text-white/70 animate-pulse" />
+                                        </span>
+                                      );
+                                    }
+                                    if (m.isRead) {
+                                      return (
+                                        <span title="Dibaca oleh Admin ✓✓">
+                                          <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
+                                        </span>
+                                      );
+                                    }
+                                    if (adminOnline) {
+                                      return (
+                                        <span title="Terkirim ke Admin ✓✓">
+                                          <CheckCheck className="w-3.5 h-3.5 text-white/80 stroke-[2]" />
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span title="Terkirim ke server ✓">
+                                        <Check className="w-3.5 h-3.5 text-white/60 stroke-[2]" />
+                                      </span>
+                                    );
+                                  })()}
+                                </div>
+                              </div>
 
-                          {editingMessageId !== m.id &&
-                            typeof m.id === "string" &&
-                            !m.id.startsWith("temp-") && (
-                                                             <details className="absolute right-3 top-2 z-10">
-                                 <summary className="list-none cursor-pointer rounded-full p-1 text-white/60 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
-                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
-                                   <button type="button" onClick={() => { setEditingMessageId(m.id); setEditingText(m.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
-                                   <button type="button" onClick={() => handleDeleteMessage(m.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
-                                 </div>
-                               </details>
-                            )}
+                              {typeof m.id === "string" && !m.id.startsWith("temp-") && (
+                                <div className="absolute right-1 top-1 z-20">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOpenMessageMenu(openMessageMenu === m.id ? null : m.id);
+                                    }}
+                                    className={`p-1 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition-all ${
+                                      openMessageMenu === m.id
+                                        ? "opacity-100 bg-white/20 text-white"
+                                        : "opacity-0 group-hover/bubble:opacity-100 focus:opacity-100 max-sm:opacity-60"
+                                    }`}
+                                    title="Opsi pesan"
+                                    aria-label="Menu pesan"
+                                  >
+                                    <ChevronDown className="w-3.5 h-3.5" />
+                                  </button>
 
-                          <div className="flex items-center justify-end gap-1 mt-1 text-[10px] text-white/80 font-mono">
-                            <span>{m.time}</span>
-                            {(() => {
-                              const isTemp = typeof m.id === "string" && m.id.startsWith("temp-");
-                              // Fixed: tidak bergantung adminOnline agar tick stabil (cegah flicker 2→1)
-                              const tick = m.isRead ? "read" : isTemp ? "sent" : "delivered";
-                              return (
-                                <span
-                                  className="transition-colors duration-200"
-                                  title={
-                                    tick === "read"
-                                      ? "Dibaca oleh Admin ✓✓"
-                                      : tick === "delivered"
-                                        ? "Terkirim ke Admin ✓✓"
-                                        : "Terkirim ✓"
-                                  }
-                                >
-                                  {tick === "read" ? (
-                                    <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
-                                  ) : tick === "delivered" ? (
-                                    <CheckCheck className="w-3.5 h-3.5 text-white/80 stroke-[2]" />
-                                  ) : (
-                                    <Check className="w-3.5 h-3.5 text-white/60 stroke-[2]" />
+                                  {openMessageMenu === m.id && (
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className={`absolute right-0 z-30 min-w-[136px] rounded-xl bg-white/95 backdrop-blur-sm p-1.5 text-slate-700 shadow-xl border border-slate-200/90 animate-in fade-in zoom-in-95 duration-100 ${
+                                        index >= messages.length - 2
+                                          ? "bottom-full mb-1.5"
+                                          : "top-full mt-1.5"
+                                      }`}
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMessageMenu(null);
+                                          setEditingMessageId(m.id);
+                                          setEditingText(m.text);
+                                        }}
+                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
+                                      >
+                                        <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover/item:bg-[#0785BC]/15 group-hover/item:text-[#0785BC] transition-colors">
+                                          <Pencil className="h-3 w-3" />
+                                        </div>
+                                        <span>Edit</span>
+                                      </button>
+                                      <div className="h-px bg-slate-100 my-1" />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMessageMenu(null);
+                                          handleDeleteMessage(m.id);
+                                        }}
+                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50/80 rounded-lg transition-colors group/item"
+                                      >
+                                        <div className="w-5 h-5 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center group-hover/item:bg-rose-100 group-hover/item:text-rose-600 transition-colors">
+                                          <Trash2 className="h-3 w-3" />
+                                        </div>
+                                        <span>Hapus</span>
+                                      </button>
+                                    </div>
                                   )}
-                                </span>
-                              );
-                            })()}
-                          </div>
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
                       </div>
                     </React.Fragment>
@@ -1007,26 +1115,28 @@ export default function UserMessagesPage() {
                         </span>
                       </div>
                     )}
-                    <div className="flex items-start gap-3 max-w-md sm:max-w-lg">
-                      <div className="w-8 h-8 rounded-xl bg-[#0785BC] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-1 shadow-xs">
+                    <div className="flex items-start gap-2.5 max-w-[min(26rem,82vw)]">
+                      <div className="w-7 h-7 rounded-full bg-[#0785BC] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 shadow-xs">
                         A
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-bold text-slate-800">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="text-[11px] font-semibold text-slate-700">
                             {m.senderName}
                           </span>
-                          <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-blue-50 text-[#0785BC]">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-blue-50 text-[#0785BC]">
                             Petugas
                           </span>
                         </div>
-                        <div className="bg-white border border-slate-200/80 text-slate-800 rounded-2xl rounded-tl-xs px-4 py-3 shadow-xs">
-                          <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
-                            {m.text}
-                          </p>
-                          <p className="text-[10px] text-slate-400 mt-1 text-right font-mono">
-                            {m.time}
-                          </p>
+                        <div className="w-fit max-w-full bg-white border border-slate-200/80 text-slate-800 rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-xs">
+                          <div className="flex flex-wrap items-end justify-end gap-x-2.5 gap-y-0.5">
+                            <p className="text-xs sm:text-[13px] whitespace-pre-wrap leading-relaxed break-words">
+                              {m.text}
+                            </p>
+                            <span className="text-[10px] text-slate-400 select-none shrink-0 self-end ml-auto font-mono pb-0.5">
+                              {m.time}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>

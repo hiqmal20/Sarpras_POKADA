@@ -12,6 +12,7 @@ import {
   CheckCheck,
   Pencil,
   MoreVertical,
+  ChevronDown,
   X,
   Clock3,
   CircleDot,
@@ -72,6 +73,20 @@ export default function MessagesPage() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!openMessageMenu) return;
+    const handleClickOutside = () => setOpenMessageMenu(null);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpenMessageMenu(null);
+    };
+    window.addEventListener("click", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [openMessageMenu]);
 
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
@@ -285,7 +300,7 @@ export default function MessagesPage() {
 
     const interval = setInterval(() => {
       fetchMsgs(false);
-    }, 10000);
+    }, 3000);
 
     const handleFocus = () => fetchMsgs(false);
     window.addEventListener("focus", handleFocus);
@@ -594,6 +609,30 @@ export default function MessagesPage() {
       });
     };
 
+    const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
+      if (!data?.message) return;
+      const realMsg = data.message;
+      setMessages((prev) =>
+        prev.map((m) =>
+          (data.tempId && m.id === data.tempId) || (m.id.startsWith("temp-") && m.text === realMsg.message)
+            ? {
+                ...m,
+                id: String(realMsg.id),
+                rawDate: realMsg.created_at || m.rawDate,
+                timestamp: realMsg.created_at
+                  ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : m.timestamp,
+                isRead: Boolean(realMsg.is_read),
+              }
+            : m
+        )
+      );
+    };
+
+    socket.on("message_sent", handleMessageSent);
     socket.on("new_message", handleNewMessage);
     socket.on("notification", handleNotification);
     socket.on("chat_updated", handleChatUpdated);
@@ -632,6 +671,7 @@ export default function MessagesPage() {
       clearInterval(chatListInterval);
       socket.off("connect", handleSocketReconnect);
       socket.off("disconnect", handleSocketDisconnect);
+      socket.off("message_sent", handleMessageSent);
       socket.off("new_message", handleNewMessage);
       socket.off("notification", handleNotification);
       socket.off("chat_updated", handleChatUpdated);
@@ -836,6 +876,7 @@ export default function MessagesPage() {
         socket.emit("send_message", {
           chatId: selectedConversation.id,
           message: messageText,
+          tempId,
         });
       } else {
         await api.chats.sendMessage(selectedConversation.id, {
@@ -1092,102 +1133,172 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div
-                        className={`flex ${msg.senderRole === "admin" ? "justify-end" : "justify-start"}`}
+                        className={`flex items-end gap-1.5 ${
+                          msg.senderRole === "admin" ? "justify-end group/bubble" : "justify-start"
+                        }`}
                       >
-                        <div
-                          className={`relative w-[min(100%,22rem)] min-w-[172px] px-3.5 py-2.5 pt-9 rounded-xl text-xs ${
-                            msg.senderRole === "admin"
-                              ? "bg-[#0785BC] text-white rounded-br-none shadow-xs"
-                              : "bg-white text-slate-800 border border-slate-200/80 shadow-2xs rounded-bl-none"
-                          }`}
-                        >
-                          {editingMessageId === msg.id ? (
-                            <div className="flex items-center gap-2">
-                              <input
-                                value={editingText}
-                                onChange={(e) => setEditingText(e.target.value)}
-                                className="min-w-44 rounded-lg px-2.5 py-1 text-xs text-slate-900 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-white"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") handleSaveEditMessage(msg);
-                                  if (e.key === "Escape") {
-                                    setEditingMessageId(null);
-                                    setEditingText("");
-                                  }
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => handleSaveEditMessage(msg)}
-                                title="Simpan perubahan"
-                                className="p-1 hover:bg-white/20 rounded transition-colors text-white"
-                              >
-                                <CheckCheck className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingMessageId(null);
-                                  setEditingText("");
-                                }}
-                                title="Batal"
-                                className="p-1 hover:bg-white/20 rounded transition-colors text-white/80"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                          )}
-
-                          {msg.senderRole === "admin" &&
-                            editingMessageId !== msg.id &&
-                            typeof msg.id === "string" &&
-                            !msg.id.startsWith("temp-") && (
-                                                             <details className="absolute right-3 top-2 z-10">
-                                 <summary className="list-none cursor-pointer rounded-full p-1 text-sky-200/80 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
-                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
-                                   <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
-                                   <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
-                                 </div>
-                               </details>
-                            )}
-
+                        {msg.senderRole === "admin" ? (
                           <div
-                            className={`flex items-center gap-1 mt-1 font-mono text-[9px] ${
-                              msg.senderRole === "admin" ? "text-sky-100 justify-end" : "text-slate-400 justify-start"
+                            className={`relative w-fit max-w-[min(26rem,82vw)] bg-[#0785BC] text-white rounded-2xl rounded-tr-xs shadow-xs transition-all ${
+                              editingMessageId === msg.id
+                                ? "p-3 w-full max-w-sm"
+                                : "pl-3.5 pr-7 py-2"
                             }`}
                           >
-                            <span>{msg.timestamp}</span>
-                            {msg.senderRole === "admin" && (
-                              (() => {
-                                const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
-                                // Fixed: tick tidak lagi bergantung pada peerOnline agar tidak flicker 2→1 saat status online berubah
-                                const tick = msg.isRead ? "read" : isTemp ? "sent" : "delivered";
-                                return (
-                                  <span
-                                    className="transition-colors duration-200"
-                                    title={
-                                      tick === "read"
-                                        ? "Dibaca oleh pengguna ✓✓"
-                                        : tick === "delivered"
-                                          ? "Terkirim ke pengguna ✓✓"
-                                          : "Terkirim ✓"
+                            {editingMessageId === msg.id ? (
+                              <div className="flex flex-col gap-2 w-full">
+                                <span className="text-[11px] font-medium text-white/90">
+                                  Edit Pesan
+                                </span>
+                                <input
+                                  value={editingText}
+                                  onChange={(e) => setEditingText(e.target.value)}
+                                  className="w-full rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleSaveEditMessage(msg);
+                                    if (e.key === "Escape") {
+                                      setEditingMessageId(null);
+                                      setEditingText("");
                                     }
+                                  }}
+                                />
+                                <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingMessageId(null);
+                                      setEditingText("");
+                                    }}
+                                    className="px-2 py-0.5 rounded text-[11px] text-white/80 hover:bg-white/20 transition-colors"
                                   >
-                                    {tick === "read" ? (
-                                      <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
-                                    ) : tick === "delivered" ? (
-                                      <CheckCheck className="w-3.5 h-3.5 text-sky-100/90 stroke-[2]" />
-                                    ) : (
-                                      <Check className="w-3.5 h-3.5 text-sky-100/70 stroke-[2]" />
+                                    Batal
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveEditMessage(msg)}
+                                    className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-white text-[#0785BC] hover:bg-white/90 shadow-xs transition-colors flex items-center gap-1"
+                                  >
+                                    <CheckCheck className="w-3 h-3" />
+                                    Simpan
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <div className="flex flex-wrap items-end justify-end gap-x-2 gap-y-0.5">
+                                  <p className="text-xs sm:text-[13px] leading-relaxed whitespace-pre-wrap break-words">
+                                    {msg.text}
+                                  </p>
+                                  <div className="flex items-center gap-1 text-[10px] text-white/80 font-mono select-none shrink-0 self-end ml-auto pb-0.5">
+                                    <span>{msg.timestamp}</span>
+                                  {(() => {
+                                    const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
+                                    if (isTemp) {
+                                      return (
+                                        <span title="Mengirim...">
+                                          <Clock3 className="w-3 h-3 text-white/70 animate-pulse" />
+                                        </span>
+                                      );
+                                    }
+                                    if (msg.isRead) {
+                                      return (
+                                        <span title="Dibaca oleh pengguna ✓✓">
+                                          <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
+                                        </span>
+                                      );
+                                    }
+                                    if (partnerOnline) {
+                                      return (
+                                        <span title="Terkirim ke pengguna ✓✓">
+                                          <CheckCheck className="w-3.5 h-3.5 text-white/80 stroke-[2]" />
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span title="Terkirim ke server ✓">
+                                        <Check className="w-3.5 h-3.5 text-white/60 stroke-[2]" />
+                                      </span>
+                                    );
+                                  })()}
+                                  </div>
+                                </div>
+
+                                {typeof msg.id === "string" && !msg.id.startsWith("temp-") && (
+                                  <div className="absolute right-1 top-1 z-20">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenMessageMenu(openMessageMenu === msg.id ? null : msg.id);
+                                      }}
+                                      className={`p-1 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition-all ${
+                                        openMessageMenu === msg.id
+                                          ? "opacity-100 bg-white/20 text-white"
+                                          : "opacity-0 group-hover/bubble:opacity-100 focus:opacity-100 max-sm:opacity-60"
+                                      }`}
+                                      title="Opsi pesan"
+                                      aria-label="Menu pesan"
+                                    >
+                                      <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
+
+                                    {openMessageMenu === msg.id && (
+                                      <div
+                                        onClick={(e) => e.stopPropagation()}
+                                        className={`absolute right-0 z-30 min-w-[136px] rounded-xl bg-white/95 backdrop-blur-sm p-1.5 text-slate-700 shadow-xl border border-slate-200/90 animate-in fade-in zoom-in-95 duration-100 ${
+                                          index >= messages.length - 2
+                                            ? "bottom-full mb-1.5"
+                                            : "top-full mt-1.5"
+                                        }`}
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenMessageMenu(null);
+                                            setEditingMessageId(msg.id);
+                                            setEditingText(msg.text);
+                                          }}
+                                          className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
+                                        >
+                                          <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover/item:bg-[#0785BC]/15 group-hover/item:text-[#0785BC] transition-colors">
+                                            <Pencil className="h-3 w-3" />
+                                          </div>
+                                          <span>Edit</span>
+                                        </button>
+                                        <div className="h-px bg-slate-100 my-1" />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setOpenMessageMenu(null);
+                                            handleDeleteSingleMessage(msg.id);
+                                          }}
+                                          className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50/80 rounded-lg transition-colors group/item"
+                                        >
+                                          <div className="w-5 h-5 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center group-hover/item:bg-rose-100 group-hover/item:text-rose-600 transition-colors">
+                                            <Trash2 className="h-3 w-3" />
+                                          </div>
+                                          <span>Hapus</span>
+                                        </button>
+                                      </div>
                                     )}
-                                  </span>
-                                );
-                              })()
+                                  </div>
+                                )}
+                              </>
                             )}
                           </div>
-                        </div>
+                        ) : (
+                          <div className="relative w-fit max-w-[min(26rem,82vw)] bg-white text-slate-800 border border-slate-200/80 shadow-xs rounded-2xl rounded-tl-xs px-3.5 py-2">
+                            <div className="flex flex-wrap items-end justify-end gap-x-2.5 gap-y-0.5">
+                              <p className="text-xs sm:text-[13px] leading-relaxed whitespace-pre-wrap break-words">
+                                {msg.text}
+                              </p>
+                              <span className="text-[10px] text-slate-400 font-mono select-none shrink-0 self-end ml-auto pb-0.5">
+                                {msg.timestamp}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </React.Fragment>
                   );
