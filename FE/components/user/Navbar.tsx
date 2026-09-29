@@ -20,6 +20,7 @@ import {
   Menu,
 } from "lucide-react";
 import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
+import { disconnectSocket } from "@/lib/socket";
 import { getNotificationTargetUrl, getNotificationActionLabel } from "@/lib/notificationHelper";
 import { useLanguage } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -224,6 +225,7 @@ export default function UserNavbar({
 
   const handleLogout = () => {
     if (confirm(tr("nav.logout_confirm", "Apakah Anda yakin ingin logout?"))) {
+      disconnectSocket();
       removeAuthToken();
       router.push("/auth/login");
     }

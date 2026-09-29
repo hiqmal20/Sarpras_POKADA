@@ -337,7 +337,7 @@ function UserCatalogContent() {
               <div className="absolute right-20 bottom-[-3rem] w-32 h-32 rounded-full bg-[var(--card)]/10" />
               <div className="relative">
                 <p className="text-xs font-semibold uppercase tracking-widest text-white/70">{tr("catalog.brand", "Sarpras Pokada")}</p>
-                <h1 className="mt-1 text-2xl md:text-3xl font-extrabold tracking-tight">{tr("catalog.title", "Katalog Barang")}</h1>
+                <h1 className="mt-1 text-2xl md:text-3xl font-extrabold tracking-tight">{tr("catalog.title", "Kategori Barang")}</h1>
                 <p className="mt-2 text-sm text-white/80 max-w-xl">
                   {tr("catalog.hero_desc", "Jelajahi katalog yang tersedia, lalu klik salah satu katalog untuk melihat daftar barang per item dan per paket di dalamnya.")}
                 </p>

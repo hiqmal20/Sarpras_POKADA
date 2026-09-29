@@ -368,7 +368,7 @@ function ItemCatalogContent() {
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 {tr("borrow.tag", "Pinjam & Kembali")}
               </div>
-              <h1 className="mt-2.5 text-2xl md:text-[28px] font-extrabold tracking-tight leading-tight">{tr("borrow.title", "Peminjaman Saya")}</h1>
+              <h1 className="mt-2.5 text-2xl md:text-[28px] font-extrabold tracking-tight leading-tight">{tr("borrow.title", "Peminjaman")}</h1>
               <p className="mt-2 text-sm text-slate-300 max-w-xl leading-relaxed">
                 {tr("borrow.subtitle", "Pilih barang per item atau gunakan paket barang yang tersedia, lalu ajukan langsung dari sini.")}
               </p>

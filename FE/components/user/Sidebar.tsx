@@ -47,8 +47,8 @@ const NAV_GROUPS: NavGroup[] = [
     titleKey: "side.borrow",
     fallback: "Pinjam & Kembali",
     items: [
-      { href: "/user/item_catalog", labelKey: "nav.catalog", fallback: "Katalog Barang", icon: PackageSearch, matchPrefix: true },
-      { href: "/user/peminjaman", labelKey: "nav.borrow", fallback: "Peminjaman Saya", icon: ClipboardList, matchPrefix: true },
+      { href: "/user/item_catalog", labelKey: "nav.catalog", fallback: "Kategori Barang", icon: PackageSearch, matchPrefix: true },
+      { href: "/user/peminjaman", labelKey: "nav.borrow", fallback: "Peminjaman", icon: ClipboardList, matchPrefix: true },
       { href: "/user/pengembalian", labelKey: "nav.return", fallback: "Pengembalian", icon: PackageCheck },
     ],
   },

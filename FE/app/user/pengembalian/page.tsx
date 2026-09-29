@@ -64,10 +64,11 @@ export default function UserReturnPage() {
   const locale = lang === "en" ? "en-US" : "id-ID";
 
   const load = async () => {
-    const [res, requestRes] = await Promise.all([
-      api.borrowings.getAll({ limit: 50 }),
-      api.returnRequests.getAll(),
-    ]);
+    try {
+      const [res, requestRes] = await Promise.all([
+        api.borrowings.getAll({ limit: 50 }),
+        api.returnRequests.getAll(),
+      ]);
     if (requestRes.status === "success" && Array.isArray(requestRes.data)) setServerRequests(requestRes.data);
     if (res.status === "success" && Array.isArray(res.data)) {
       const active = res.data.filter((b: any) => {
@@ -77,7 +78,12 @@ export default function UserReturnPage() {
       setBorrowings(active);
       setSelected((prev: any) => (prev ? active.find((b: any) => b.id === prev.id) || null : prev));
     }
-    setLoading(false);
+      setLoading(false);
+    } catch (error) {
+      console.error("Gagal memuat halaman pengembalian:", error);
+      setLoading(false);
+      setFeedback({ type: "error", text: "Data pengembalian belum dapat dimuat. Pastikan migrasi database sudah dijalankan." });
+    }
   };
 
   useEffect(() => {

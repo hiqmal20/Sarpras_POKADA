@@ -115,7 +115,9 @@ module.exports = (io, app) => {
     if (userSockets.size === 1) {
       broadcastPresence(user, true);
       const now = new Date().toISOString();
-      supabase.from('users').update({ update_at: now }).eq('id', user.id).then(() => {}).catch(() => {});
+      // Presence disimpan di memory; jangan menulis update_at setiap koneksi
+      // karena sebagian skema users tidak memiliki kolom tersebut.
+      void now;
     }
 
     // Kirim state online users awal ke client yang baru connect.
@@ -373,7 +375,6 @@ module.exports = (io, app) => {
           const now = new Date().toISOString();
           lastSeenMap.set(user.id, now);
           broadcastPresence(user, false);
-          supabase.from('users').update({ update_at: now }).eq('id', user.id).then(() => {}).catch(() => {});
         }
       }
 

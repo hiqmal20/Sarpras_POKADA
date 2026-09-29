@@ -15,7 +15,15 @@ router.get('/', async (req, res, next) => {
     const { data, error } = await query;
     if (error) throw error;
     res.json({ status: 'success', data: data || [], total: (data || []).length });
-  } catch (err) { next(err); }
+  } catch (err) {
+    if (err?.code === 'PGRST205' || String(err?.message || '').includes("return_requests")) {
+      return res.status(503).json({
+        status: 'fail',
+        message: 'Fitur pengajuan pengembalian belum diaktifkan di database. Jalankan BE/RETURN_REQUESTS_MIGRATION.sql di Supabase SQL Editor.'
+      });
+    }
+    next(err);
+  }
 });
 
 router.post('/', validateRequest(createReturnRequestSchema), async (req, res, next) => {
