@@ -238,9 +238,11 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
   }
 
   if (authError || !authData?.user) {
-    // Jangan mencoba password alternatif. Password harus diverifikasi persis
-    // oleh Supabase Auth.
-    throw new AppError('Password tidak cocok dengan akun Supabase Auth. Silakan reset password atau hubungi admin.', 401);
+    if (authError?.status === 429 || (authError?.message || '').toLowerCase().includes('rate limit')) {
+      throw new AppError('Terlalu banyak percobaan masuk. Silakan tunggu beberapa saat.', 429);
+    }
+    console.warn(`[AUTH] Login gagal untuk ${authEmail}: ${authError?.message || 'Password tidak cocok'}`);
+    throw new AppError('Password tidak cocok dengan akun Supabase Auth. Silakan periksa kembali atau hubungi admin.', 401);
   }
 
   return {

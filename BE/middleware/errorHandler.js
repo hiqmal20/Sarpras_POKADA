@@ -1,7 +1,9 @@
 const { sendError } = require('../utils/responseHandler');
 
 const errorHandler = (err, req, res, next) => {
-  if (process.env.NODE_ENV !== 'production') {
+  if (err.isOperational && err.statusCode < 500) {
+    console.warn(`⚠️ [${err.statusCode}] ${err.message} (${req.method} ${req.originalUrl})`);
+  } else if (process.env.NODE_ENV !== 'production') {
     console.error('Error:', err);
   } else {
     console.error('Error:', err.message);
