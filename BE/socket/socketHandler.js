@@ -18,11 +18,15 @@ module.exports = (io, app) => {
 
   const broadcastPresence = (user, isOnline) => {
     const lastSeen = isOnline ? null : (lastSeenMap.get(user.id) || new Date().toISOString());
+    if (isOnline) {
+      lastSeenMap.delete(user.id);
+    } else {
+      lastSeenMap.set(user.id, lastSeen);
+    }
 
     // Format for user messages page
     io.emit(isOnline ? 'user_online' : 'user_offline', {
       userId: user.id,
-      id: user.id,
       role: user.role,
       name: user.name,
       lastSeen
@@ -31,7 +35,6 @@ module.exports = (io, app) => {
     // Format for admin messages page
     io.emit('user_status_change', {
       userId: user.id,
-      id: user.id,
       online: isOnline,
       last_seen: lastSeen,
       role: user.role,
@@ -68,15 +71,10 @@ module.exports = (io, app) => {
         .single();
 
       if (profileError || !userProfile) {
-        socket.user = {
-          id: userId,
-          name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User',
-          email: authData.user.email,
-          role: authData.user.user_metadata?.role || 'Mahasiswa'
-        };
-      } else {
-        socket.user = userProfile;
+        return next(new Error('Authentication error: User tidak ditemukan'));
       }
+
+      socket.user = userProfile;
       next();
     } catch (err) {
       next(new Error('Authentication error: ' + err.message));
@@ -84,12 +82,26 @@ module.exports = (io, app) => {
   });
 
   // Connection established
+  const HEARTBEAT_TIMEOUT = 45 * 1000;
+  const presenceSweeper = setInterval(() => {
+    const now = Date.now();
+    for (const [userId, sockets] of onlineUsers.entries()) {
+      for (const socketId of sockets) {
+        const activeSocket = io.sockets.sockets.get(socketId);
+        if (activeSocket && now - (activeSocket.lastPresenceHeartbeat || 0) > HEARTBEAT_TIMEOUT) {
+          activeSocket.disconnect(true);
+        }
+      }
+    }
+  }, 15000);
+
   io.on('connection', (socket) => {
     const user = socket.user;
     const userSockets = onlineUsers.get(user.id) || new Set();
     userSockets.add(socket.id);
     onlineUsers.set(user.id, userSockets);
-    onlineProfiles.set(user.id, { userId: user.id, id: user.id, role: user.role, name: user.name });
+    socket.lastPresenceHeartbeat = Date.now();
+    onlineProfiles.set(user.id, { userId: user.id, role: user.role, name: user.name });
 
     // Auto-join personal room dan admin room untuk notifikasi & chat instan
     socket.join(user.id);
@@ -106,10 +118,17 @@ module.exports = (io, app) => {
       supabase.from('users').update({ update_at: now }).eq('id', user.id).then(() => {}).catch(() => {});
     }
 
-    // Kirim state online users awal ke client yang baru connect
+    // Kirim state online users awal ke client yang baru connect.
+    // Snapshot hanya berisi user yang benar-benar memiliki socket aktif.
     socket.emit('presence_snapshot', Array.from(onlineProfiles.values()));
     socket.emit('online_users_list', getOnlinePayload());
     console.log(`✅ Socket connected: ${user.name} (${user.email}) [${user.role}] - ${socket.id}`);
+
+    // Heartbeat eksplisit menjaga presence tetap akurat saat koneksi tidak
+    // langsung memicu event disconnect (misalnya laptop sleep atau jaringan putus).
+    socket.on('presence_heartbeat', () => {
+      socket.lastPresenceHeartbeat = Date.now();
+    });
 
     // Handler event query status online dari client
     socket.on('get_online_users', () => {

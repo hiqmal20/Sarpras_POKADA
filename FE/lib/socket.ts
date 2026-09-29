@@ -114,6 +114,17 @@ export const getSocket = (): Socket | null => {
     socketInstance.on("disconnect", (reason) => {
       console.log("🔌 WebSocket disconnected:", reason);
     });
+
+    // Kirim heartbeat agar status online tetap akurat saat koneksi tidak
+    // langsung memicu event disconnect (misalnya perangkat sleep/jaringan putus).
+    const heartbeat = window.setInterval(() => {
+      if (socketInstance?.connected) socketInstance.emit("presence_heartbeat");
+    }, 15000);
+    // Jangan menghentikan heartbeat saat disconnect sementara. Socket.IO akan
+    // reconnect otomatis; interval tetap aktif dan mulai mengirim lagi setelah
+    // koneksi pulih. Jika interval dihentikan, koneksi hasil reconnect dapat
+    // dianggap offline oleh server setelah HEARTBEAT_TIMEOUT.
+    void heartbeat;
   } else if (!socketInstance.connected) {
     socketInstance.auth = { token };
     socketInstance.connect();

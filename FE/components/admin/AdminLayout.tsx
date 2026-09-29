@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
 import api, { getAuthToken, getCurrentUser, isPrivilegedUser } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
+import { disconnectSocket, getSocket } from "@/lib/socket";
 import { useLanguage } from "@/lib/i18n";
 
 interface AdminLayoutProps {
@@ -14,6 +14,7 @@ interface AdminLayoutProps {
   searchValue?: string;
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
+  fullWidth?: boolean;
 }
 
 export default function AdminLayout({
@@ -22,6 +23,7 @@ export default function AdminLayout({
   searchValue = "",
   searchPlaceholder,
   onSearchChange,
+  fullWidth = false,
 }: AdminLayoutProps) {
   const router = useRouter();
   const { t } = useLanguage();
@@ -90,6 +92,7 @@ export default function AdminLayout({
       timeoutId = setTimeout(() => {
         alert(t("admin.nav.session_timeout", `Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`));
         try {
+          disconnectSocket();
           api.auth.logout();
         } catch {}
         localStorage.clear();
@@ -147,8 +150,8 @@ export default function AdminLayout({
         />
 
         {/* Scrollable Canvas Workspace */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-7 overflow-y-auto">
-          <div className="w-full min-w-0">
+        <main className={`flex-1 overflow-y-auto ${fullWidth ? "p-0" : "p-4 sm:p-6 lg:p-7"}`}>
+          <div className="w-full min-w-0 h-full">
             {children}
           </div>
         </main>

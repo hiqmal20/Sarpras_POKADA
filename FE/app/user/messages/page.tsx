@@ -234,7 +234,7 @@ export default function UserMessagesPage() {
             // bila kosong, tentukan dari role (Admin/Petugas = lawan bicara).
             const isMe = sid
               ? Boolean(userId && sid === String(userId))
-              : !["admin", "petugas"].includes(senderRole.toLowerCase());
+              : !["admin", "administrator", "petugas", "staff"].includes(senderRole.toLowerCase());
 
             return {
               id: String(m.id),
@@ -336,7 +336,7 @@ export default function UserMessagesPage() {
       // tentukan dari role (Admin/Petugas = lawan bicara, selain itu = saya).
       const isMe = senderId
         ? Boolean(userId && senderId === String(userId))
-        : !["admin", "petugas"].includes(senderRole.toLowerCase());
+        : !["admin", "administrator", "petugas", "staff"].includes(senderRole.toLowerCase());
 
       if (incomingChatId === currentActiveId) {
         const formatted: Message = {
@@ -446,7 +446,7 @@ export default function UserMessagesPage() {
     };
 
     const handleUserTyping = (data: { chatId?: string; user?: any }) => {
-      if (data?.chatId === activeIdRef.current && data.user?.role !== "Mahasiswa" && data.user?.role !== "Dosen") {
+      if (data?.chatId === activeIdRef.current && !["mahasiswa", "dosen"].includes(String(data.user?.role || "").toLowerCase())) {
         setIsAdminTyping(true);
       }
     };
@@ -455,6 +455,11 @@ export default function UserMessagesPage() {
       if (data?.chatId === activeIdRef.current) {
         setIsAdminTyping(false);
       }
+    };
+
+    const isStaffPresence = (role?: string) => {
+      const normalized = String(role || "").trim().toLowerCase();
+      return ["admin", "administrator", "petugas", "staff"].includes(normalized);
     };
 
     const applyPresence = (adminId: string | undefined, online: boolean, lastSeen?: string | null) => {
@@ -476,17 +481,14 @@ export default function UserMessagesPage() {
       }
     };
 
-    const isStaffUser = (role?: string) => {
-      const r = String(role || "").toLowerCase();
-      return r === "admin" || r === "petugas";
-    };
-
     const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
+        // Snapshot server adalah sumber kebenaran socket aktif. Jangan buang
+        // user hanya karena format role berbeda; cocokkan ID dengan adminId
+        // percakapan agar Administrator/Admin/Petugas semuanya terbaca.
         const adminIds = users
-          .filter((u) => isStaffUser(u.role))
           .map((u) => String((u as any).userId || (u as any).id || ""))
-          .filter(Boolean);
+          .filter((id) => id && Object.values(convAdminRef.current).includes(id));
         presenceSetRef.current = new Set(adminIds);
         const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
         setConversations((prev) =>
@@ -497,23 +499,23 @@ export default function UserMessagesPage() {
     };
 
     const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
-      const uid = String((data as any)?.userId || (data as any)?.id || "");
-      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
-      if (isStaffUser(data?.role) || (activeAdmin && activeAdmin === uid)) {
-        applyPresence(uid, true);
+      const userId = String((data as any).userId || (data as any).id || "");
+      if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
+        applyPresence(userId, true);
       }
     };
 
     const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
-      const uid = String((data as any)?.userId || (data as any)?.id || "");
-      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
-      if (isStaffUser(data?.role) || (activeAdmin && activeAdmin === uid)) {
-        applyPresence(uid, false, data?.lastSeen || null);
+      const userId = String((data as any).userId || (data as any).id || "");
+      if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
+        applyPresence(userId, false, data.lastSeen || null);
       }
     };
 
     const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
-      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || []).map(String);
+      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || [])
+        .map(String)
+        .filter((id) => id && Object.values(convAdminRef.current).includes(id));
       presenceSetRef.current = new Set(ids);
       if (!Array.isArray(data) && data?.lastSeenMap) {
         const entries = Object.entries(data.lastSeenMap) as [string, string][];
@@ -536,6 +538,7 @@ export default function UserMessagesPage() {
       if (activeAdmin) {
         const isOn = ids.includes(String(activeAdmin));
         setAdminOnline(isOn);
+        // Saat offline, pastikan lastSeen terisi dari lastSeenMap
         if (!isOn && !Array.isArray(data) && (data as any)?.lastSeenMap?.[activeAdmin]) {
           setAdminLastSeen(String((data as any).lastSeenMap[activeAdmin]));
         }
@@ -543,10 +546,9 @@ export default function UserMessagesPage() {
     };
 
     const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
-      const uid = String((data as any)?.userId || (data as any)?.id || "");
-      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
-      if (isStaffUser(data?.role) || (activeAdmin && activeAdmin === uid)) {
-        applyPresence(uid, Boolean(data.online), data.last_seen || null);
+      const userId = String((data as any).userId || (data as any).id || "");
+      if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
+        applyPresence(userId, Boolean(data.online), data.last_seen || null);
       }
     };
 
@@ -589,7 +591,10 @@ export default function UserMessagesPage() {
     socket.on("user_status_change", handleUserStatusChange);
 
     const requestPresence = () => {
-      if (socket.connected) socket.emit("get_online_users");
+      if (socket.connected) {
+        socket.emit("get_online_users");
+        socket.emit("check_online_users");
+      }
     };
 
     // Minta snapshot segera saat halaman/socket aktif dan setiap reconnect.
@@ -606,7 +611,7 @@ export default function UserMessagesPage() {
 
     // Fallback ringan berbasis socket (bukan HTTP polling), untuk menangani
     // event presence yang terlewat saat koneksi sempat reconnect.
-    const presenceInterval = setInterval(requestPresence, 3000);
+    const presenceInterval = setInterval(requestPresence, 15000);
 
     return () => {
       clearInterval(presenceInterval);

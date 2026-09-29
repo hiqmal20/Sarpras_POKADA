@@ -12,10 +12,7 @@ import {
   CheckCheck,
   Pencil,
   MoreVertical,
-  ChevronDown,
   X,
-  Clock3,
-  CircleDot,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
@@ -42,7 +39,6 @@ interface Conversation {
   lastMessage: string;
   timestamp: string;
   unread: boolean;
-  isOnline?: boolean;
   lastSeen?: string | null;
 }
 
@@ -58,41 +54,14 @@ export default function MessagesPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
-  const [partnerOnline, setPartnerOnline] = useState<boolean>(false);
-  const [partnerLastSeen, setPartnerLastSeen] = useState<string | null>(null);
+  const lastPresenceAtRef = useRef(0);
   const presenceHydratedRef = useRef(false);
-
-  const checkUserOnline = (userId?: string, convIsOnline?: boolean): boolean => {
-    if (!userId) return false;
-    const uid = userId.toLowerCase();
-    if (presenceHydratedRef.current || presenceSetRef.current.size > 0) {
-      return presenceSetRef.current.has(uid);
-    }
-    return Boolean(convIsOnline);
-  };
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!openMessageMenu) return;
-    const handleClickOutside = () => setOpenMessageMenu(null);
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenMessageMenu(null);
-    };
-    window.addEventListener("click", handleClickOutside);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("click", handleClickOutside);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [openMessageMenu]);
-
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
-  const activeIdRef = useRef<string | null>(null);
-  const convUserRef = useRef<Record<string, string>>({});
-  const presenceSetRef = useRef<Set<string>>(new Set());
 
   const joiningChatRef = useRef<string | null>(null);
   const chatListRef = useRef<{ id: string; lastMessage: string; timestamp: string }[]>([]);
@@ -159,19 +128,22 @@ export default function MessagesPage() {
       if (res.status === "success" && Array.isArray(res.data)) {
         const user = currentUser || getCurrentUser();
         const initialLastSeen: Record<string, string> = {};
-        const presenceSet = presenceSetRef.current;
+        const apiOnlineIds: string[] = [];
+        const apiOfflineIds: string[] = [];
 
         const mapped: Conversation[] = (res.data as any[]).map((c) => {
           const partner = (c.user && c.user.id !== user?.id ? c.user : c.admin) || c.user || c.admin || {};
           const resolvedUserId = String(partner.id || (c.user_id !== user?.id ? c.user_id : c.admin_id) || c.user_id || "");
           const partnerLastSeen = c.partner_last_seen || partner.update_at || partner.last_seen || null;
-          const uidLower = resolvedUserId.toLowerCase();
-          if (uidLower && partnerLastSeen) {
-            initialLastSeen[uidLower] = partnerLastSeen;
+          if (resolvedUserId && partnerLastSeen) {
+            initialLastSeen[resolvedUserId] = partnerLastSeen;
           }
-          const online = presenceSet.size > 0 ? presenceSet.has(uidLower) : Boolean(c.is_partner_online);
-          if (online && uidLower) {
-            presenceSetRef.current.add(uidLower);
+          if (resolvedUserId) {
+            if (c.is_partner_online) {
+              apiOnlineIds.push(resolvedUserId);
+            } else if (c.is_partner_online === false) {
+              apiOfflineIds.push(resolvedUserId);
+            }
           }
           return {
             id: c.id,
@@ -187,7 +159,6 @@ export default function MessagesPage() {
                 })
               : "Baru saja",
             unread: c.unread_count ? c.unread_count > 0 : false,
-            isOnline: online,
             lastSeen: partnerLastSeen,
           };
         });
@@ -196,25 +167,26 @@ export default function MessagesPage() {
           setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
         }
 
-        setOnlineUserIds(new Set(presenceSetRef.current));
-        presenceHydratedRef.current = true;
+        // API hanya mengisi snapshot awal; event Socket.IO tetap menjadi sumber utama.
+        if (!presenceHydratedRef.current) {
+          setOnlineUserIds(new Set(apiOnlineIds));
+          presenceHydratedRef.current = true;
+        }
+
         setConversations(mapped);
         mapped.forEach((c) => {
-          if (c.userId) convUserRef.current[c.id] = c.userId.toLowerCase();
           joinChatRoom(c.id);
         });
 
-        // Sinkronkan status online percakapan yang sedang aktif
-        const target = mapped.find((m) => m.id === activeIdRef.current) || mapped[0];
-        if (target) {
-          const isUserOn = presenceSetRef.current.has(target.userId.toLowerCase()) || Boolean(target.isOnline);
-          setPartnerOnline(isUserOn);
-          setPartnerLastSeen(target.lastSeen || lastSeenMap[target.userId.toLowerCase()] || null);
-          if (!activeIdRef.current) {
-            handleSelectConversation(target);
-          } else {
-            setSelectedConversation((prev) => (prev ? { ...prev, ...target, isOnline: isUserOn, unread: false } : target));
-            selectedConvRef.current = target;
+        if (!keepSelection || !selectedConvRef.current) {
+          if (mapped.length > 0) {
+            handleSelectConversation(mapped[0]);
+          }
+        } else {
+          // Update selected conversation data if still exists
+          const current = mapped.find((m) => m.id === selectedConvRef.current?.id);
+          if (current) {
+            setSelectedConversation((prev) => (prev ? { ...prev, ...current, unread: false } : current));
           }
         }
       }
@@ -300,7 +272,7 @@ export default function MessagesPage() {
 
     const interval = setInterval(() => {
       fetchMsgs(false);
-    }, 3000);
+    }, 10000);
 
     const handleFocus = () => fetchMsgs(false);
     window.addEventListener("focus", handleFocus);
@@ -437,114 +409,32 @@ export default function MessagesPage() {
       }
     };
 
-    const applyPresence = (userId: string | undefined, online: boolean, lastSeen?: string | null) => {
-      if (!userId) return;
-      const id = String(userId).toLowerCase();
-      if (online) presenceSetRef.current.add(id);
-      else presenceSetRef.current.delete(id);
-
-      setConversations((prev) =>
-        prev.map((c) =>
-          String(c.userId || "").toLowerCase() === id
-            ? { ...c, isOnline: online, lastSeen: lastSeen !== undefined ? lastSeen : c.lastSeen }
-            : c
-        )
-      );
-
-      const activeUserId = activeIdRef.current ? convUserRef.current[activeIdRef.current] : "";
-      if (activeUserId && activeUserId.toLowerCase() === id) {
-        setPartnerOnline(online);
-        if (lastSeen) setPartnerLastSeen(lastSeen);
-      }
-
-      setSelectedConversation((prev) => {
-        if (!prev || String(prev.userId || "").toLowerCase() !== id) return prev;
-        return {
-          ...prev,
-          isOnline: online,
-          lastSeen: lastSeen !== undefined ? lastSeen : prev.lastSeen,
-        };
-      });
-
-      setOnlineUserIds(new Set(presenceSetRef.current));
-      if (lastSeen) {
-        setLastSeenMap((prev) => ({ ...prev, [id]: lastSeen }));
-      }
-    };
-
-    const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
-      if (Array.isArray(users)) {
-        const ids = users
-          .map((u) => String((u as any).userId || (u as any).id || "").toLowerCase())
-          .filter(Boolean);
-        presenceSetRef.current = new Set(ids);
-        setOnlineUserIds(new Set(ids));
-        setConversations((prev) =>
-          prev.map((c) => ({ ...c, isOnline: ids.includes(String(c.userId || "").toLowerCase()) }))
-        );
-        const activeUserId = activeIdRef.current ? convUserRef.current[activeIdRef.current] : "";
-        if (activeUserId) {
-          setPartnerOnline(ids.includes(activeUserId.toLowerCase()));
-        }
-        setSelectedConversation((prev) => {
-          if (!prev) return null;
-          return { ...prev, isOnline: ids.includes(String(prev.userId || "").toLowerCase()) };
-        });
-      }
-    };
-
-    const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
-      const uid = String((data as any)?.userId || (data as any)?.id || "");
-      if (uid) applyPresence(uid, true);
-    };
-
-    const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
-      const uid = String((data as any)?.userId || (data as any)?.id || "");
-      if (uid) applyPresence(uid, false, data?.lastSeen || null);
-    };
-
-    const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
-      const uid = String((data as any)?.userId || (data as any)?.id || "");
-      if (uid) applyPresence(uid, Boolean(data?.online), data?.last_seen || null);
-    };
-
     const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
-      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || []).map((id) => String(id).toLowerCase());
-      presenceSetRef.current = new Set(ids);
+      lastPresenceAtRef.current = Date.now();
+      const ids = (Array.isArray(data) ? data : data?.onlineUserIds || [])
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== "undefined" && id !== "null");
       setOnlineUserIds(new Set(ids));
-
-      const mapUpdate: Record<string, string> = {};
       if (!Array.isArray(data) && data?.lastSeenMap) {
-        Object.entries(data.lastSeenMap).forEach(([uid, seen]) => {
-          mapUpdate[String(uid).toLowerCase()] = String(seen);
-        });
-        setLastSeenMap((prev) => ({ ...prev, ...mapUpdate }));
+        setLastSeenMap((prev) => ({ ...prev, ...data.lastSeenMap }));
       }
+    };
 
-      setConversations((prev) =>
-        prev.map((c) => {
-          const uid = String(c.userId || "").toLowerCase();
-          const isUserOn = ids.includes(uid);
-          const ls = mapUpdate[uid] || c.lastSeen || null;
-          return { ...c, isOnline: isUserOn, lastSeen: ls };
-        })
-      );
-
-      const activeUserId = activeIdRef.current ? convUserRef.current[activeIdRef.current] : "";
-      if (activeUserId) {
-        const activeLower = activeUserId.toLowerCase();
-        const isOn = ids.includes(activeLower);
-        setPartnerOnline(isOn);
-        if (!isOn && mapUpdate[activeLower]) {
-          setPartnerLastSeen(mapUpdate[activeLower]);
+    const handleUserStatusChange = (data: { userId: string; online: boolean; last_seen?: string }) => {
+      const targetId = String(data?.userId || "");
+      if (!targetId) return;
+      if (data.last_seen) {
+        const seenStr = String(data.last_seen);
+        setLastSeenMap((prev) => ({ ...prev, [targetId]: seenStr }));
+      }
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        if (data.online) {
+          next.add(targetId);
+        } else {
+          next.delete(targetId);
         }
-      }
-      setSelectedConversation((prev) => {
-        if (!prev) return null;
-        const uid = String(prev.userId || "").toLowerCase();
-        const isUserOn = ids.includes(uid);
-        const ls = mapUpdate[uid] || prev.lastSeen || null;
-        return { ...prev, isOnline: isUserOn, lastSeen: ls };
+        return next;
       });
     };
 
@@ -559,6 +449,37 @@ export default function MessagesPage() {
         setIsTyping(false);
       }
     };
+
+    const handleUserOnline = (data: { userId?: string }) => {
+      if (data?.userId) {
+        setOnlineUserIds((prev) => new Set(prev).add(String(data.userId)));
+      }
+    };
+
+    const handleUserOffline = (data: { userId?: string; lastSeen?: string }) => {
+      if (data?.userId) {
+        const idStr = String(data.userId);
+        setOnlineUserIds((prev) => {
+          const next = new Set(prev);
+          next.delete(idStr);
+          return next;
+        });
+        if (data.lastSeen) {
+          setLastSeenMap((prev) => ({ ...prev, [idStr]: String(data.lastSeen) }));
+        }
+      }
+    };
+
+    const handlePresenceSnapshot = (users: { userId?: string; id?: string }[]) => {
+      if (Array.isArray(users)) {
+        // Replace (bukan merge) agar user yang sudah offline tidak nyangkut online
+        const ids = users
+          .map((u) => String(u.userId || u.id || "").trim())
+          .filter((id) => id && id !== "undefined" && id !== "null");
+        setOnlineUserIds(new Set(ids));
+      }
+    };
+
     const handleMessageUpdated = (data: any) => {
       if (!data) return;
       const msgId = String(data.id || data.messageId || "");
@@ -609,30 +530,6 @@ export default function MessagesPage() {
       });
     };
 
-    const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
-      if (!data?.message) return;
-      const realMsg = data.message;
-      setMessages((prev) =>
-        prev.map((m) =>
-          (data.tempId && m.id === data.tempId) || (m.id.startsWith("temp-") && m.text === realMsg.message)
-            ? {
-                ...m,
-                id: String(realMsg.id),
-                rawDate: realMsg.created_at || m.rawDate,
-                timestamp: realMsg.created_at
-                  ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : m.timestamp,
-                isRead: Boolean(realMsg.is_read),
-              }
-            : m
-        )
-      );
-    };
-
-    socket.on("message_sent", handleMessageSent);
     socket.on("new_message", handleNewMessage);
     socket.on("notification", handleNotification);
     socket.on("chat_updated", handleChatUpdated);
@@ -661,7 +558,7 @@ export default function MessagesPage() {
 
     // Initial check online users & fallback sync ringan.
     requestOnlineUsers();
-    const onlineInterval = setInterval(requestOnlineUsers, 3000);
+    const onlineInterval = setInterval(requestOnlineUsers, 15000);
     // Refresh daftar percakapan hanya untuk user baru; jangan gunakan hasilnya
     // untuk menimpa presence realtime yang sudah diterima dari socket.
     const chatListInterval = setInterval(() => fetchChats(true), 30000);
@@ -671,7 +568,6 @@ export default function MessagesPage() {
       clearInterval(chatListInterval);
       socket.off("connect", handleSocketReconnect);
       socket.off("disconnect", handleSocketDisconnect);
-      socket.off("message_sent", handleMessageSent);
       socket.off("new_message", handleNewMessage);
       socket.off("notification", handleNotification);
       socket.off("chat_updated", handleChatUpdated);
@@ -713,12 +609,6 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
-    selectedConvRef.current = conv;
-    activeIdRef.current = conv.id;
-    const isUserOn = checkUserOnline(conv.userId, conv.isOnline);
-    setPartnerOnline(isUserOn);
-    setPartnerLastSeen(conv.lastSeen || lastSeenMap[conv.userId.toLowerCase()] || null);
-
     setConversations((prev) =>
       prev.map((c) => (c.id === conv.id ? { ...c, unread: false } : c))
     );
@@ -876,7 +766,6 @@ export default function MessagesPage() {
         socket.emit("send_message", {
           chatId: selectedConversation.id,
           message: messageText,
-          tempId,
         });
       } else {
         await api.chats.sendMessage(selectedConversation.id, {
@@ -898,13 +787,13 @@ export default function MessagesPage() {
   );
 
   return (
-    <AdminLayout>
-      <div className="flex h-[calc(100vh-8.5rem)] bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
+    <AdminLayout fullWidth>
+      <div className="flex h-full min-h-[32rem] flex-col overflow-hidden bg-white lg:flex-row">
         {/* Sidebar Percakapan (ChatGPT Chat History Style) */}
-        <div className="w-80 border-r border-slate-200/90 flex flex-col bg-slate-50/40">
-          <div className="p-3.5 border-b border-slate-200/80 bg-white">
+        <div className="w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-80 lg:h-full lg:w-80 lg:border-b-0 lg:border-r">
+          <div className="p-4 border-b border-slate-100 bg-white">
             <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider font-mono">Percakapan Aktif</h2>
+              <h2 className="text-base font-bold text-slate-900">Pesan Pengguna</h2>
               <span className="text-[10px] font-mono text-slate-400">{filteredConversations.length} obrolan</span>
             </div>
             <div className="relative">
@@ -937,8 +826,8 @@ export default function MessagesPage() {
                 return (
                   <div
                     key={conv.id}
-                    className={`w-full px-3.5 py-3 flex items-start gap-3 hover:bg-slate-100/70 transition-all group cursor-pointer relative ${
-                      isSelected ? "bg-white shadow-2xs border-l-2 border-[#0785BC]" : ""
+                    className={`w-full text-left p-4 transition-all group flex items-start gap-3 cursor-pointer relative ${
+                      isSelected ? "bg-blue-50/50 border-l-4 border-[#0785BC]" : "hover:bg-slate-50"
                     }`}
                     onClick={() => handleSelectConversation(conv)}
                   >
@@ -955,12 +844,10 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
-                          checkUserOnline(conv.userId, conv.isOnline)
-                            ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]"
-                            : "bg-slate-300"
+                        className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
+                          onlineUserIds.has(conv.userId) ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" : "bg-slate-300"
                         }`}
-                        title={checkUserOnline(conv.userId, conv.isOnline) ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(conv.lastSeen || lastSeenMap[conv.userId.toLowerCase()] || null, false).text}`}
+                        title={onlineUserIds.has(conv.userId) ? "Online — pengguna sedang aktif" : `Offline — ${formatLastSeen(lastSeenMap[conv.userId] || conv.lastSeen || null, false).text}`}
                       />
                     </div>
 
@@ -970,13 +857,13 @@ export default function MessagesPage() {
                           <h3 className={`font-semibold text-xs truncate ${isSelected ? "text-[#0785BC]" : "text-slate-900"}`}>
                             {conv.userName}
                           </h3>
-                          {checkUserOnline(conv.userId, conv.isOnline) ? (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                          {onlineUserIds.has(conv.userId) ? (
+                            <span className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                               <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                               Online
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-medium bg-slate-100 text-slate-400 border border-slate-200 shrink-0">
+                            <span className="inline-flex items-center px-1 py-0.2 rounded text-[9px] font-medium bg-slate-100 text-slate-400 border border-slate-200 shrink-0">
                               Offline
                             </span>
                           )}
@@ -1013,77 +900,66 @@ export default function MessagesPage() {
 
         {/* Area Chat (ChatGPT Canvas Style) */}
         {selectedConversation ? (
-          <div className="flex-1 flex flex-col min-w-0 bg-white">
+          <div className="flex-1 flex flex-col h-full bg-[#f8faff] min-w-0">
             {/* Header Chat */}
             <div className="h-16 px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3">
                 <div className="relative shrink-0">
                   {selectedConversation.userFoto ? (
                     <img
                       src={selectedConversation.userFoto}
                       alt={selectedConversation.userName}
-                      className="w-10 h-10 rounded-xl object-cover border border-slate-200 shrink-0"
+                      className="w-8 h-8 rounded-lg object-cover border border-slate-200 shrink-0"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shadow-xs shadow-[#0785BC]/20">
+                    <div className="w-8 h-8 rounded-lg bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs">
                       {(selectedConversation.userName || "U").charAt(0).toUpperCase()}
                     </div>
                   )}
                   <span
-                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
-                      partnerOnline
-                        ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]"
-                        : "bg-slate-300"
+                    className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 ring-white transition-all duration-300 ${
+                      onlineUserIds.has(selectedConversation.userId) ? "bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" : "bg-slate-300"
                     }`}
-                    title={partnerOnline ? "Pengguna online" : "Pengguna offline"}
+                    title={onlineUserIds.has(selectedConversation.userId) ? "Online" : "Offline"}
                   />
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate">
-                      {selectedConversation.userName}
-                    </h3>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm">{selectedConversation.userName}</h3>
                     {(() => {
-                      const statusInfo = formatLastSeen(partnerLastSeen, partnerOnline);
-                      if (partnerOnline) {
-                        return (
-                          <span
-                            title="Pengguna sedang online — pesan akan langsung terkirim"
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm"
-                          >
-                            <span className="relative flex h-2 w-2">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
-                            </span>
-                            Online • Aktif sekarang
-                          </span>
-                        );
-                      }
-                      return (
+                      const isOnline = onlineUserIds.has(selectedConversation.userId);
+                      return isOnline ? (
                         <span
-                          title={statusInfo.text}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-50 text-slate-600 border border-slate-200 shadow-sm max-w-[18rem]"
+                          title="Pengguna sedang online — pesan akan langsung terkirim"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
                         >
-                          <Clock3 className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span className="truncate">{statusInfo.text}</span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                          Online
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                          Offline
                         </span>
                       );
                     })()}
                   </div>
-                  <p className="text-[11px] text-slate-400 truncate flex items-center gap-1 mt-0.5">
-                    {partnerOnline ? (
-                      <>
-                        <CircleDot className="w-3 h-3 text-emerald-500" />
-                        <span className="text-emerald-600 font-medium">Pengguna sedang online</span>
+                  {(() => {
+                    const isOnline = onlineUserIds.has(selectedConversation.userId);
+                    const lastSeenTime = lastSeenMap[selectedConversation.userId] || selectedConversation.lastSeen;
+                    const statusInfo = formatLastSeen(lastSeenTime, isOnline);
+                    return (
+                      <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
                         <span className="text-slate-300">•</span>
-                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
-                      </>
-                    )}
-                  </p>
+                        <span className={isOnline ? "text-emerald-600 font-semibold" : "text-slate-500"}>
+                          {isOnline ? "Sedang aktif sekarang" : statusInfo.text}
+                        </span>
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -1111,7 +987,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Pesan Stream */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-3 bg-[#fafafa]/80">
+            <div className="flex-1 p-6 overflow-y-auto space-y-4">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 text-xs py-10">
                   <MessageSquare className="w-8 h-8 mb-2 text-slate-300" />
@@ -1133,172 +1009,102 @@ export default function MessagesPage() {
                         </div>
                       )}
                       <div
-                        className={`flex items-end gap-1.5 ${
-                          msg.senderRole === "admin" ? "justify-end group/bubble" : "justify-start"
-                        }`}
+                        className={`flex ${msg.senderRole === "admin" ? "justify-end" : "justify-start"}`}
                       >
-                        {msg.senderRole === "admin" ? (
+                        <div
+                          className={`relative w-fit min-w-[120px] max-w-[min(22rem,78vw)] px-3.5 py-2.5 pt-9 rounded-xl text-xs ${
+                            msg.senderRole === "admin"
+                              ? "bg-[#0785BC] text-white rounded-br-none shadow-xs"
+                              : "bg-white text-slate-800 border border-slate-200/80 shadow-2xs rounded-bl-none"
+                          }`}
+                        >
+                          {editingMessageId === msg.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                className="min-w-44 rounded-lg px-2.5 py-1 text-xs text-slate-900 bg-white shadow-inner focus:outline-none focus:ring-2 focus:ring-white"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") handleSaveEditMessage(msg);
+                                  if (e.key === "Escape") {
+                                    setEditingMessageId(null);
+                                    setEditingText("");
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleSaveEditMessage(msg)}
+                                title="Simpan perubahan"
+                                className="p-1 hover:bg-white/20 rounded transition-colors text-white"
+                              >
+                                <CheckCheck className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingMessageId(null);
+                                  setEditingText("");
+                                }}
+                                title="Batal"
+                                className="p-1 hover:bg-white/20 rounded transition-colors text-white/80"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                          )}
+
+                          {msg.senderRole === "admin" &&
+                            editingMessageId !== msg.id &&
+                            typeof msg.id === "string" &&
+                            !msg.id.startsWith("temp-") && (
+                                                             <details className="absolute right-3 top-2 z-10">
+                                 <summary className="list-none cursor-pointer rounded-full p-1 text-sky-200/80 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
+                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
+                                   <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
+                                   <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
+                                 </div>
+                               </details>
+                            )}
+
                           <div
-                            className={`relative w-fit max-w-[min(26rem,82vw)] bg-[#0785BC] text-white rounded-2xl rounded-tr-xs shadow-xs transition-all ${
-                              editingMessageId === msg.id
-                                ? "p-3 w-full max-w-sm"
-                                : "pl-3.5 pr-7 py-2"
+                            className={`flex items-center gap-1 mt-1 font-mono text-[9px] ${
+                              msg.senderRole === "admin" ? "text-sky-100 justify-end" : "text-slate-400 justify-start"
                             }`}
                           >
-                            {editingMessageId === msg.id ? (
-                              <div className="flex flex-col gap-2 w-full">
-                                <span className="text-[11px] font-medium text-white/90">
-                                  Edit Pesan
-                                </span>
-                                <input
-                                  value={editingText}
-                                  onChange={(e) => setEditingText(e.target.value)}
-                                  className="w-full rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300"
-                                  autoFocus
-                                  onKeyDown={(e) => {
-                                    if (e.key === "Enter") handleSaveEditMessage(msg);
-                                    if (e.key === "Escape") {
-                                      setEditingMessageId(null);
-                                      setEditingText("");
+                            <span>{msg.timestamp}</span>
+                            {msg.senderRole === "admin" && (
+                              (() => {
+                                const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
+                                // Fixed: tick tidak lagi bergantung pada peerOnline agar tidak flicker 2→1 saat status online berubah
+                                const tick = msg.isRead ? "read" : isTemp ? "sent" : "delivered";
+                                return (
+                                  <span
+                                    className="transition-colors duration-200"
+                                    title={
+                                      tick === "read"
+                                        ? "Dibaca oleh pengguna ✓✓"
+                                        : tick === "delivered"
+                                          ? "Terkirim ke pengguna ✓✓"
+                                          : "Terkirim ✓"
                                     }
-                                  }}
-                                />
-                                <div className="flex items-center justify-end gap-1.5 pt-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingMessageId(null);
-                                      setEditingText("");
-                                    }}
-                                    className="px-2 py-0.5 rounded text-[11px] text-white/80 hover:bg-white/20 transition-colors"
                                   >
-                                    Batal
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleSaveEditMessage(msg)}
-                                    className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-white text-[#0785BC] hover:bg-white/90 shadow-xs transition-colors flex items-center gap-1"
-                                  >
-                                    <CheckCheck className="w-3 h-3" />
-                                    Simpan
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="flex flex-wrap items-end justify-end gap-x-2 gap-y-0.5">
-                                  <p className="text-xs sm:text-[13px] leading-relaxed whitespace-pre-wrap break-words">
-                                    {msg.text}
-                                  </p>
-                                  <div className="flex items-center gap-1 text-[10px] text-white/80 font-mono select-none shrink-0 self-end ml-auto pb-0.5">
-                                    <span>{msg.timestamp}</span>
-                                  {(() => {
-                                    const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
-                                    if (isTemp) {
-                                      return (
-                                        <span title="Mengirim...">
-                                          <Clock3 className="w-3 h-3 text-white/70 animate-pulse" />
-                                        </span>
-                                      );
-                                    }
-                                    if (msg.isRead) {
-                                      return (
-                                        <span title="Dibaca oleh pengguna ✓✓">
-                                          <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
-                                        </span>
-                                      );
-                                    }
-                                    if (partnerOnline) {
-                                      return (
-                                        <span title="Terkirim ke pengguna ✓✓">
-                                          <CheckCheck className="w-3.5 h-3.5 text-white/80 stroke-[2]" />
-                                        </span>
-                                      );
-                                    }
-                                    return (
-                                      <span title="Terkirim ke server ✓">
-                                        <Check className="w-3.5 h-3.5 text-white/60 stroke-[2]" />
-                                      </span>
-                                    );
-                                  })()}
-                                  </div>
-                                </div>
-
-                                {typeof msg.id === "string" && !msg.id.startsWith("temp-") && (
-                                  <div className="absolute right-1 top-1 z-20">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setOpenMessageMenu(openMessageMenu === msg.id ? null : msg.id);
-                                      }}
-                                      className={`p-1 rounded-full text-white/70 hover:text-white hover:bg-white/20 transition-all ${
-                                        openMessageMenu === msg.id
-                                          ? "opacity-100 bg-white/20 text-white"
-                                          : "opacity-0 group-hover/bubble:opacity-100 focus:opacity-100 max-sm:opacity-60"
-                                      }`}
-                                      title="Opsi pesan"
-                                      aria-label="Menu pesan"
-                                    >
-                                      <ChevronDown className="w-3.5 h-3.5" />
-                                    </button>
-
-                                    {openMessageMenu === msg.id && (
-                                      <div
-                                        onClick={(e) => e.stopPropagation()}
-                                        className={`absolute right-0 z-30 min-w-[136px] rounded-xl bg-white/95 backdrop-blur-sm p-1.5 text-slate-700 shadow-xl border border-slate-200/90 animate-in fade-in zoom-in-95 duration-100 ${
-                                          index >= messages.length - 2
-                                            ? "bottom-full mb-1.5"
-                                            : "top-full mt-1.5"
-                                        }`}
-                                      >
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenMessageMenu(null);
-                                            setEditingMessageId(msg.id);
-                                            setEditingText(msg.text);
-                                          }}
-                                          className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
-                                        >
-                                          <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover/item:bg-[#0785BC]/15 group-hover/item:text-[#0785BC] transition-colors">
-                                            <Pencil className="h-3 w-3" />
-                                          </div>
-                                          <span>Edit</span>
-                                        </button>
-                                        <div className="h-px bg-slate-100 my-1" />
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setOpenMessageMenu(null);
-                                            handleDeleteSingleMessage(msg.id);
-                                          }}
-                                          className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50/80 rounded-lg transition-colors group/item"
-                                        >
-                                          <div className="w-5 h-5 rounded-md bg-rose-50 text-rose-500 flex items-center justify-center group-hover/item:bg-rose-100 group-hover/item:text-rose-600 transition-colors">
-                                            <Trash2 className="h-3 w-3" />
-                                          </div>
-                                          <span>Hapus</span>
-                                        </button>
-                                      </div>
+                                    {tick === "read" ? (
+                                      <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
+                                    ) : tick === "delivered" ? (
+                                      <CheckCheck className="w-3.5 h-3.5 text-sky-100/90 stroke-[2]" />
+                                    ) : (
+                                      <Check className="w-3.5 h-3.5 text-sky-100/70 stroke-[2]" />
                                     )}
-                                  </div>
-                                )}
-                              </>
+                                  </span>
+                                );
+                              })()
                             )}
                           </div>
-                        ) : (
-                          <div className="relative w-fit max-w-[min(26rem,82vw)] bg-white text-slate-800 border border-slate-200/80 shadow-xs rounded-2xl rounded-tl-xs px-3.5 py-2">
-                            <div className="flex flex-wrap items-end justify-end gap-x-2.5 gap-y-0.5">
-                              <p className="text-xs sm:text-[13px] leading-relaxed whitespace-pre-wrap break-words">
-                                {msg.text}
-                              </p>
-                              <span className="text-[10px] text-slate-400 font-mono select-none shrink-0 self-end ml-auto pb-0.5">
-                                {msg.timestamp}
-                              </span>
-                            </div>
-                          </div>
-                        )}
+                        </div>
                       </div>
                     </React.Fragment>
                   );
@@ -1317,7 +1123,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Input Box (ChatGPT Prompt Input Aesthetic) */}
-            <div className="p-3 border-t border-slate-200/80 bg-white">
+            <div className="p-3 border-t border-slate-100 bg-white">
               <div className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-50/80 border border-slate-200 rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-[#0785BC]/20 focus-within:border-[#0785BC] transition-all">
                 <input
                   type="text"

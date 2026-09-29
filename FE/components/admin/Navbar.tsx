@@ -21,6 +21,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import api, { getCurrentUser, removeAuthToken } from "@/lib/api";
+import { disconnectSocket } from "@/lib/socket";
 import { getNotificationTargetUrl, getNotificationActionLabel } from "@/lib/notificationHelper";
 import { useLanguage } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -203,6 +204,8 @@ export default function Navbar({
 
   const handleLogout = () => {
     if (confirm(t("admin.nav.logout_confirm", "Apakah Anda yakin ingin logout?"))) {
+      // Putuskan socket lebih dulu agar server langsung mengirim status offline.
+      disconnectSocket();
       removeAuthToken();
       router.push("/auth/login");
     }
