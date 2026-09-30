@@ -13,6 +13,7 @@ import {
   Pencil,
   MoreVertical,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
@@ -787,10 +788,10 @@ export default function MessagesPage() {
   );
 
   return (
-    <AdminLayout fullWidth>
+    <AdminLayout fullWidth hideMobileTabs={Boolean(selectedConversation)}>
       <div className="flex h-full min-h-[32rem] flex-col overflow-hidden bg-white lg:flex-row">
         {/* Sidebar Percakapan (ChatGPT Chat History Style) */}
-        <div className="w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-80 lg:h-full lg:w-80 lg:border-b-0 lg:border-r">
+        <div className={`w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-full lg:w-80 lg:border-b-0 lg:border-r ${selectedConversation ? "hidden lg:flex" : "flex"}`}>
           <div className="p-4 border-b border-slate-100 bg-white">
             <div className="flex items-center justify-between mb-2.5">
               <h2 className="text-base font-bold text-slate-900">Pesan Pengguna</h2>
@@ -902,8 +903,16 @@ export default function MessagesPage() {
         {selectedConversation ? (
           <div className="flex-1 flex flex-col h-full bg-[#f8faff] min-w-0">
             {/* Header Chat */}
-            <div className="h-16 px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-3">
+            <div className="h-16 px-3 sm:px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0 gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectedConversation(null)}
+                  className="lg:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors shrink-0 cursor-pointer"
+                  title="Kembali ke daftar pesan"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
                 <div className="relative shrink-0">
                   {selectedConversation.userFoto ? (
                     <img
@@ -923,22 +932,22 @@ export default function MessagesPage() {
                     title={onlineUserIds.has(selectedConversation.userId) ? "Online" : "Offline"}
                   />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm">{selectedConversation.userName}</h3>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <h3 className="font-bold text-slate-900 text-xs sm:text-sm truncate">{selectedConversation.userName}</h3>
                     {(() => {
                       const isOnline = onlineUserIds.has(selectedConversation.userId);
                       return isOnline ? (
                         <span
-                          title="Pengguna sedang online — pesan akan langsung terkirim"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
+                          title="Pengguna sedang online"
+                          className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.8)]" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                           Online
                         </span>
                       ) : (
                         <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200"
+                          className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200 shrink-0"
                         >
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
                           Offline
@@ -951,11 +960,11 @@ export default function MessagesPage() {
                     const lastSeenTime = lastSeenMap[selectedConversation.userId] || selectedConversation.lastSeen;
                     const statusInfo = formatLastSeen(lastSeenTime, isOnline);
                     return (
-                      <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <p className="text-[10px] sm:text-[11px] text-slate-500 truncate mt-0.5">
                         <span className="text-slate-400 font-mono text-[10px]">{selectedConversation.userEmail}</span>
-                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-300 mx-1">•</span>
                         <span className={isOnline ? "text-emerald-600 font-semibold" : "text-slate-500"}>
-                          {isOnline ? "Sedang aktif sekarang" : statusInfo.text}
+                          {isOnline ? "Aktif sekarang" : statusInfo.text}
                         </span>
                       </p>
                     );
@@ -964,30 +973,30 @@ export default function MessagesPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
                   onClick={handleClearHistory}
                   title="Bersihkan riwayat pesan"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-all active:scale-95"
+                  className="inline-flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-all active:scale-95 cursor-pointer"
                 >
-                  <RotateCcw className="w-3 h-3 text-slate-500" />
-                  Bersihkan
+                  <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+                  <span className="hidden sm:inline">Bersihkan</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleDeleteConversation(selectedConversation.id)}
                   title="Hapus seluruh sesi"
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-rose-600 bg-white hover:bg-rose-50 rounded-lg border border-rose-200 transition-all active:scale-95"
+                  className="inline-flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1 text-xs font-medium text-rose-600 bg-white hover:bg-rose-50 rounded-lg border border-rose-200 transition-all active:scale-95 cursor-pointer"
                 >
-                  <Trash2 className="w-3 h-3 text-rose-500" />
-                  Hapus
+                  <Trash2 className="w-3.5 h-3.5 text-rose-500" />
+                  <span className="hidden sm:inline">Hapus</span>
                 </button>
               </div>
             </div>
 
             {/* Pesan Stream */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4">
+            <div className="flex-1 p-3 sm:p-5 overflow-y-auto space-y-3">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 text-xs py-10">
                   <MessageSquare className="w-8 h-8 mb-2 text-slate-300" />
@@ -1002,7 +1011,7 @@ export default function MessagesPage() {
                   return (
                     <React.Fragment key={msg.id || index}>
                       {showDateBadge && (
-                        <div className="flex justify-center my-2 sticky top-1 z-10 select-none">
+                        <div className="w-full flex justify-center my-2 sticky top-1 z-10 select-none">
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-500 bg-white shadow-2xs border border-slate-200/80">
                             {formatChatDateBadge(msg.rawDate)}
                           </span>
@@ -1012,10 +1021,10 @@ export default function MessagesPage() {
                         className={`flex ${msg.senderRole === "admin" ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`relative w-fit min-w-[120px] max-w-[min(22rem,78vw)] px-3.5 py-2.5 pt-9 rounded-xl text-xs ${
+                          className={`relative w-fit min-w-[70px] max-w-[min(26rem,82vw)] text-xs transition-all ${
                             msg.senderRole === "admin"
-                              ? "bg-[#0785BC] text-white rounded-br-none shadow-xs"
-                              : "bg-white text-slate-800 border border-slate-200/80 shadow-2xs rounded-bl-none"
+                              ? "bg-[#0785BC] text-white rounded-2xl rounded-tr-xs shadow-xs pl-3.5 pr-7 py-2"
+                              : "bg-white text-slate-800 border border-slate-200/90 shadow-2xs rounded-2xl rounded-tl-xs px-3.5 py-2"
                           }`}
                         >
                           {editingMessageId === msg.id ? (
@@ -1061,18 +1070,20 @@ export default function MessagesPage() {
                             editingMessageId !== msg.id &&
                             typeof msg.id === "string" &&
                             !msg.id.startsWith("temp-") && (
-                                                             <details className="absolute right-3 top-2 z-10">
-                                 <summary className="list-none cursor-pointer rounded-full p-1 text-sky-200/80 hover:bg-white/15 hover:text-white"><MoreVertical className="h-3.5 w-3.5" /></summary>
-                                 <div className="absolute right-0 bottom-7 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-lg">
-                                   <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-2 hover:bg-slate-50"><Pencil className="h-3.5 w-3.5" /> Edit</button>
-                                   <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-2 text-rose-600 hover:bg-rose-50"><Trash2 className="h-3.5 w-3.5" /> Hapus</button>
-                                 </div>
-                               </details>
+                              <details className="absolute right-1.5 top-1.5 z-10">
+                                <summary className="list-none cursor-pointer rounded-full p-0.5 text-sky-200/80 hover:bg-white/15 hover:text-white transition-colors">
+                                  <MoreVertical className="h-3 w-3" />
+                                </summary>
+                                <div className="absolute right-0 bottom-full mb-1 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-xl border border-slate-200 animate-scale-in">
+                                  <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-slate-50 transition-colors"><Pencil className="h-3.5 w-3.5 text-slate-500" /> Edit</button>
+                                  <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-1.5 text-rose-600 hover:bg-rose-50 transition-colors"><Trash2 className="h-3.5 w-3.5 text-rose-500" /> Hapus</button>
+                                </div>
+                              </details>
                             )}
 
                           <div
-                            className={`flex items-center gap-1 mt-1 font-mono text-[9px] ${
-                              msg.senderRole === "admin" ? "text-sky-100 justify-end" : "text-slate-400 justify-start"
+                            className={`flex items-center gap-1 mt-1 font-mono text-[9px] justify-end ${
+                              msg.senderRole === "admin" ? "text-sky-100" : "text-slate-400"
                             }`}
                           >
                             <span>{msg.timestamp}</span>
@@ -1123,7 +1134,7 @@ export default function MessagesPage() {
             </div>
 
             {/* Input Box (ChatGPT Prompt Input Aesthetic) */}
-            <div className="p-3 border-t border-slate-100 bg-white">
+            <div className="p-2.5 sm:p-3 border-t border-slate-100 bg-white">
               <div className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-50/80 border border-slate-200 rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-[#0785BC]/20 focus-within:border-[#0785BC] transition-all">
                 <input
                   type="text"
@@ -1135,8 +1146,8 @@ export default function MessagesPage() {
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Ketik pesan balasan... (Tekan Enter untuk kirim)"
-                  className="flex-1 px-3 py-1.5 text-xs bg-transparent border-none focus:outline-none text-slate-800 placeholder-slate-400"
+                  placeholder="Ketik pesan balasan..."
+                  className="flex-1 px-3 py-1.5 text-xs bg-transparent border-none focus:outline-none text-slate-800 placeholder-slate-400 min-w-0"
                 />
                 <button
                   onClick={handleSendMessage}
@@ -1150,7 +1161,7 @@ export default function MessagesPage() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-400 text-xs bg-[#fafafa]">
+          <div className="hidden lg:flex flex-1 items-center justify-center text-slate-400 text-xs bg-[#fafafa]">
             <div className="text-center">
               <MessageSquare className="w-9 h-9 mx-auto mb-2 text-slate-300" />
               <p className="font-semibold text-slate-700">Pusat Layanan & Chat Pengguna</p>

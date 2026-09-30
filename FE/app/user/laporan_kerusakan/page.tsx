@@ -237,7 +237,7 @@ export default function UserDamageReportsPage() {
               onSubmit={submit}
               className="bg-[var(--card)] rounded-3xl border border-slate-100 shadow-sm overflow-hidden lg:sticky lg:top-6"
             >
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <div className="px-4 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center shrink-0">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
@@ -247,7 +247,7 @@ export default function UserDamageReportsPage() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
+              <div className="p-4 sm:p-6 space-y-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
                     {tr("damage.related_borrowing", "Peminjaman Terkait")}

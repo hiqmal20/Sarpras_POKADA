@@ -242,11 +242,11 @@ export default function ProfilePage() {
           <div className="h-28 bg-gradient-to-r from-[#0785BC] to-[#0B3B60]"></div>
           
           {/* Profile Content */}
-          <div className="px-8 pb-8">
+          <div className="px-4 sm:px-8 pb-6 sm:pb-8">
             {/* Avatar */}
-            <div className="flex items-end justify-between -mt-16 mb-6">
-              <div className="relative group">
-                <div className="w-32 h-32 rounded-full bg-white p-2 shadow-lg overflow-hidden flex items-center justify-center">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between -mt-12 sm:-mt-16 mb-6 gap-3">
+              <div className="relative group self-start">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-white p-1.5 sm:p-2 shadow-lg overflow-hidden flex items-center justify-center">
                   {photoUrl ? (
                     <img
                       src={photoUrl}
@@ -254,14 +254,14 @@ export default function ProfilePage() {
                       className="w-full h-full rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full rounded-full bg-[#0785BC] flex items-center justify-center text-white text-4xl font-bold">
+                    <div className="w-full h-full rounded-full bg-[#0785BC] flex items-center justify-center text-white text-2xl sm:text-4xl font-bold">
                       {fullName.charAt(0) || "A"}
                     </div>
                   )}
                 </div>
 
-                <label className="absolute bottom-1 right-1 w-9 h-9 rounded-full bg-[#0785BC] text-white flex items-center justify-center shadow-lg hover:bg-[#0672a0] transition-colors cursor-pointer active:scale-95">
-                  <Camera className="w-4 h-4" />
+                <label className="absolute bottom-0 right-0 sm:bottom-1 sm:right-1 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#0785BC] text-white flex items-center justify-center shadow-lg hover:bg-[#0672a0] transition-colors cursor-pointer active:scale-95">
+                  <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   <input
                     type="file"
                     accept="image/*"
@@ -272,7 +272,7 @@ export default function ProfilePage() {
                 </label>
               </div>
               
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-2 sm:mb-4">
                 <div className="px-3 py-1.5 bg-blue-50 text-blue-700 text-xs font-semibold rounded-full flex items-center gap-2 border border-blue-100">
                   <Shield className="w-3.5 h-3.5" />
                   {currentUser?.role === "Admin" ? t("admin_profile.role_admin", "Administrator") : t("admin_profile.role_staff", "Petugas Sarpras")}
