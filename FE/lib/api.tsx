@@ -156,11 +156,13 @@ export const api = {
         body: JSON.stringify(payload),
       }),
 
-    login: (payload: { email: string; nomor_induk: string; password: string }) =>
-      apiFetch<{ user: any; token: string }>("/auth/login", {
+    login: (payload: { email: string; nomor_induk: string; password: string }) => {
+      removeAuthToken();
+      return apiFetch<{ user: any; token: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify(payload),
-      }),
+      });
+    },
 
     getProfile: () => apiFetch<{ user: any }>("/auth/me", { method: "GET" }),
 

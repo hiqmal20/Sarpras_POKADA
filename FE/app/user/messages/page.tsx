@@ -53,6 +53,8 @@ export default function UserMessagesPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const currentUserRef = useRef<any>(null);
+  currentUserRef.current = currentUser;
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -72,6 +74,31 @@ export default function UserMessagesPage() {
   activeIdRef.current = activeId;
   const convAdminRef = useRef<Record<string, string>>({});
   const presenceSetRef = useRef<Set<string>>(new Set());
+
+  const [onlineStaffIds, setOnlineStaffIds] = useState<Set<string>>(new Set());
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [lastSeenMap, setLastSeenMap] = useState<Record<string, string>>({});
+
+  const isStaffRole = (role?: string) => {
+    const normalized = String(role || "").trim().toLowerCase();
+    return ["admin", "administrator", "petugas", "staff"].includes(normalized);
+  };
+
+  const getConvStatus = useCallback(
+    (conv: Conversation) => {
+      const adminId = conv.adminId || convAdminRef.current[conv.id];
+      if (adminId) {
+        const isOnline = onlineStaffIds.has(adminId) || onlineUserIds.has(adminId);
+        const lastSeen = lastSeenMap[adminId] || conv.lastSeen || null;
+        return { isOnline, lastSeen };
+      }
+      const isOnline = onlineStaffIds.size > 0;
+      const staffLastSeens = Object.values(lastSeenMap);
+      const lastSeen = isOnline ? null : (staffLastSeens[0] || conv.lastSeen || null);
+      return { isOnline, lastSeen };
+    },
+    [onlineStaffIds, onlineUserIds, lastSeenMap]
+  );
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, setPresenceTick] = useState(0);
@@ -137,12 +164,22 @@ export default function UserMessagesPage() {
       const res = await api.chats.getAll();
       if (res.status === "success" && Array.isArray(res.data) && res.data.length > 0) {
         const presenceSet = presenceSetRef.current;
+        const initialStaffOnline: string[] = [];
+        const initialLastSeen: Record<string, string> = {};
+
         const mapped: Conversation[] = (res.data as any[]).map((c) => {
           const partner = c.admin || {};
           const adminId = String(partner.id || (c as any).admin_id || "");
-          if (adminId) convAdminRef.current[String(c.id)] = adminId;
+          if (adminId) {
+            convAdminRef.current[String(c.id)] = adminId;
+            if (c.is_partner_online) initialStaffOnline.push(adminId);
+            if (c.partner_last_seen) initialLastSeen[adminId] = c.partner_last_seen;
+          } else {
+            if (c.is_partner_online) initialStaffOnline.push("__general_staff__");
+            if (c.partner_last_seen) initialLastSeen["__general_staff__"] = c.partner_last_seen;
+          }
           const online = presenceSet.size > 0
-            ? (adminId ? presenceSet.has(adminId) : presenceSet.size > 0)
+            ? (adminId ? presenceSet.has(adminId) : (presenceSet.size > 0 || initialStaffOnline.length > 0))
             : Boolean(c.is_partner_online);
           return {
             id: c.id,
@@ -161,12 +198,21 @@ export default function UserMessagesPage() {
           };
         });
 
+        if (initialStaffOnline.length > 0) {
+          setOnlineStaffIds((prev) => new Set([...prev, ...initialStaffOnline]));
+        }
+        if (Object.keys(initialLastSeen).length > 0) {
+          setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
+        }
+
         // Sinkron banner chat aktif ke admin lawan bicara
         const target = mapped.find((m) => m.id === activeIdRef.current) || mapped[0];
-        setAdminOnline(Boolean(target?.isOnline));
-        setAdminLastSeen(target?.lastSeen || null);
-        if (!activeIdRef.current) {
-          setActiveId(target.id);
+        if (target) {
+          setAdminOnline(Boolean(target.isOnline));
+          setAdminLastSeen(target.lastSeen || null);
+          if (!activeIdRef.current) {
+            setActiveId(target.id);
+          }
         }
 
         // Terapkan kembali status realtime yang mungkin diterima sebelum API selesai.
@@ -241,15 +287,23 @@ export default function UserMessagesPage() {
     return () => window.clearInterval(presenceSync);
   }, [loadConversations]);
 
-  // Sinkron banner Online/LastSeen mengikuti percakapan yang sedang dibuka
+  // Sinkron banner Online/LastSeen mengikuti percakapan yang sedang dibuka & presence realtime
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId) {
+      setAdminOnline(onlineStaffIds.size > 0);
+      setAdminLastSeen(Object.values(lastSeenMap)[0] || null);
+      return;
+    }
     const conv = conversations.find((c) => c.id === activeId);
     if (conv) {
-      setAdminOnline(Boolean(conv.isOnline));
-      if (conv.lastSeen !== undefined) setAdminLastSeen(conv.lastSeen);
+      const status = getConvStatus(conv);
+      setAdminOnline(status.isOnline);
+      setAdminLastSeen(status.lastSeen);
+    } else {
+      setAdminOnline(onlineStaffIds.size > 0);
+      setAdminLastSeen(Object.values(lastSeenMap)[0] || null);
     }
-  }, [activeId, conversations]);
+  }, [activeId, conversations, getConvStatus, onlineStaffIds, lastSeenMap]);
 
   // Load messages from database for the active chat
   const fetchMessages = useCallback(
@@ -364,7 +418,7 @@ export default function UserMessagesPage() {
       if (!msg) return;
       const incomingChatId = String(msg.chat_id || msg.chatId || "");
       const currentActiveId = String(activeIdRef.current || "");
-      const user = currentUser || getCurrentUser();
+      const user = currentUserRef.current || getCurrentUser();
       const userId = user?.id;
       const sender = msg.sender || {};
       const senderRole = String(sender.role || "");
@@ -416,11 +470,20 @@ export default function UserMessagesPage() {
         playNotificationSound();
       }
 
+      if (!isMe && senderId && incomingChatId) {
+        convAdminRef.current[incomingChatId] = senderId;
+        if (isStaffRole(senderRole)) {
+          setOnlineStaffIds((prev) => new Set(prev).add(senderId));
+        }
+      }
+
       setConversations((prev) =>
         prev.map((c) =>
           String(c.id) === incomingChatId
             ? {
                 ...c,
+                adminId: !isMe && senderId ? senderId : c.adminId,
+                title: !isMe && sender.name ? sender.name : c.title,
                 preview: msg.message || c.preview,
                 time: "Baru saja",
                 unread: incomingChatId !== currentActiveId && !isMe,
@@ -433,7 +496,7 @@ export default function UserMessagesPage() {
     const handleMessagesRead = (data: { chatId: string; readBy?: string }) => {
       // Abaikan echo dari diri sendiri (pengaman lapis kedua setelah BE memakai
       // socket.to / except): event ini hanya valid bila readBy = lawan bicara.
-      const me = String(currentUser?.id || getCurrentUser()?.id || "");
+      const me = String(currentUserRef.current?.id || getCurrentUser()?.id || "");
       if (data.readBy && me && String(data.readBy) === me) return;
       if (data.chatId === activeIdRef.current) {
         // Semua pesan milik user ditandai isRead: true (centang 2 biru/cyan)
@@ -494,119 +557,161 @@ export default function UserMessagesPage() {
       }
     };
 
-    const isStaffPresence = (role?: string) => {
-      const normalized = String(role || "").trim().toLowerCase();
-      return ["admin", "administrator", "petugas", "staff"].includes(normalized);
-    };
-
-    const applyPresence = (adminId: string | undefined, online: boolean, lastSeen?: string | null, role?: string) => {
-      if (!adminId && !isStaffPresence(role)) return;
-      const id = String(adminId || "");
-      if (id) {
-        if (online) presenceSetRef.current.add(id);
-        else presenceSetRef.current.delete(id);
-      }
-      setConversations((prev) =>
-        prev.map((c) =>
-          (id && String(c.adminId || "") === id) || (!c.adminId && isStaffPresence(role))
-            ? { ...c, isOnline: online, lastSeen: lastSeen ?? c.lastSeen ?? null }
-            : c
-        )
-      );
-      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
-      if ((id && activeAdmin === id) || !activeAdmin) {
-        setAdminOnline(online);
-        if (lastSeen) setAdminLastSeen(lastSeen);
-      }
-    };
-
     const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
-        // Snapshot server adalah sumber kebenaran socket aktif.
-        const adminIds = users
-          .map((u) => String((u as any).userId || (u as any).id || ""))
-          .filter(Boolean);
-        presenceSetRef.current = new Set(adminIds);
-        const hasStaffOnline = users.some((u) => isStaffPresence(u.role));
-        const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+        const allIds: string[] = [];
+        const staffIds: string[] = [];
+        users.forEach((u) => {
+          const uid = String((u as any).userId || (u as any).id || "").trim();
+          if (uid) {
+            allIds.push(uid);
+            if (isStaffRole(u.role) || Object.values(convAdminRef.current).includes(uid)) {
+              staffIds.push(uid);
+            }
+          }
+        });
+        setOnlineUserIds(new Set(allIds));
+        setOnlineStaffIds(new Set(staffIds));
+        presenceSetRef.current = new Set(allIds);
+
         setConversations((prev) =>
-          prev.map((c) => ({
-            ...c,
-            isOnline: c.adminId ? adminIds.includes(String(c.adminId)) : hasStaffOnline,
-          }))
+          prev.map((c) => {
+            const adminId = c.adminId || convAdminRef.current[c.id];
+            const isOnline = adminId ? staffIds.includes(adminId) : staffIds.length > 0;
+            return { ...c, isOnline };
+          })
         );
-        if (activeAdmin) {
-          setAdminOnline(adminIds.includes(String(activeAdmin)) || hasStaffOnline);
-        } else {
-          setAdminOnline(hasStaffOnline);
-        }
       }
     };
 
     const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
-      const userId = String((data as any).userId || (data as any).id || "");
+      const userId = String((data as any).userId || (data as any).id || "").trim();
       if (!userId) return;
-      // Simpan event walaupun daftar percakapan belum selesai dimuat. Event
-      // login admin dapat datang lebih dulu daripada API getAll selesai.
+      setOnlineUserIds((prev) => new Set(prev).add(userId));
       presenceSetRef.current.add(userId);
-      if (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId)) {
-        applyPresence(userId, true, null, data?.role);
+      if (isStaffRole(data?.role) || Object.values(convAdminRef.current).includes(userId)) {
+        setOnlineStaffIds((prev) => new Set(prev).add(userId));
       }
+      setConversations((prev) =>
+        prev.map((c) => {
+          const adminId = c.adminId || convAdminRef.current[c.id];
+          if (adminId === userId || (!adminId && isStaffRole(data?.role))) {
+            return { ...c, isOnline: true };
+          }
+          return c;
+        })
+      );
     };
 
     const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
-      const userId = String((data as any).userId || (data as any).id || "");
+      const userId = String((data as any).userId || (data as any).id || "").trim();
       if (!userId) return;
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
       presenceSetRef.current.delete(userId);
-      if (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId)) {
-        applyPresence(userId, false, data.lastSeen || null, data?.role);
+      const isStaff = isStaffRole(data?.role) || Object.values(convAdminRef.current).includes(userId);
+      if (isStaff) {
+        setOnlineStaffIds((prev) => {
+          const next = new Set(prev);
+          next.delete(userId);
+          next.delete("__general_staff__");
+          return next;
+        });
       }
+      if (data.lastSeen) {
+        setLastSeenMap((prev) => ({ ...prev, [userId]: String(data.lastSeen) }));
+      }
+      setConversations((prev) =>
+        prev.map((c) => {
+          const adminId = c.adminId || convAdminRef.current[c.id];
+          if (adminId === userId) {
+            return { ...c, isOnline: false, lastSeen: data.lastSeen || c.lastSeen };
+          }
+          return c;
+        })
+      );
     };
 
-    const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
-      // Simpan seluruh ID dari snapshot. Jangan filter berdasarkan daftar chat
-      // yang mungkin belum selesai dimuat; jika difilter terlalu awal, status
-      // online admin akan hilang dan baru muncul setelah refresh halaman.
+    const handleOnlineUsersList = (data: { onlineUserIds?: string[]; onlineStaffIds?: string[]; onlineProfiles?: any[]; lastSeenMap?: Record<string, string> } | string[]) => {
       const ids = (Array.isArray(data) ? data : data?.onlineUserIds || [])
-        .map(String)
-        .filter(Boolean);
+        .map((id) => String(id || "").trim())
+        .filter((id) => id && id !== "undefined" && id !== "null");
+      setOnlineUserIds(new Set(ids));
       presenceSetRef.current = new Set(ids);
-      if (!Array.isArray(data) && data?.lastSeenMap) {
-        const entries = Object.entries(data.lastSeenMap) as [string, string][];
-        if (entries.length > 0) {
-          const mapUpdate: Record<string, string> = {};
-          entries.forEach(([uid, seen]) => { mapUpdate[String(uid)] = String(seen); });
-          setConversations((prev) =>
-            prev.map((c) =>
-              mapUpdate[String(c.adminId || "")] ? { ...c, lastSeen: mapUpdate[String(c.adminId || "")] } : c
-            )
-          );
-          const activeAdminLs = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
-          if (activeAdminLs && mapUpdate[activeAdminLs]) setAdminLastSeen(mapUpdate[activeAdminLs]);
+
+      let detectedStaffIds: string[] = [];
+      if (!Array.isArray(data)) {
+        if (data?.onlineStaffIds && Array.isArray(data.onlineStaffIds)) {
+          detectedStaffIds = data.onlineStaffIds.map(String);
+          setOnlineStaffIds(new Set(detectedStaffIds));
+        } else if (data?.onlineProfiles && Array.isArray(data.onlineProfiles)) {
+          detectedStaffIds = data.onlineProfiles
+            .filter((p: any) => isStaffRole(p.role) || Object.values(convAdminRef.current).includes(String(p.userId || p.id)))
+            .map((p: any) => String(p.userId || p.id));
+          setOnlineStaffIds(new Set(detectedStaffIds));
+        }
+        if (data?.lastSeenMap) {
+          setLastSeenMap((prev) => ({ ...prev, ...data.lastSeenMap }));
         }
       }
-      const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+
       setConversations((prev) =>
-        prev.map((c) => ({
-          ...c,
-          isOnline: c.adminId ? ids.includes(String(c.adminId)) : false,
-        }))
+        prev.map((c) => {
+          const adminId = c.adminId || convAdminRef.current[c.id];
+          const isOnline = adminId
+            ? ids.includes(adminId)
+            : detectedStaffIds.length > 0;
+          return { ...c, isOnline };
+        })
       );
-      if (activeAdmin) {
-        const isOn = ids.includes(String(activeAdmin));
-        setAdminOnline(isOn);
-        // Saat offline, pastikan lastSeen terisi dari lastSeenMap
-        if (!isOn && !Array.isArray(data) && (data as any)?.lastSeenMap?.[activeAdmin]) {
-          setAdminLastSeen(String((data as any).lastSeenMap[activeAdmin]));
-        }
-      }
     };
 
     const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
-      const userId = String((data as any).userId || (data as any).id || "");
-      if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
-        applyPresence(userId, Boolean(data.online), data.last_seen || null, data?.role);
+      const userId = String((data as any).userId || (data as any).id || "").trim();
+      if (!userId) return;
+
+      const isStaff = isStaffRole(data.role) || Object.values(convAdminRef.current).includes(userId);
+
+      if (data.last_seen) {
+        setLastSeenMap((prev) => ({ ...prev, [userId]: String(data.last_seen) }));
       }
+
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        if (data.online) next.add(userId);
+        else next.delete(userId);
+        return next;
+      });
+
+      if (isStaff) {
+        setOnlineStaffIds((prev) => {
+          const next = new Set(prev);
+          if (data.online) {
+            next.add(userId);
+          } else {
+            next.delete(userId);
+            next.delete("__general_staff__");
+          }
+          return next;
+        });
+      }
+
+      setConversations((prev) =>
+        prev.map((c) => {
+          const adminId = c.adminId || convAdminRef.current[c.id];
+          if (adminId === userId) {
+            return {
+              ...c,
+              isOnline: Boolean(data.online),
+              lastSeen: data.last_seen || c.lastSeen,
+            };
+          }
+          return c;
+        })
+      );
     };
 
     const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
@@ -648,9 +753,10 @@ export default function UserMessagesPage() {
     socket.on("user_status_change", handleUserStatusChange);
 
     const requestPresence = () => {
-      if (socket.connected) {
-        socket.emit("get_online_users");
-        socket.emit("check_online_users");
+      const s = getSocket();
+      if (s && s.connected) {
+        s.emit("get_online_users");
+        s.emit("check_online_users");
       }
     };
 
@@ -666,15 +772,20 @@ export default function UserMessagesPage() {
     socket.on("disconnect", handleSocketDisconnect);
     window.addEventListener("socket-connected", handleSocketReconnect);
 
-    // Pastikan listener selalu memakai koneksi aktif setelah login ulang.
-    // Socket.IO dapat membuat koneksi baru ketika token berubah.
     if (socket.connected) requestPresence();
+    // Backup retries untuk memastikan snapshot diminta jika socket baru terhubung beberapa saat setelah mount
+    const t1 = setTimeout(requestPresence, 400);
+    const t2 = setTimeout(requestPresence, 1200);
+    const t3 = setTimeout(requestPresence, 3000);
 
     // Fallback ringan berbasis socket (bukan HTTP polling), untuk menangani
     // event presence yang terlewat saat koneksi sempat reconnect.
     const presenceInterval = setInterval(requestPresence, 15000);
 
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
       clearInterval(presenceInterval);
       socket.off("connect", handleSocketReconnect);
       socket.off("disconnect", handleSocketDisconnect);
@@ -694,7 +805,7 @@ export default function UserMessagesPage() {
       socket.off("user_offline", handleUserOffline);
       socket.off("user_status_change", handleUserStatusChange);
     };
-  }, [currentUser]);
+  }, []);
 
   // Handle typing input
   const handleInputChange = (value: string) => {
@@ -879,6 +990,7 @@ export default function UserMessagesPage() {
             ) : (
               filteredConvs.map((conv) => {
                 const isActive = activeId === conv.id;
+                const convStatus = getConvStatus(conv);
                 return (
                   <button
                     key={conv.id}
@@ -893,9 +1005,9 @@ export default function UserMessagesPage() {
                       <Headphones className="w-5 h-5" />
                       <span
                         className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white transition-colors duration-200 ${
-                          conv.isOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]" : "bg-slate-300"
+                          convStatus.isOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_5px_rgba(16,185,129,0.7)]" : "bg-slate-300"
                         }`}
-                        title={conv.isOnline ? "Admin online — siap membalas" : `Admin offline — ${formatLastSeen(conv.lastSeen || null, false).text}`}
+                        title={convStatus.isOnline ? "Admin online — siap membalas" : `Admin offline — ${formatLastSeen(convStatus.lastSeen || null, false).text}`}
                       />
                     </div>
 

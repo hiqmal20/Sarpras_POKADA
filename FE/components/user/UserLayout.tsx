@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import UserSidebar from "./Sidebar";
 import UserNavbar from "./Navbar";
 import api, { getAuthToken } from "@/lib/api";
-import { getSocket } from "@/lib/socket";
+import { disconnectSocket, getSocket } from "@/lib/socket";
+import { useLanguage } from "@/lib/i18n";
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -30,6 +31,51 @@ export default function UserLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t: tr } = useLanguage();
+
+  // Idle Session Timeout Enforcer (Standar 30 Menit / Mengikuti Pengaturan Admin)
+  useEffect(() => {
+    if (!authorized) return;
+    let timeoutId: any = null;
+
+    const resetIdleTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+
+      let minutes = 30;
+      try {
+        const raw = localStorage.getItem("appSettings");
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed.security?.userSessionTimeout) {
+            minutes = Number(parsed.security.userSessionTimeout) || 30;
+          }
+        }
+      } catch {}
+
+      const ms = minutes * 60 * 1000;
+      timeoutId = setTimeout(() => {
+        alert(tr("nav.session_timeout", `Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`));
+        try {
+          disconnectSocket();
+          api.auth.logout();
+        } catch {}
+        localStorage.clear();
+        window.location.href = "/auth/login?reason=timeout";
+      }, ms);
+    };
+
+    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
+    events.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
+    window.addEventListener("settings-updated", resetIdleTimer);
+
+    resetIdleTimer();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
+      window.removeEventListener("settings-updated", resetIdleTimer);
+    };
+  }, [authorized, tr]);
 
   useEffect(() => {
     api.auth.me().then((res) => {

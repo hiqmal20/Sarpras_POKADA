@@ -45,12 +45,21 @@ module.exports = (io, app) => {
     });
   };
 
-  const getOnlinePayload = () => ({
-    // Selalu kirim ID sebagai string agar pencocokan dengan adminId di client
-    // konsisten (terutama setelah reconnect/login ulang).
-    onlineUserIds: Array.from(onlineUsers.keys()).map(String),
-    lastSeenMap: Object.fromEntries(Array.from(lastSeenMap.entries()).map(([id, seen]) => [String(id), seen]))
-  });
+  const getOnlinePayload = () => {
+    const staffIds = [];
+    for (const [userId, profile] of onlineProfiles.entries()) {
+      const role = String(profile.role || '').toLowerCase();
+      if (['admin', 'administrator', 'petugas', 'staff'].includes(role)) {
+        staffIds.push(String(userId));
+      }
+    }
+    return {
+      onlineUserIds: Array.from(onlineUsers.keys()).map(String),
+      onlineStaffIds: staffIds,
+      onlineProfiles: Array.from(onlineProfiles.values()),
+      lastSeenMap: Object.fromEntries(Array.from(lastSeenMap.entries()).map(([id, seen]) => [String(id), seen]))
+    };
+  };
 
   // Middleware: Autentikasi socket connection (wajib Supabase getUser, tanpa fallback decode)
   io.use(async (socket, next) => {

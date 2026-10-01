@@ -16,7 +16,10 @@ exports.getChats = async (req, res, next) => {
     const lastSeenMap = req.app.get('lastSeenMap');
 
     const isAnyStaffOnline = onlineProfiles
-      ? Array.from(onlineProfiles.values()).some((p) => [ROLES.ADMIN, ROLES.PETUGAS].includes(p.role))
+      ? Array.from(onlineProfiles.values()).some((p) => {
+          const role = String(p.role || '').toLowerCase();
+          return ['admin', 'administrator', 'petugas', 'staff'].includes(role);
+        })
       : false;
 
     const enriched = data.map((c) => {

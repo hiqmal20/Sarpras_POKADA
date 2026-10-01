@@ -67,7 +67,7 @@ export default function SettingsPage() {
   const [weeklyReport, setWeeklyReport] = useState(false);
 
   // Security settings
-  const [sessionTimeout, setSessionTimeout] = useState("30");
+  const [sessionTimeout, setSessionTimeout] = useState("120");
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [activityLog, setActivityLog] = useState(true);
 

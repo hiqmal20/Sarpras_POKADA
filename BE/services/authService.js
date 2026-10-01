@@ -48,7 +48,8 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
 
   if (authError) {
     // Fallback jika bukan admin client
-    const { data: fallbackAuth, error: fallbackErr } = await supabase.auth.signUp({
+    const authClient = createAuthClient();
+    const { data: fallbackAuth, error: fallbackErr } = await authClient.auth.signUp({
       email: cleanEmail,
       password,
       options: {
@@ -134,9 +135,10 @@ exports.changePassword = async (user, currentPassword, newPassword) => {
 };
 
 exports.refreshToken = async (refreshToken) => {
-  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+  const authClient = createAuthClient();
+  const { data, error } = await authClient.auth.refreshSession({ refresh_token: refreshToken });
 
-  if (error || !data.session) {
+  if (error || !data?.session) {
     throw new AppError('Refresh token tidak valid atau sudah kadaluarsa. Silakan login kembali.', 401);
   }
 
@@ -163,11 +165,9 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
   const normalizedNomorInduk = cleanNomorInduk.replace(/\s+/g, '').toLowerCase();
   let userProfile = null;
 
-  // Cari berdasarkan nomor induk secara exact terlebih dahulu. Query lama memakai
-  // ilike(`%...%`), sehingga data lama/format NIM tertentu dapat menghasilkan
-  // kandidat yang salah atau tidak ditemukan setelah session kedaluwarsa.
+  // Cari berdasarkan nomor induk secara case-insensitive terlebih dahulu.
   const lookupResults = await Promise.all([
-    supabase.from('users').select('*').eq('nomor_induk', cleanNomorInduk).limit(20),
+    supabase.from('users').select('*').ilike('nomor_induk', cleanNomorInduk).limit(20),
     supabase.from('users').select('*').ilike('email', cleanIdentifier).limit(20),
     supabase.from('users').select('*').ilike('name', cleanIdentifier).limit(20),
   ]);
@@ -196,6 +196,21 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
       const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
       const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase();
       return candidateNomorInduk === normalizedNomorInduk && candidateEmail === normalizedIdentifier;
+    }) || null;
+  }
+
+  // Fallback tambahan: nomor induk dengan perbedaan leading zero (misal 00123 vs 123)
+  if (!userProfile) {
+    const strippedNomorInduk = normalizedNomorInduk.replace(/^0+/, '');
+    userProfile = candidates.find((candidate) => {
+      const candidateEmail = String(candidate.email || '').replace(/\s+/g, '').toLowerCase();
+      const candidateNomorInduk = String(candidate.nomor_induk || '').replace(/\s+/g, '').toLowerCase().replace(/^0+/, '');
+      const candidateName = String(candidate.name || '').replace(/\s+/g, '').toLowerCase();
+      return candidateNomorInduk === strippedNomorInduk && (
+        candidateEmail === normalizedIdentifier ||
+        candidateName === normalizedIdentifier ||
+        candidateName.replace(/[^a-z0-9]/g, '') === normalizedIdentifier.replace(/[^a-z0-9]/g, '')
+      );
     }) || null;
   }
 
@@ -237,12 +252,24 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
     authError = retry.error;
   }
 
+  // Fallback jika identifier yang diinput user adalah email berbeda yang valid di Supabase Auth
+  if ((authError || !authData?.user) && cleanIdentifier.includes('@') && cleanIdentifier.toLowerCase() !== authEmail && cleanIdentifier.toLowerCase() !== profileEmail) {
+    const retry = await authClient.auth.signInWithPassword({
+      email: cleanIdentifier.toLowerCase(),
+      password
+    });
+    if (retry.data?.user) {
+      authData = retry.data;
+      authError = null;
+    }
+  }
+
   if (authError || !authData?.user) {
     if (authError?.status === 429 || (authError?.message || '').toLowerCase().includes('rate limit')) {
       throw new AppError('Terlalu banyak percobaan masuk. Silakan tunggu beberapa saat.', 429);
     }
     console.warn(`[AUTH] Login gagal untuk ${authEmail}: ${authError?.message || 'Password tidak cocok'}`);
-    throw new AppError('Password tidak cocok dengan akun Supabase Auth. Silakan periksa kembali atau hubungi admin.', 401);
+    throw new AppError('Password yang Anda masukkan salah. Silakan periksa kembali.', 401);
   }
 
   return {

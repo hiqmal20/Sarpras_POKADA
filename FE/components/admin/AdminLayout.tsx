@@ -83,13 +83,13 @@ export default function AdminLayout({
     const resetIdleTimer = () => {
       if (timeoutId) clearTimeout(timeoutId);
 
-      let minutes = 30;
+      let minutes = 120;
       try {
         const raw = localStorage.getItem("appSettings");
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed.security?.sessionTimeout) {
-            minutes = Number(parsed.security.sessionTimeout) || 30;
+            minutes = Number(parsed.security.sessionTimeout) || 120;
           }
         }
       } catch {}

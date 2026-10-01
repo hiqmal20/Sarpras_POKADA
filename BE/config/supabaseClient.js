@@ -34,10 +34,34 @@ try {
 
 const cleanUrl = supabaseUrl.replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
 
+// Custom fetch wrapper agar singleton admin client SELALU memakai service_role key
+// untuk semua operasi PostgREST dan Storage, sehingga tidak akan pernah terpengaruh
+// atau terbajak oleh token user/session expired dari auth event.
+const serviceRoleFetch = (input, init = {}) => {
+  const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.href : input?.url || '';
+  if (urlStr.includes('/rest/v1/') || urlStr.includes('/storage/v1/')) {
+    const headers = new Headers(init.headers || {});
+    headers.set('apikey', supabaseKey);
+    headers.set('Authorization', `Bearer ${supabaseKey}`);
+    init = { ...init, headers };
+  }
+  return fetch(input, init);
+};
+
 const supabase = createClient(cleanUrl, supabaseKey, {
   auth: {
     persistSession: false,
     autoRefreshToken: false
+  },
+  global: {
+    fetch: serviceRoleFetch
+  }
+});
+
+// Pengaman lapis kedua: pastikan singleton tidak pernah menyimpan session di memori
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    supabase.auth.signOut().catch(() => {});
   }
 });
 

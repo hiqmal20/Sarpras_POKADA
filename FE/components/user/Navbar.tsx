@@ -323,7 +323,7 @@ export default function UserNavbar({
           >
             <Bell className="w-5 h-5" />
             {showBadge && unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-[#16233d]">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
