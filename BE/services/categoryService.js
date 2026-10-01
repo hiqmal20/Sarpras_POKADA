@@ -8,7 +8,8 @@ exports.findAllCategories = async ({ search }) => {
     .order('created_at', { ascending: false });
 
   if (search) {
-    query = query.ilike('name', `%${search}%`);
+    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
   }
 
   const { data, error } = await query;

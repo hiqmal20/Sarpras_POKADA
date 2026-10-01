@@ -530,6 +530,35 @@ export default function MessagesPage() {
       });
     };
 
+    const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
+      if (!data?.message) return;
+      const realMsg = data.message;
+      setMessages((prev) =>
+        prev.map((m) =>
+          (data.tempId && m.id === data.tempId) || (m.id.startsWith("temp-") && m.text === realMsg.message)
+            ? {
+                ...m,
+                id: String(realMsg.id),
+                rawDate: realMsg.created_at || m.rawDate,
+                timestamp: realMsg.created_at
+                  ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : m.timestamp,
+                isRead: Boolean(realMsg.is_read),
+              }
+            : m
+        )
+      );
+    };
+
+    const handleSocketError = (err: any) => {
+      console.warn("⚠️ Socket error received in admin chat:", err);
+    };
+
+    socket.on("message_sent", handleMessageSent);
+    socket.on("error", handleSocketError);
     socket.on("new_message", handleNewMessage);
     socket.on("notification", handleNotification);
     socket.on("chat_updated", handleChatUpdated);
@@ -568,6 +597,8 @@ export default function MessagesPage() {
       clearInterval(chatListInterval);
       socket.off("connect", handleSocketReconnect);
       socket.off("disconnect", handleSocketDisconnect);
+      socket.off("message_sent", handleMessageSent);
+      socket.off("error", handleSocketError);
       socket.off("new_message", handleNewMessage);
       socket.off("notification", handleNotification);
       socket.off("chat_updated", handleChatUpdated);

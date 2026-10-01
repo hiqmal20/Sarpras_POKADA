@@ -10,7 +10,7 @@ import {
   EyeOff,
   IdCard,
 } from "lucide-react";
-import { api, setAuthToken, setRefreshToken, setCurrentUser } from "@/lib/api";
+import { api, setCurrentUser } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,10 +35,6 @@ export default function LoginPage() {
       });
 
       if (res.status === "success" && res.data) {
-        setAuthToken(res.data.token);
-        if ((res.data as any).refreshToken) {
-          setRefreshToken((res.data as any).refreshToken);
-        }
         setCurrentUser(res.data.user);
 
         const userRole = (res.data.user?.role || "").toLowerCase();

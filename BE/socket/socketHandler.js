@@ -1,4 +1,5 @@
 const supabase = require('../config/supabaseClient');
+const cookie = require('cookie');
 const { ROLES } = require('../constants/roles');
 
 /**
@@ -17,16 +18,18 @@ module.exports = (io, app) => {
   }
 
   const broadcastPresence = (user, isOnline) => {
-    const lastSeen = isOnline ? null : (lastSeenMap.get(user.id) || new Date().toISOString());
+    const userId = String(user.id);
+    const lastSeen = isOnline ? null : (lastSeenMap.get(userId) || new Date().toISOString());
     if (isOnline) {
-      lastSeenMap.delete(user.id);
+      lastSeenMap.delete(userId);
     } else {
-      lastSeenMap.set(user.id, lastSeen);
+      lastSeenMap.set(userId, lastSeen);
     }
 
-    // Format for user messages page
+    // Satu ID canonical dikirim ke semua client. Ini mencegah status gagal
+    // dicocokkan ketika ID berasal dari Supabase, API, atau Socket.IO.
     io.emit(isOnline ? 'user_online' : 'user_offline', {
-      userId: user.id,
+      userId,
       role: user.role,
       name: user.name,
       lastSeen
@@ -34,7 +37,7 @@ module.exports = (io, app) => {
 
     // Format for admin messages page
     io.emit('user_status_change', {
-      userId: user.id,
+      userId,
       online: isOnline,
       last_seen: lastSeen,
       role: user.role,
@@ -43,14 +46,17 @@ module.exports = (io, app) => {
   };
 
   const getOnlinePayload = () => ({
-    onlineUserIds: Array.from(onlineUsers.keys()),
-    lastSeenMap: Object.fromEntries(lastSeenMap)
+    // Selalu kirim ID sebagai string agar pencocokan dengan adminId di client
+    // konsisten (terutama setelah reconnect/login ulang).
+    onlineUserIds: Array.from(onlineUsers.keys()).map(String),
+    lastSeenMap: Object.fromEntries(Array.from(lastSeenMap.entries()).map(([id, seen]) => [String(id), seen]))
   });
 
   // Middleware: Autentikasi socket connection (wajib Supabase getUser, tanpa fallback decode)
   io.use(async (socket, next) => {
     try {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+      const cookies = cookie.parse(socket.handshake.headers.cookie || '');
+      const token = cookies.access_token || socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
 
       if (!token) {
         return next(new Error('Authentication error: Token tidak ditemukan'));
@@ -97,28 +103,29 @@ module.exports = (io, app) => {
 
   io.on('connection', (socket) => {
     const user = socket.user;
-    const userSockets = onlineUsers.get(user.id) || new Set();
+    // Presence menggunakan satu format ID di seluruh server/client.
+    const presenceUserId = String(user.id);
+    const userSockets = onlineUsers.get(presenceUserId) || new Set();
     userSockets.add(socket.id);
-    onlineUsers.set(user.id, userSockets);
+    onlineUsers.set(presenceUserId, userSockets);
     socket.lastPresenceHeartbeat = Date.now();
-    onlineProfiles.set(user.id, { userId: user.id, role: user.role, name: user.name });
+    onlineProfiles.set(presenceUserId, { userId: presenceUserId, role: user.role, name: user.name });
 
     // Auto-join personal room dan admin room untuk notifikasi & chat instan
-    socket.join(user.id);
-    socket.join(`user:${user.id}`);
+    socket.join(presenceUserId);
+    socket.join(`user:${presenceUserId}`);
     if ([ROLES.ADMIN, ROLES.PETUGAS].includes(user.role)) {
       socket.join('admins');
       socket.join('role:admin');
       socket.join('role:petugas');
     }
 
-    if (userSockets.size === 1) {
-      broadcastPresence(user, true);
-      const now = new Date().toISOString();
-      // Presence disimpan di memory; jangan menulis update_at setiap koneksi
-      // karena sebagian skema users tidak memiliki kolom tersebut.
-      void now;
-    }
+    // Selalu umumkan status online saat koneksi baru berhasil. Sebelumnya
+    // event hanya dikirim ketika ukuran set socket menjadi 1. Jika socket
+    // lama dari sesi logout belum selesai diproses oleh server, koneksi login
+    // ulang dianggap sebagai socket kedua sehingga client lain tidak pernah
+    // menerima event online lagi.
+    broadcastPresence(user, true);
 
     // Kirim state online users awal ke client yang baru connect.
     // Snapshot hanya berisi user yang benar-benar memiliki socket aktif.
@@ -144,9 +151,30 @@ module.exports = (io, app) => {
     });
 
     // Event: User bergabung ke chat room
-    socket.on('join_chat', (chatId) => {
+    socket.on('join_chat', async (chatId) => {
       try {
         if (!chatId) return;
+        const { data: chat } = await supabase
+          .from('chats')
+          .select('id, user_id, admin_id')
+          .eq('id', chatId)
+          .single();
+        if (!chat) {
+          return socket.emit('error', { message: 'Chat tidak ditemukan' });
+        }
+
+        const isStaff = [ROLES.ADMIN, ROLES.PETUGAS].includes(user.role);
+        const isParticipant = chat.user_id === user.id || chat.admin_id === user.id;
+
+        if (!isStaff && !isParticipant) {
+          return socket.emit('error', { message: 'Akses ditolak ke chat ini' });
+        }
+
+        if (isStaff && !chat.admin_id) {
+          await supabase.from('chats').update({ admin_id: user.id }).eq('id', chatId);
+          chat.admin_id = user.id;
+        }
+
         socket.join(chatId);
         socket.currentChatId = chatId;
         socket.emit('chat_joined', { chatId, message: 'Berhasil bergabung ke chat room' });
@@ -181,6 +209,27 @@ module.exports = (io, app) => {
           return socket.emit('error', { message: 'chatId dan message wajib diisi' });
         }
 
+        const { data: chat } = await supabase
+          .from('chats')
+          .select('id, user_id, admin_id')
+          .eq('id', chatId)
+          .single();
+        if (!chat) {
+          return socket.emit('error', { message: 'Chat tidak ditemukan' });
+        }
+
+        const isStaff = [ROLES.ADMIN, ROLES.PETUGAS].includes(user.role);
+        const isParticipant = chat.user_id === user.id || chat.admin_id === user.id;
+
+        if (!isStaff && !isParticipant) {
+          return socket.emit('error', { message: 'Akses ditolak ke chat ini' });
+        }
+
+        if (isStaff && !chat.admin_id) {
+          await supabase.from('chats').update({ admin_id: user.id }).eq('id', chatId);
+          chat.admin_id = user.id;
+        }
+
         const now = new Date().toISOString();
 
         // 1. Simpan pesan langsung ke DB
@@ -202,11 +251,22 @@ module.exports = (io, app) => {
 
         if (msgError) throw msgError;
 
-        // 2. Broadcast INSTAN ke room chat dan room admin/user terkait (tanpa tunggu update chats)
+        // 2. Broadcast INSTAN ke room chat dan room admin/user terkait
         io.to(chatId).emit('new_message', newMsg);
         io.to(chatId).emit('chat_updated', { chatId, message: newMsg });
         io.to('admins').emit('new_message', newMsg);
         io.to('admins').emit('chat_updated', { chatId, message: newMsg });
+
+        if (chat.user_id) {
+          io.to(String(chat.user_id)).emit('new_message', newMsg);
+          io.to(`user:${chat.user_id}`).emit('new_message', newMsg);
+          io.to(String(chat.user_id)).emit('chat_updated', { chatId, message: newMsg });
+        }
+        if (chat.admin_id) {
+          io.to(String(chat.admin_id)).emit('new_message', newMsg);
+          io.to(`user:${chat.admin_id}`).emit('new_message', newMsg);
+          io.to(String(chat.admin_id)).emit('chat_updated', { chatId, message: newMsg });
+        }
 
         // Konfirmasi terkirim ke sender segera agar ikon jam langsung berubah jadi centang
         socket.emit('message_sent', {
@@ -239,7 +299,7 @@ module.exports = (io, app) => {
           timestamp: now
         });
 
-        console.log(`💬 ${user.name} sent message to chat ${chatId}`);
+        console.log(`💬 ${user.name} (${user.role}) sent message to chat ${chatId}`);
       } catch (err) {
         socket.emit('error', { message: err.message });
       }
@@ -366,14 +426,15 @@ module.exports = (io, app) => {
     // Disconnect
     socket.on('disconnect', () => {
       console.log(`❌ Socket disconnected: ${user.name} - ${socket.id}`);
-      const userSockets = onlineUsers.get(user.id);
+      const presenceUserId = String(user.id);
+      const userSockets = onlineUsers.get(presenceUserId);
       if (userSockets) {
         userSockets.delete(socket.id);
         if (userSockets.size === 0) {
-          onlineUsers.delete(user.id);
-          onlineProfiles.delete(user.id);
+          onlineUsers.delete(presenceUserId);
+          onlineProfiles.delete(presenceUserId);
           const now = new Date().toISOString();
-          lastSeenMap.set(user.id, now);
+          lastSeenMap.set(presenceUserId, now);
           broadcastPresence(user, false);
         }
       }

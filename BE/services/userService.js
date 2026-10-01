@@ -6,13 +6,14 @@ exports.findAllUsers = async ({ role, status, search, page = 1, limit = 20 }) =>
 
   let query = supabase
     .from('users')
-    .select('*', { count: 'exact' })
+    .select('id, nomor_induk, name, email, role, no_hp, foto, status, created_at, update_at', { count: 'exact' })
     .order('created_at', { ascending: false });
 
   if (role) query = query.eq('role', role);
   if (status) query = query.eq('status', status);
   if (search) {
-    query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,nomor_induk.ilike.%${search}%,no_hp.ilike.%${search}%`);
+    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
   }
 
   query = query.range(offset, offset + Number(limit) - 1);

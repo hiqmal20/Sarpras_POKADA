@@ -30,11 +30,6 @@ export default function UserLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) {
-      router.replace("/auth/login");
-      return;
-    }
     api.auth.me().then((res) => {
       if (res.status === "success" && res.data?.user) {
         setAuthorized(true);
@@ -50,7 +45,7 @@ export default function UserLayout({
   // This makes the user presence visible to admin even when the user is
   // currently on dashboard/catalog/settings instead of the chat page.
   useEffect(() => {
-    if (!authorized || !getAuthToken()) return;
+    if (!authorized) return;
     const socket = getSocket();
     return () => {
       // Do not disconnect here: the shared socket must survive navigation.

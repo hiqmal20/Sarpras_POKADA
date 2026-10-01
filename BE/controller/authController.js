@@ -1,22 +1,35 @@
 const authService = require('../services/authService');
 const { sendSuccess } = require('../utils/responseHandler');
-const supabase = require('../config/supabaseClient');
 
 // Register user baru
 exports.register = async (req, res, next) => {
   try {
     const result = await authService.registerUser(req.body);
-    return sendSuccess(res, 'Registrasi berhasil! Akun telah terdaftar.', result, 201);
+    setAuthCookies(res, result);
+    return sendSuccess(res, 'Registrasi berhasil! Akun telah terdaftar.', { user: result.user }, 201);
   } catch (err) {
     next(err);
   }
+};
+
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  path: '/'
+};
+
+const setAuthCookies = (res, result) => {
+  if (result.token) res.cookie('access_token', result.token, { ...cookieOptions, maxAge: 60 * 60 * 1000 });
+  if (result.refreshToken) res.cookie('refresh_token', result.refreshToken, { ...cookieOptions, maxAge: 30 * 24 * 60 * 60 * 1000 });
 };
 
 // Login user
 exports.login = async (req, res, next) => {
   try {
     const result = await authService.loginUser(req.body);
-    return sendSuccess(res, 'Login berhasil!', result, 200);
+    setAuthCookies(res, result);
+    return sendSuccess(res, 'Login berhasil!', { user: result.user }, 200);
   } catch (err) {
     next(err);
   }
@@ -25,12 +38,14 @@ exports.login = async (req, res, next) => {
 // Refresh token
 exports.refresh = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken) {
+    const { refreshToken } = req.body || {};
+    if (!refreshToken && !req.cookies?.refresh_token) {
       return res.status(400).json({ status: 'fail', message: 'refreshToken wajib diisi' });
     }
-    const result = await authService.refreshToken(refreshToken);
-    return sendSuccess(res, 'Token berhasil diperbarui', result, 200);
+    const tokenFromCookie = req.cookies?.refresh_token;
+    const result = await authService.refreshToken(tokenFromCookie || refreshToken);
+    setAuthCookies(res, result);
+    return sendSuccess(res, 'Token berhasil diperbarui', null, 200);
   } catch (err) {
     next(err);
   }
@@ -77,15 +92,8 @@ exports.changePassword = async (req, res, next) => {
 // Logout
 exports.logout = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      if (token) {
-        try {
-          await supabase.auth.admin.signOut(token);
-        } catch (_) {}
-      }
-    }
+    res.clearCookie('access_token', cookieOptions);
+    res.clearCookie('refresh_token', cookieOptions);
     return sendSuccess(res, 'Berhasil logout', null, 200);
   } catch (err) {
     next(err);

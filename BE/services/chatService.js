@@ -3,12 +3,9 @@ const AppError = require('../utils/appError');
 const { ROLES } = require('../constants/roles');
 
 const verifyChatAccess = async (chatId, userId, userRole) => {
-  const isPrivileged = [ROLES.ADMIN, ROLES.PETUGAS].includes(userRole);
-  if (isPrivileged) return;
-
   const { data: chat, error } = await supabase
     .from('chats')
-    .select('user_id, admin_id')
+    .select('id, user_id, admin_id')
     .eq('id', chatId)
     .single();
 
@@ -16,9 +13,20 @@ const verifyChatAccess = async (chatId, userId, userRole) => {
     throw new AppError('Chat tidak ditemukan', 404);
   }
 
-  if (chat.user_id !== userId && chat.admin_id !== userId) {
+  const isStaff = [ROLES.ADMIN, ROLES.PETUGAS].includes(userRole);
+  const isParticipant = chat.user_id === userId || chat.admin_id === userId;
+
+  if (!isStaff && !isParticipant) {
     throw new AppError('Akses ditolak: Anda bukan peserta chat ini', 403);
   }
+
+  // Jika staff mengakses chat yang belum memiliki admin_id, otomatis tugaskan ke staff ini
+  if (isStaff && !chat.admin_id) {
+    await supabase.from('chats').update({ admin_id: userId }).eq('id', chatId);
+    chat.admin_id = userId;
+  }
+
+  return chat;
 };
 
 exports.findAllChats = async ({ user_id, admin_id, status }, currentUserId) => {
@@ -133,7 +141,7 @@ exports.createNewChat = async ({ user_id, admin_id, subject, initial_message, at
 };
 
 exports.postMessage = async (chatId, { sender_id, message, attachment_url }, userId, userRole) => {
-  await verifyChatAccess(chatId, userId, userRole);
+  const chat = await verifyChatAccess(chatId, userId, userRole);
 
   if (!message || !message.trim()) throw new AppError('Isi pesan wajib diisi', 400);
 
@@ -143,8 +151,8 @@ exports.postMessage = async (chatId, { sender_id, message, attachment_url }, use
     .from('chat_messages')
     .insert([{
       chat_id: chatId,
-      sender_id,
-      message,
+      sender_id: userId,
+      message: message.trim(),
       attachment_url: attachment_url || null,
       is_read: false,
       created_at: now
@@ -164,7 +172,7 @@ exports.postMessage = async (chatId, { sender_id, message, attachment_url }, use
     .then(() => {})
     .catch((err) => console.error('Error updating chat timestamp:', err));
 
-  return newMsg;
+  return { ...newMsg, chat };
 };
 
 exports.markChatAsRead = async (chatId, userId, userRole) => {

@@ -12,13 +12,25 @@ exports.getChats = async (req, res, next) => {
     const data = await chatService.findAllChats(query, req.user.id);
 
     const onlineUsers = req.app.get('onlineUsers');
+    const onlineProfiles = req.app.get('onlineProfiles');
     const lastSeenMap = req.app.get('lastSeenMap');
+
+    const isAnyStaffOnline = onlineProfiles
+      ? Array.from(onlineProfiles.values()).some((p) => [ROLES.ADMIN, ROLES.PETUGAS].includes(p.role))
+      : false;
 
     const enriched = data.map((c) => {
       const partner = (c.user && c.user.id !== req.user.id ? c.user : c.admin) || c.user || c.admin || {};
-      const partnerId = partner.id || (c.user_id !== req.user.id ? c.user_id : c.admin_id);
-      const isOnline = Boolean(partnerId && onlineUsers && onlineUsers.has(partnerId));
-      const lastSeen = (partnerId && lastSeenMap && lastSeenMap.get(partnerId)) || partner.update_at || partner.created_at || null;
+      const partnerId = String(partner.id || (c.user_id !== req.user.id ? c.user_id : c.admin_id) || '');
+      let isOnline = Boolean(partnerId && onlineUsers && onlineUsers.has(partnerId));
+      const lastSeen = (partnerId && lastSeenMap && lastSeenMap.get(partnerId)) || partner.updated_at || partner.created_at || null;
+
+      if (!isPrivileged) {
+        if (!c.admin_id || isAnyStaffOnline) {
+          isOnline = isAnyStaffOnline;
+        }
+      }
+
       return {
         ...c,
         is_partner_online: isOnline,
@@ -65,6 +77,16 @@ exports.sendMessage = async (req, res, next) => {
       io.to(req.params.chatId).emit('chat_updated', { chatId: req.params.chatId, message: data });
       io.to('admins').emit('new_message', data);
       io.to('admins').emit('chat_updated', { chatId: req.params.chatId, message: data });
+      if (data.chat?.user_id) {
+        io.to(String(data.chat.user_id)).emit('new_message', data);
+        io.to(`user:${data.chat.user_id}`).emit('new_message', data);
+        io.to(String(data.chat.user_id)).emit('chat_updated', { chatId: req.params.chatId, message: data });
+      }
+      if (data.chat?.admin_id) {
+        io.to(String(data.chat.admin_id)).emit('new_message', data);
+        io.to(`user:${data.chat.admin_id}`).emit('new_message', data);
+        io.to(String(data.chat.admin_id)).emit('chat_updated', { chatId: req.params.chatId, message: data });
+      }
     }
     return sendSuccess(res, 'Pesan terkirim', data, 201);
   } catch (err) {

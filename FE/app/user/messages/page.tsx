@@ -140,7 +140,9 @@ export default function UserMessagesPage() {
           const partner = c.admin || {};
           const adminId = String(partner.id || (c as any).admin_id || "");
           if (adminId) convAdminRef.current[String(c.id)] = adminId;
-          const online = presenceSet.size > 0 ? presenceSet.has(adminId) : Boolean(c.is_partner_online);
+          const online = presenceSet.size > 0
+            ? (adminId ? presenceSet.has(adminId) : presenceSet.size > 0)
+            : Boolean(c.is_partner_online);
           return {
             id: c.id,
             adminId,
@@ -166,8 +168,15 @@ export default function UserMessagesPage() {
           setActiveId(target.id);
         }
 
-        setConversations(mapped);
-        mapped.forEach((conv) => joinChatRoom(conv.id));
+        // Terapkan kembali status realtime yang mungkin diterima sebelum API selesai.
+        const mappedWithPresence = mapped.map((conv) => ({
+          ...conv,
+          isOnline: conv.adminId ? presenceSetRef.current.has(String(conv.adminId)) : conv.isOnline,
+        }));
+        setConversations(mappedWithPresence);
+        const activeWithPresence = mappedWithPresence.find((m) => m.id === activeIdRef.current) || mappedWithPresence[0];
+        setAdminOnline(Boolean(activeWithPresence?.isOnline));
+        mappedWithPresence.forEach((conv) => joinChatRoom(conv.id));
 
         if (!activeIdRef.current && mapped.length > 0) {
           setActiveId(mapped[0].id);
@@ -202,6 +211,33 @@ export default function UserMessagesPage() {
 
   useEffect(() => {
     loadConversations();
+
+    // Reconcile presence secara berkala sebagai fallback jika event Socket.IO
+    // terlewat ketika browser/login melakukan reconnect. Ini bukan refresh
+    // halaman; hanya mengambil status presence terbaru dan mempertahankan UI.
+    const presenceSync = window.setInterval(async () => {
+      try {
+        const res = await api.chats.getAll();
+        if (res.status !== "success" || !Array.isArray(res.data)) return;
+        const serverPresence = new Map<string, boolean>();
+        (res.data as any[]).forEach((chat) => {
+          const partnerId = String(chat.admin?.id || chat.admin_id || "");
+          if (partnerId) serverPresence.set(partnerId, Boolean(chat.is_partner_online));
+        });
+        setConversations((prev) => prev.map((chat) =>
+          serverPresence.has(String(chat.adminId))
+            ? { ...chat, isOnline: serverPresence.get(String(chat.adminId)) }
+            : chat
+        ));
+        const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
+        if (activeAdmin && serverPresence.has(activeAdmin)) {
+          setAdminOnline(Boolean(serverPresence.get(activeAdmin)));
+        }
+      } catch (_) {
+        // Socket.IO tetap menjadi sumber realtime utama.
+      }
+    }, 3000);
+    return () => window.clearInterval(presenceSync);
   }, [loadConversations]);
 
   // Sinkron banner Online/LastSeen mengikuti percakapan yang sedang dibuka
@@ -462,20 +498,22 @@ export default function UserMessagesPage() {
       return ["admin", "administrator", "petugas", "staff"].includes(normalized);
     };
 
-    const applyPresence = (adminId: string | undefined, online: boolean, lastSeen?: string | null) => {
-      if (!adminId) return;
-      const id = String(adminId);
-      if (online) presenceSetRef.current.add(id);
-      else presenceSetRef.current.delete(id);
+    const applyPresence = (adminId: string | undefined, online: boolean, lastSeen?: string | null, role?: string) => {
+      if (!adminId && !isStaffPresence(role)) return;
+      const id = String(adminId || "");
+      if (id) {
+        if (online) presenceSetRef.current.add(id);
+        else presenceSetRef.current.delete(id);
+      }
       setConversations((prev) =>
         prev.map((c) =>
-          String(c.adminId || "") === id
+          (id && String(c.adminId || "") === id) || (!c.adminId && isStaffPresence(role))
             ? { ...c, isOnline: online, lastSeen: lastSeen ?? c.lastSeen ?? null }
             : c
         )
       );
       const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
-      if (activeAdmin === id) {
+      if ((id && activeAdmin === id) || !activeAdmin) {
         setAdminOnline(online);
         if (lastSeen) setAdminLastSeen(lastSeen);
       }
@@ -483,39 +521,54 @@ export default function UserMessagesPage() {
 
     const handlePresenceSnapshot = (users: { role?: string; userId?: string; id?: string }[]) => {
       if (Array.isArray(users)) {
-        // Snapshot server adalah sumber kebenaran socket aktif. Jangan buang
-        // user hanya karena format role berbeda; cocokkan ID dengan adminId
-        // percakapan agar Administrator/Admin/Petugas semuanya terbaca.
+        // Snapshot server adalah sumber kebenaran socket aktif.
         const adminIds = users
           .map((u) => String((u as any).userId || (u as any).id || ""))
-          .filter((id) => id && Object.values(convAdminRef.current).includes(id));
+          .filter(Boolean);
         presenceSetRef.current = new Set(adminIds);
+        const hasStaffOnline = users.some((u) => isStaffPresence(u.role));
         const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
         setConversations((prev) =>
-          prev.map((c) => ({ ...c, isOnline: adminIds.includes(String(c.adminId || "")) }))
+          prev.map((c) => ({
+            ...c,
+            isOnline: c.adminId ? adminIds.includes(String(c.adminId)) : hasStaffOnline,
+          }))
         );
-        if (activeAdmin) setAdminOnline(adminIds.includes(String(activeAdmin)));
+        if (activeAdmin) {
+          setAdminOnline(adminIds.includes(String(activeAdmin)) || hasStaffOnline);
+        } else {
+          setAdminOnline(hasStaffOnline);
+        }
       }
     };
 
     const handleUserOnline = (data: { role?: string; userId?: string; id?: string }) => {
       const userId = String((data as any).userId || (data as any).id || "");
-      if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
-        applyPresence(userId, true);
+      if (!userId) return;
+      // Simpan event walaupun daftar percakapan belum selesai dimuat. Event
+      // login admin dapat datang lebih dulu daripada API getAll selesai.
+      presenceSetRef.current.add(userId);
+      if (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId)) {
+        applyPresence(userId, true, null, data?.role);
       }
     };
 
     const handleUserOffline = (data: { role?: string; lastSeen?: string; userId?: string; id?: string }) => {
       const userId = String((data as any).userId || (data as any).id || "");
-      if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
-        applyPresence(userId, false, data.lastSeen || null);
+      if (!userId) return;
+      presenceSetRef.current.delete(userId);
+      if (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId)) {
+        applyPresence(userId, false, data.lastSeen || null, data?.role);
       }
     };
 
     const handleOnlineUsersList = (data: { onlineUserIds?: string[]; lastSeenMap?: Record<string, string> } | string[]) => {
+      // Simpan seluruh ID dari snapshot. Jangan filter berdasarkan daftar chat
+      // yang mungkin belum selesai dimuat; jika difilter terlalu awal, status
+      // online admin akan hilang dan baru muncul setelah refresh halaman.
       const ids = (Array.isArray(data) ? data : data?.onlineUserIds || [])
         .map(String)
-        .filter((id) => id && Object.values(convAdminRef.current).includes(id));
+        .filter(Boolean);
       presenceSetRef.current = new Set(ids);
       if (!Array.isArray(data) && data?.lastSeenMap) {
         const entries = Object.entries(data.lastSeenMap) as [string, string][];
@@ -533,7 +586,10 @@ export default function UserMessagesPage() {
       }
       const activeAdmin = activeIdRef.current ? convAdminRef.current[activeIdRef.current] : "";
       setConversations((prev) =>
-        prev.map((c) => ({ ...c, isOnline: ids.includes(String(c.adminId || "")) }))
+        prev.map((c) => ({
+          ...c,
+          isOnline: c.adminId ? ids.includes(String(c.adminId)) : false,
+        }))
       );
       if (activeAdmin) {
         const isOn = ids.includes(String(activeAdmin));
@@ -548,7 +604,7 @@ export default function UserMessagesPage() {
     const handleUserStatusChange = (data: { role?: string; online?: boolean; last_seen?: string; userId?: string; id?: string }) => {
       const userId = String((data as any).userId || (data as any).id || "");
       if (userId && (isStaffPresence(data?.role) || Object.values(convAdminRef.current).includes(userId))) {
-        applyPresence(userId, Boolean(data.online), data.last_seen || null);
+        applyPresence(userId, Boolean(data.online), data.last_seen || null, data?.role);
       }
     };
 
@@ -608,6 +664,10 @@ export default function UserMessagesPage() {
     socket.on("connect", handleSocketReconnect);
     socket.on("disconnect", handleSocketDisconnect);
     window.addEventListener("socket-connected", handleSocketReconnect);
+
+    // Pastikan listener selalu memakai koneksi aktif setelah login ulang.
+    // Socket.IO dapat membuat koneksi baru ketika token berubah.
+    if (socket.connected) requestPresence();
 
     // Fallback ringan berbasis socket (bukan HTTP polling), untuk menangani
     // event presence yang terlewat saat koneksi sempat reconnect.

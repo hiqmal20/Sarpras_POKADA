@@ -239,25 +239,6 @@ function CardSkeleton() {
   );
 }
 
-// ── Mock data ──
-const mockItems: Item[] = [
-  {
-    id: "1", name: "Epson Projector X41", category: "Electronic", stock: 4, total_stock: 5, status: "available",
-    description: "High brightness projector suitable for large meeting rooms. Includes HDMI and power cables.",
-    image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "2", name: "Ergonomic Chair Pro", category: "Furniture", stock: 0, total_stock: 12, status: "busy",
-    description: "Adjustable lumbar support chair for extended desk work. Mesh back for breathability.",
-    image: "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    id: "3", name: "Shure Wireless Mic Set", category: "Electronic", stock: 2, total_stock: 2, status: "available",
-    description: "Dual channel wireless microphone system. Ideal for presentations and events.",
-    image: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?auto=format&fit=crop&w=600&q=80",
-  },
-];
-
 export default function ItemCatalogPage() {
   return (
     <Suspense fallback={<BorrowLoadingFallback />}>
@@ -311,13 +292,13 @@ function ItemCatalogContent() {
         if (itemsRes.status === "success" && itemsRes.data && (itemsRes.data as any[]).length > 0) {
           setItems((itemsRes.data as any[]).map(normalizeItem) as Item[]);
         } else {
-          setItems(mockItems);
+          setItems([]);
         }
         if (packagesRes.status === "success" && Array.isArray(packagesRes.data)) {
           setPackages(packagesRes.data as PackageItem[]);
         }
       } catch {
-        setItems(mockItems);
+        setItems([]);
       } finally {
         setLoading(false);
       }

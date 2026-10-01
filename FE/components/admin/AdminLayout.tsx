@@ -31,11 +31,6 @@ export default function AdminLayout({
   const [authorized, setAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = getAuthToken();
-    if (!token) {
-      router.replace("/auth/login");
-      return;
-    }
     api.auth.getProfile().then((res) => {
       if (res.status === "success" && res.data?.user) {
         const u = res.data.user;
@@ -63,7 +58,7 @@ export default function AdminLayout({
   }, []);
 
   useEffect(() => {
-    if (!authorized || !getAuthToken()) return;
+    if (!authorized) return;
     const socket = getSocket();
     return () => {
       void socket;

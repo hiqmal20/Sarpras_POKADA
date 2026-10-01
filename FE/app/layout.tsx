@@ -29,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("app-theme");if(!t){try{var s=JSON.parse(localStorage.getItem("appSettings")||"{}");t=s&&s.theme;}catch(e){}}if(t!=="dark"&&t!=="light"){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}var p=location.pathname;var scoped=/^\/user(?:\/|$)/.test(p)||/^\/admin(?:\/|$)/.test(p);document.documentElement.classList.toggle("dark",t==="dark"&&scoped);document.documentElement.style.colorScheme=t==="dark"&&scoped?"dark":"light";}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("app-theme");if(!t){try{var s=JSON.parse(localStorage.getItem("appSettings")||"{}");t=s&&s.theme;}catch(e){}}if(t!=="dark"&&t!=="light"){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}var p=location.pathname;var scoped=/^\\/user(?:\\/|$)/.test(p)||/^\\/admin(?:\\/|$)/.test(p);document.documentElement.classList.toggle("dark",t==="dark"&&scoped);document.documentElement.style.colorScheme=t==="dark"&&scoped?"dark":"light";}catch(e){}})();`,
           }}
         />
       </head>

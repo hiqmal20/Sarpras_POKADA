@@ -4,9 +4,11 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
 
 dotenv.config();
 
+// Supabase is used by application services; health endpoint remains a lightweight liveness check.
 const supabase = require('./config/supabaseClient');
 const apiRoutes = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
@@ -64,8 +66,20 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '20mb' }));
-app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+// Cookie-authenticated state-changing requests must originate from an allowed UI.
+app.use((req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
+    const origin = req.headers.origin;
+    if (origin && !isOriginAllowed(origin)) {
+      return res.status(403).json({ status: 'fail', message: 'Origin tidak diizinkan' });
+    }
+  }
+  next();
+});
+
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(cookieParser());
 
 app.use('/api', apiLimiter);
 
@@ -81,31 +95,8 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', async (req, res) => {
-  try {
-    const { error } = await supabase.from('categories').select('count', { count: 'exact', head: true });
-
-    if (error) {
-      return res.status(500).json({
-        status: 'error',
-        message: 'Koneksi ke database gagal'
-      });
-    }
-
-    res.json({
-      status: 'success',
-      message: 'Server dan database terhubung',
-      websocket: {
-        enabled: true,
-        connections: io.engine.clientsCount
-      }
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'error',
-      message: 'Terjadi kesalahan pada server'
-    });
-  }
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'success', message: 'Server aktif' });
 });
 
 app.use('/api', apiRoutes);

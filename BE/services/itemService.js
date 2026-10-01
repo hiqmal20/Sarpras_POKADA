@@ -12,7 +12,10 @@ exports.findAllItems = async ({ category_id, status, condition, search, page = 1
   if (category_id) query = query.eq('category_id', category_id);
   if (status) query = query.eq('status', status);
   if (condition) query = query.eq('condition', condition);
-  if (search) query = query.or(`name.ilike.%${search}%,code.ilike.%${search}%`);
+  if (search) {
+    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
+  }
 
   query = query.range(offset, offset + Number(limit) - 1);
 

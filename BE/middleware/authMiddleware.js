@@ -4,15 +4,16 @@ const supabase = require('../config/supabaseClient');
 const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7).trim()
+      : req.cookies?.access_token;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
       return res.status(401).json({
         status: 'fail',
         message: 'Akses ditolak: Token autentikasi tidak ditemukan. Silakan login terlebih dahulu.'
       });
     }
-
-    const token = authHeader.split(' ')[1];
 
     if (!token) {
       return res.status(401).json({

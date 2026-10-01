@@ -57,7 +57,10 @@ exports.findAllPackages = async ({ status, search }) => {
     .order('created_at', { ascending: false });
 
   if (status) query = query.eq('status', status);
-  if (search) query = query.ilike('name', `%${search}%`);
+  if (search) {
+    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
+  }
 
   const { data: packages, error } = await query;
   if (error) throw error;

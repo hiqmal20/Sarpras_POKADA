@@ -32,17 +32,6 @@ const divisions = [
   "Academic", "Research", "Media & Dokumentasi",
 ];
 
-// ── Mock fallback ──
-const mockItem: ItemDetail = {
-  id: "1",
-  name: "Epson EB-X51 Projector",
-  description: "High-brightness XGA projector, ideal for clear and sharp presentations in medium to large meeting rooms. Includes HDMI and VGA connectivity.",
-  category: "Electronics",
-  asset_id: "PRJ-2023-04",
-  status: "available",
-  image: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=800&q=80",
-};
-
 function useMount() {
   const [m, setM] = useState(false);
   useEffect(() => { setM(true); }, []);
@@ -82,7 +71,8 @@ export default function ItemDetailPage() {
        if (res.status === "success" && res.data) {
          setItem(normalizeItem(res.data) as ItemDetail);
        } else {
-         setItem({ ...mockItem, id });
+         setItem(null);
+         setError("Barang tidak ditemukan di database.");
        }
        if (itemsRes.status === "success" && Array.isArray(itemsRes.data)) {
          setAvailableItems(itemsRes.data.map(normalizeItem).filter((entry) => entry.status === "available" && entry.id !== id) as ItemDetail[]);

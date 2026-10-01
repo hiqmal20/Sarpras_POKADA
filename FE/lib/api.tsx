@@ -12,34 +12,13 @@ export interface ApiResponse<T = any> {
   errors?: Array<{ field: string; message: string }>;
 }
 
-export const getAuthToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
-};
-
-export const setAuthToken = (token: string): void => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("token", token);
-  }
-};
-
-export const getRefreshToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("refreshToken");
-};
-
-export const setRefreshToken = (refreshToken: string): void => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("refreshToken", refreshToken);
-  }
-};
+export const getAuthToken = (): string | null => null;
+export const setAuthToken = (_token: string): void => {};
+export const getRefreshToken = (): string | null => null;
+export const setRefreshToken = (_refreshToken: string): void => {};
 
 export const removeAuthToken = (): void => {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-  }
+  if (typeof window !== "undefined") localStorage.removeItem("user");
 };
 
 export const getCurrentUser = (): any | null => {
@@ -96,15 +75,11 @@ async function apiFetch<T>(
     ...options.headers,
   };
 
-  const token = getAuthToken();
-  if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-  }
-
   try {
     const res = await fetch(url, {
       ...options,
       headers,
+      credentials: "include",
     });
 
     let data: ApiResponse<T>;
@@ -118,21 +93,16 @@ async function apiFetch<T>(
     }
 
     if (res.status === 401 && !isRetry && !endpoint.includes("/auth/")) {
-      const refreshToken = getRefreshToken();
-      if (refreshToken && !isRefreshing) {
+      if (!isRefreshing) {
         isRefreshing = true;
         try {
           const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }),
+            credentials: "include",
           });
           const refreshData = await refreshRes.json();
-          if (refreshData.status === "success" && refreshData.data?.token) {
-            setAuthToken(refreshData.data.token);
-            if (refreshData.data.refreshToken) {
-              setRefreshToken(refreshData.data.refreshToken);
-            }
+          if (refreshData.status === "success") {
             isRefreshing = false;
             return apiFetch<T>(endpoint, options, true);
           }
@@ -242,10 +212,9 @@ export const api = {
       try {
         const formData = new FormData();
         formData.append("photo", file);
-        const token = getAuthToken();
         const res = await fetch(`${API_BASE_URL}/users/${id}/photo`, {
           method: "POST",
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
           body: formData,
         });
         return await res.json();
@@ -255,12 +224,11 @@ export const api = {
     },
     delete: (id: string) => apiFetch(`/users/${id}`, { method: "DELETE" }),
     importCSV: async (file: File) => {
-      const token = getAuthToken();
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch(`${API_BASE_URL}/users/import`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
         body: formData,
       });
       return await res.json();
@@ -315,12 +283,11 @@ export const api = {
       apiFetch<any>(`/packages/${id}`, { method: "PUT", body: JSON.stringify(payload) }),
     delete: (id: string) => apiFetch(`/packages/${id}`, { method: "DELETE" }),
     importCSV: async (file: File) => {
-      const token = getAuthToken();
       const formData = new FormData();
       formData.append("file", file);
       const res = await fetch(`${API_BASE_URL}/packages/import`, {
         method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: "include",
         body: formData,
       });
       return await res.json();

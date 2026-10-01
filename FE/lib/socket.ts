@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { getAuthToken } from "./api";
+import { API_BASE_URL } from "./api";
 
 let socketInstance: Socket | null = null;
 const joinedChatRooms = new Set<string>();
@@ -43,33 +43,12 @@ export const leaveChatRoom = (chatId: string): void => {
 };
 
 export const getSocket = (): Socket | null => {
-  if (typeof window === "undefined") return null;
-
-  const token = getAuthToken();
-  if (!token) {
-    if (socketInstance) {
-      socketInstance.disconnect();
-      socketInstance = null;
-      joinedChatRooms.clear();
-    }
-    return null;
-  }
-
-  // Jika token berubah (misal ganti akun admin/user), reset koneksi dengan token baru
-  if (socketInstance) {
-    const currentToken = (socketInstance.auth as any)?.token;
-    if (currentToken && currentToken !== token) {
-      socketInstance.disconnect();
-      socketInstance = null;
-    } else if (socketInstance.connected) {
-      return socketInstance;
-    }
-  }
+  if (typeof window === "undefined" || typeof document === "undefined") return null;
 
   if (!socketInstance) {
     const socketUrl = getSocketUrl();
     socketInstance = io(socketUrl, {
-      auth: { token },
+      withCredentials: true,
       transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionAttempts: Infinity,
@@ -86,26 +65,10 @@ export const getSocket = (): Socket | null => {
     socketInstance.on("connect_error", (err) => {
       if (err.message?.includes("Authentication error")) {
         console.warn("⚠️ WebSocket authentication warning:", err.message);
-        // Coba perbarui token jika refreshToken tersedia
-        const refreshToken = typeof window !== "undefined" ? localStorage.getItem("refreshToken") : null;
-        if (refreshToken) {
-          fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ refreshToken }),
-          })
-            .then((r) => r.json())
-            .then((d) => {
-              if (d.status === "success" && d.data?.token) {
-                localStorage.setItem("token", d.data.token);
-                if (socketInstance) {
-                  socketInstance.auth = { token: d.data.token };
-                  socketInstance.connect();
-                }
-              }
-            })
-            .catch(() => {});
-        }
+        fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+        }).then(() => socketInstance?.connect()).catch(() => {});
       } else {
         console.warn("⚠️ WebSocket connection error:", err.message);
       }
@@ -115,18 +78,11 @@ export const getSocket = (): Socket | null => {
       console.log("🔌 WebSocket disconnected:", reason);
     });
 
-    // Kirim heartbeat agar status online tetap akurat saat koneksi tidak
-    // langsung memicu event disconnect (misalnya perangkat sleep/jaringan putus).
-    const heartbeat = window.setInterval(() => {
+    // Kirim heartbeat berkala agar status online tetap akurat
+    window.setInterval(() => {
       if (socketInstance?.connected) socketInstance.emit("presence_heartbeat");
     }, 15000);
-    // Jangan menghentikan heartbeat saat disconnect sementara. Socket.IO akan
-    // reconnect otomatis; interval tetap aktif dan mulai mengirim lagi setelah
-    // koneksi pulih. Jika interval dihentikan, koneksi hasil reconnect dapat
-    // dianggap offline oleh server setelah HEARTBEAT_TIMEOUT.
-    void heartbeat;
-  } else if (!socketInstance.connected) {
-    socketInstance.auth = { token };
+  } else if (socketInstance.disconnected) {
     socketInstance.connect();
   }
 
