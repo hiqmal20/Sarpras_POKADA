@@ -268,37 +268,34 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafcff] text-slate-900 selection:bg-[#0785BC]/20 font-sans antialiased overflow-x-hidden">
+    <div className="min-h-screen bg-[#fafcff] text-slate-900 selection:bg-[#0785BC]/20 font-sans antialiased overflow-x-hidden w-full max-w-full">
       {/* ── Ambient Background Glow (ChatGPT / AI Aesthetic) ── */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-gradient-to-b from-[#0785BC]/15 via-sky-300/10 to-transparent blur-3xl rounded-full opacity-70 animate-glow-pulse" />
-        <div className="absolute top-[800px] -left-40 w-[600px] h-[600px] bg-blue-100/30 blur-3xl rounded-full opacity-50" />
-        <div className="absolute top-[1600px] -right-40 w-[600px] h-[600px] bg-teal-100/30 blur-3xl rounded-full opacity-40" />
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden max-w-full">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] lg:w-[900px] h-[300px] sm:h-[500px] bg-gradient-to-b from-[#0785BC]/15 via-sky-300/10 to-transparent blur-3xl rounded-full opacity-70 animate-glow-pulse" />
+        <div className="absolute top-[800px] left-0 w-[240px] sm:w-[500px] h-[240px] sm:h-[500px] bg-blue-100/30 blur-3xl rounded-full opacity-50" />
+        <div className="absolute top-[1600px] right-0 w-[240px] sm:w-[500px] h-[240px] sm:h-[500px] bg-teal-100/30 blur-3xl rounded-full opacity-40" />
       </div>
 
       {/* ── Top Floating Notification Bar (Live System Status) ── */}
-      <div className="relative z-50 bg-[#0B132B] text-white py-2 px-4 text-xs font-medium border-b border-slate-800">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 truncate">
+      <div className="relative z-50 bg-[#0B132B] text-white py-2 px-3 sm:px-4 text-xs font-medium border-b border-slate-800 overflow-hidden">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
             <span className="flex h-2 w-2 relative shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-slate-300">
-              Portal Sarana & Prasarana Resmi <strong className="text-white">Politeknik Karya Husada (POKADA)</strong>
-            </span>
-            <span className="hidden md:inline-block text-slate-500">•</span>
-            <span className="hidden md:inline-block text-slate-400">
-              Terintegrasi Kampus Utama Gedung Atlanta Depok
+            <span className="text-slate-300 truncate text-[11px] sm:text-xs">
+              Portal Sarpras Resmi <strong className="text-white">POKADA</strong>
+              <span className="hidden sm:inline"> - Politeknik Karya Husada</span>
             </span>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0 text-[11px] text-slate-400">
+          <div className="flex items-center gap-2 shrink-0 text-[11px] text-slate-400">
             <a
               href="https://khj.ac.id"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-white transition-colors flex items-center gap-1"
+              className="hover:text-white transition-colors flex items-center gap-1 shrink-0"
             >
               khj.ac.id <ExternalLink className="w-3 h-3" />
             </a>
@@ -453,24 +450,24 @@ export default function LandingPage() {
       </header>
 
       {/* ── HERO SECTION (ChatGPT & n8n Inspired) ── */}
-      <section id="beranda" className="relative pt-12 pb-20 lg:pt-20 lg:pb-28 overflow-hidden">
+      <section id="beranda" className="relative pt-8 sm:pt-12 pb-14 sm:pb-20 lg:pt-20 lg:pb-28 overflow-hidden w-full">
         {/* Subtle n8n Workflow Background Grid Canvas */}
         <div className="absolute inset-0 bg-workflow-grid opacity-60 pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10">
-          <div className="grid lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 z-10 w-full min-w-0">
+          <div className="grid lg:grid-cols-12 gap-8 lg:gap-8 items-center w-full min-w-0">
             {/* Left: Text & Prompt-Style Search */}
-            <div className="lg:col-span-6 space-y-6 text-left">
+            <div className="lg:col-span-6 space-y-5 sm:space-y-6 text-left w-full min-w-0">
               {/* Pill Badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50/80 border border-blue-200/60 shadow-2xs text-[#0785BC] text-xs font-bold">
-                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#0785BC]" style={{ animationDuration: "6s" }} />
-                <span>Smart Campus Facilities Management</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0785BC]" />
-                <span className="text-slate-600 font-semibold">Gedung Atlanta</span>
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-blue-50/80 border border-blue-200/60 shadow-2xs text-[#0785BC] text-[11px] sm:text-xs font-bold max-w-full overflow-hidden">
+                <Sparkles className="w-3.5 h-3.5 animate-spin text-[#0785BC] shrink-0" style={{ animationDuration: "6s" }} />
+                <span className="truncate">Smart Campus Facilities</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#0785BC] shrink-0" />
+                <span className="text-slate-600 font-semibold shrink-0">Gedung Atlanta</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[54px] font-black tracking-tight text-slate-900 leading-[1.15]">
+              <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-black tracking-tight text-slate-900 leading-[1.15] break-words">
                 Pengelolaan Sarpras Kampus{" "}
                 <span className="bg-gradient-to-r from-[#0785BC] via-sky-600 to-teal-600 bg-clip-text text-transparent">
                   Cerdas & Otomatis.
@@ -478,40 +475,40 @@ export default function LandingPage() {
               </h1>
 
               {/* Subheading */}
-              <p className="text-slate-600 text-sm sm:text-base leading-relaxed max-w-xl">
+              <p className="text-slate-600 text-xs sm:text-base leading-relaxed max-w-xl">
                 Solusi satu pintu peminjaman sarana prasarana akademik di{" "}
                 <strong className="text-slate-800 font-bold">Politeknik Karya Husada (POKADA)</strong>.
                 Dari laboratorium keperawatan, data kesehatan, studio multimedia, hingga aula seminar kampus.
               </p>
 
               {/* ChatGPT Prompt-Style Quick Search Bar */}
-              <div className="bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 shadow-lg shadow-blue-500/5 transition-all focus-within:border-[#0785BC] focus-within:ring-3 focus-within:ring-[#0785BC]/15 max-w-xl">
-                <div className="flex items-center gap-2 px-2">
+              <div className="bg-white p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 shadow-lg shadow-blue-500/5 transition-all focus-within:border-[#0785BC] focus-within:ring-3 focus-within:ring-[#0785BC]/15 max-w-xl w-full">
+                <div className="flex items-center gap-1.5 sm:gap-2 px-1 sm:px-2 min-w-0">
                   <Search className="w-4 h-4 text-slate-400 shrink-0" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Cari alat praktikum, tensimeter, proyektor, aula..."
-                    className="w-full text-xs sm:text-sm bg-transparent border-0 focus:outline-none text-slate-800 placeholder:text-slate-400"
+                    placeholder="Cari alat praktikum, tensimeter, aula..."
+                    className="w-full min-w-0 flex-1 text-xs sm:text-sm bg-transparent border-0 focus:outline-none text-slate-800 placeholder:text-slate-400"
                   />
                   <button
                     onClick={() => handleScrollTo("katalog")}
-                    className="px-4 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold rounded-xl transition-all shrink-0 active:scale-95 shadow-xs"
+                    className="px-3 sm:px-4 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold rounded-xl transition-all shrink-0 active:scale-95 shadow-xs cursor-pointer"
                   >
                     Temukan
                   </button>
                 </div>
 
                 {/* Quick Chips */}
-                <div className="flex items-center gap-1.5 flex-wrap pt-2 px-2 border-t border-slate-100 mt-2 text-[11px] text-slate-400">
-                  <span className="font-semibold text-slate-500">Paling Dicari:</span>
+                <div className="flex items-center gap-1.5 flex-wrap pt-2 px-1 sm:px-2 border-t border-slate-100 mt-2 text-[11px] text-slate-400 min-w-0">
+                  <span className="font-semibold text-slate-500 shrink-0">Paling Dicari:</span>
                   <button
                     onClick={() => {
                       setSearchQuery("Tensimeter");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
                     🩺 Tensimeter
                   </button>
@@ -520,7 +517,7 @@ export default function LandingPage() {
                       setSearchQuery("Workstation");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
                     💻 Lab MIK
                   </button>
@@ -529,7 +526,7 @@ export default function LandingPage() {
                       setSearchQuery("Projector");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
                     📽️ Proyektor
                   </button>
@@ -538,7 +535,7 @@ export default function LandingPage() {
                       setSearchQuery("Aula");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors"
+                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
                     🏛️ Ruang Aula
                   </button>
@@ -546,45 +543,45 @@ export default function LandingPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
                 <Link
                   href="/auth/login"
-                  className="px-6 py-3 text-xs sm:text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center gap-2"
+                  className="w-full sm:w-auto px-6 py-3 text-xs sm:text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 text-center"
                 >
                   <Zap className="w-4 h-4 fill-white" />
                   Mulai Ajukan Pinjam
                 </Link>
                 <button
                   onClick={() => handleScrollTo("alur-kerja")}
-                  className="px-6 py-3 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-6 py-3 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer text-center"
                 >
                   Lihat Cara Kerja
                 </button>
               </div>
 
               {/* Campus Verified Telemetry Stats */}
-              <div className="pt-4 grid grid-cols-3 gap-4 border-t border-slate-200/70 max-w-lg">
-                <div>
-                  <p className="text-xl sm:text-2xl font-black text-[#0785BC]">500+</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Aset Kampus Aktif</p>
+              <div className="pt-4 grid grid-cols-3 gap-2 sm:gap-4 border-t border-slate-200/70 max-w-lg w-full">
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-black text-[#0785BC] truncate">500+</p>
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Aset Kampus</p>
                 </div>
-                <div>
-                  <p className="text-xl sm:text-2xl font-black text-[#0785BC]">4 Prodi</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Terintegrasi Sistem</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-black text-[#0785BC] truncate">4 Prodi</p>
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Terintegrasi</p>
                 </div>
-                <div>
-                  <p className="text-xl sm:text-2xl font-black text-emerald-600">100%</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Paperless & Valid</p>
+                <div className="min-w-0">
+                  <p className="text-lg sm:text-2xl font-black text-emerald-600 truncate">100%</p>
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">Valid & Paperless</p>
                 </div>
               </div>
             </div>
 
             {/* Right: n8n AI Animated Workflow Canvas Visualizer */}
-            <div className="lg:col-span-6 relative">
+            <div className="lg:col-span-6 relative w-full min-w-0">
               {/* Outer decorative card */}
-              <div className="relative rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/40 p-5 sm:p-6 border border-slate-200/90 shadow-2xl shadow-blue-500/10 backdrop-blur-md">
+              <div className="relative rounded-3xl bg-gradient-to-br from-white via-slate-50 to-blue-50/40 p-4 sm:p-6 border border-slate-200/90 shadow-2xl shadow-blue-500/10 backdrop-blur-md w-full min-w-0 overflow-hidden">
                 {/* Header of Canvas */}
-                <div className="flex items-center justify-between border-b border-slate-200/70 pb-3 mb-4">
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-3 mb-4 gap-2">
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block" />
@@ -592,7 +589,7 @@ export default function LandingPage() {
                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" />
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       Live Flow Active
@@ -601,7 +598,7 @@ export default function LandingPage() {
                 </div>
 
                 {/* Animated Workflow Flow Canvas */}
-                <div className="space-y-3.5 relative">
+                <div className="space-y-3 relative w-full min-w-0">
                   {/* Visual Node Connectors with SVG Animated Flow Line */}
                   <div className="absolute left-6 top-8 bottom-8 w-0.5 bg-slate-200 pointer-events-none hidden sm:block">
                     <div
@@ -617,15 +614,15 @@ export default function LandingPage() {
                       <div
                         key={node.step}
                         onClick={() => setActiveWorkflowStep(idx)}
-                        className={`relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-300 cursor-pointer ${
+                        className={`relative p-3 sm:p-4 rounded-2xl border transition-all duration-300 cursor-pointer w-full min-w-0 overflow-hidden ${
                           isActive
-                            ? "bg-white border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md translate-x-1 sm:translate-x-2"
+                            ? "bg-white border-[#0785BC] ring-2 ring-[#0785BC]/20 shadow-md sm:translate-x-1"
                             : "bg-white/70 border-slate-200/70 hover:bg-white hover:border-slate-300 shadow-2xs"
                         }`}
                       >
-                        <div className="flex items-start gap-3.5">
+                        <div className="flex items-start gap-2.5 sm:gap-3.5 min-w-0">
                           <div
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 font-bold transition-transform ${
+                            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0 font-bold transition-transform ${
                               isActive
                                 ? `bg-gradient-to-br ${node.color} text-white shadow-xs scale-105`
                                 : "bg-slate-100 text-slate-600"
@@ -635,12 +632,12 @@ export default function LandingPage() {
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-[10px] font-mono font-bold text-[#0785BC] uppercase tracking-wider">
+                            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+                              <span className="text-[10px] font-mono font-bold text-[#0785BC] uppercase tracking-wider truncate">
                                 {node.tag}
                               </span>
                               <span
-                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-md ${
+                                className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 ${
                                   isActive
                                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                     : "bg-slate-100 text-slate-500"
@@ -650,16 +647,16 @@ export default function LandingPage() {
                               </span>
                             </div>
 
-                            <p className="text-xs font-bold text-slate-900 mt-0.5">{node.title}</p>
+                            <p className="text-xs font-bold text-slate-900 mt-0.5 truncate">{node.title}</p>
                             <p className="text-[11px] text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">
                               {node.desc}
                             </p>
 
                             {isActive && (
-                              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-[#0785BC] font-semibold animate-fade-in">
-                                <span>Output: {node.output}</span>
-                                <span className="flex items-center gap-0.5">
-                                  Next Node &rarr;
+                              <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-[#0785BC] font-semibold animate-fade-in gap-2">
+                                <span className="truncate">Output: {node.output}</span>
+                                <span className="flex items-center gap-0.5 shrink-0">
+                                  Next &rarr;
                                 </span>
                               </div>
                             )}
@@ -671,12 +668,12 @@ export default function LandingPage() {
                 </div>
 
                 {/* Floating Interactive Telemetry Card (n8n Live Output preview) */}
-                <div className="mt-4 p-3 rounded-2xl bg-[#0B132B] text-white border border-slate-800 shadow-lg flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                <div className="mt-4 p-3 rounded-2xl bg-[#0B132B] text-white border border-slate-800 shadow-lg flex items-center justify-between gap-2.5 text-xs w-full min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
                     <div className="w-7 h-7 rounded-lg bg-[#0785BC] flex items-center justify-center shrink-0">
                       <QrCode className="w-4 h-4 text-white" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="font-bold text-white text-[11px] truncate">
                         Aset Siap: Tensimeter & Manekin CPR
                       </p>
@@ -685,7 +682,7 @@ export default function LandingPage() {
                       </p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                  <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
                     Terverifikasi
                   </span>
                 </div>
@@ -772,7 +769,7 @@ export default function LandingPage() {
           </div>
 
           {/* Category Filter Buttons */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 scrollbar-none w-full max-w-full">
             {categories.map((cat) => {
               const Icon = cat.icon;
               const isActive = activeTab === cat.id;
@@ -858,9 +855,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── BENTAR KAMPUS POKADA CTA BANNER ── */}
-      <section className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative rounded-3xl bg-gradient-to-r from-[#0785BC] via-[#066d9b] to-[#0B132B] p-8 sm:p-12 text-white overflow-hidden shadow-2xl">
+      <section className="py-12 bg-white w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
+          <div className="relative rounded-3xl bg-gradient-to-r from-[#0785BC] via-[#066d9b] to-[#0B132B] p-6 sm:p-12 text-white overflow-hidden shadow-2xl">
             <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-10 pointer-events-none bg-dot-grid-dark" />
             <div className="relative z-10 max-w-2xl space-y-4">
               <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-md inline-block">
@@ -872,10 +869,10 @@ export default function LandingPage() {
               <p className="text-blue-100 text-xs sm:text-sm leading-relaxed">
                 Manfaatkan inventaris laboratorium resmi, peralatan dokumentasi, hingga aula seminar untuk menunjang prestasi dan kelancaran kegiatan akademik Anda.
               </p>
-              <div className="pt-2 flex items-center gap-3">
+              <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-3 w-full">
                 <Link
                   href="/auth/login"
-                  className="px-6 py-3 text-xs sm:text-sm font-bold text-[#0785BC] bg-white hover:bg-slate-100 rounded-xl transition-all shadow-md active:scale-95"
+                  className="w-full sm:w-auto px-6 py-3 text-xs sm:text-sm font-bold text-[#0785BC] bg-white hover:bg-slate-100 rounded-xl transition-all shadow-md active:scale-95 text-center"
                 >
                   Ajukan Sekarang di Portal
                 </Link>
@@ -883,7 +880,7 @@ export default function LandingPage() {
                   href="https://pmbonline.khj.ac.id/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-5 py-3 text-xs sm:text-sm font-semibold text-white/90 hover:text-white border border-white/30 hover:border-white rounded-xl transition-all"
+                  className="w-full sm:w-auto px-5 py-3 text-xs sm:text-sm font-semibold text-white/90 hover:text-white border border-white/30 hover:border-white rounded-xl transition-all text-center"
                 >
                   PMB Online POKADA
                 </a>
@@ -940,8 +937,8 @@ export default function LandingPage() {
       </section>
 
       {/* ── FOOTER (ChatGPT & Claude Style: Clean, Sophisticated, Minimalist) ── */}
-      <footer className="bg-[#0A0F1D] text-slate-400 pt-16 pb-12 border-t border-slate-800/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="bg-[#0A0F1D] text-slate-400 pt-16 pb-12 border-t border-slate-800/80 w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 pb-14 border-b border-slate-800">
             {/* Col 1: Brand & Campus Bio (Colspan 2) */}
             <div className="lg:col-span-2 space-y-4">

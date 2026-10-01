@@ -95,8 +95,8 @@ export default function LoginPage() {
   `;
 
   return (
-    <main className="relative min-h-screen w-full overflow-hidden">
-      <div className="absolute inset-0">
+    <main className="relative min-h-screen min-h-dvh w-full overflow-y-auto overflow-x-hidden">
+      <div className="fixed inset-0">
         <img
           src="/images/background.png"
           alt="Background Sarpras"
@@ -104,18 +104,18 @@ export default function LoginPage() {
         />
       </div>
 
-      <div className="absolute inset-0 bg-slate-950/35" />
+      <div className="fixed inset-0 bg-slate-950/35" />
 
       <div
         className="
           pointer-events-none
-          absolute
+          fixed
           inset-0
           bg-[radial-gradient(circle_at_center,transparent_25%,rgba(15,23,42,0.12)_100%)]
         "
       />
 
-      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-8">
+      <div className="relative z-10 flex min-h-screen min-h-dvh items-center justify-center px-4 py-6 sm:py-8">
         <div className="w-full max-w-[365px]">
           <div
             className="
@@ -125,8 +125,10 @@ export default function LoginPage() {
               border
               border-white/45
               bg-white/45
-              px-8
-              py-7
+              px-6
+              py-6
+              sm:px-8
+              sm:py-7
               shadow-[0_20px_60px_rgba(0,0,0,0.32)]
               backdrop-blur-xl
             "

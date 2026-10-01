@@ -355,8 +355,8 @@ export default function SettingsPage() {
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="flex flex-col md:flex-row">
             {/* Sidebar Tabs */}
-            <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-slate-200/80 p-3 bg-slate-50/50">
-              <nav className="space-y-1">
+            <div className="w-full md:w-56 border-b md:border-b-0 md:border-r border-slate-200/80 p-2.5 sm:p-3 bg-slate-50/50 overflow-x-auto">
+              <nav className="flex md:flex-col gap-1 overflow-x-auto pb-1 md:pb-0">
                 {tabs.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
@@ -364,7 +364,7 @@ export default function SettingsPage() {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as SettingsTab)}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                      className={`flex items-center gap-2.5 px-3 py-2 sm:py-2.5 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 md:shrink transition-all ${
                         isActive
                           ? "bg-[#0785BC] text-white shadow-xs font-semibold"
                           : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"

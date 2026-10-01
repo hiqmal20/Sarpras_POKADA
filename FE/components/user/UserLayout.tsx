@@ -14,6 +14,7 @@ interface UserLayoutProps {
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
   fullWidth?: boolean;
+  hideMobileTabs?: boolean;
 }
 
 export default function UserLayout({
@@ -23,6 +24,7 @@ export default function UserLayout({
   searchPlaceholder,
   onSearchChange,
   fullWidth = false,
+  hideMobileTabs = false,
 }: UserLayoutProps) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -104,9 +106,11 @@ export default function UserLayout({
         </main>
 
         {/* Mobile bottom nav — ala ChatGPT/n8n app feel */}
-        <nav className="md:hidden shrink-0 border-t border-slate-200/80 bg-white/95 backdrop-blur px-2 py-2 dark:border-slate-800 dark:bg-[#111c30]/95">
-          <MobileTabs onOpenMenu={() => setMobileOpen(true)} />
-        </nav>
+        {!hideMobileTabs && (
+          <nav className="md:hidden shrink-0 border-t border-slate-200/80 bg-white/95 backdrop-blur px-2 py-2 dark:border-slate-800 dark:bg-[#111c30]/95">
+            <MobileTabs onOpenMenu={() => setMobileOpen(true)} />
+          </nav>
+        )}
       </div>
     </div>
   );

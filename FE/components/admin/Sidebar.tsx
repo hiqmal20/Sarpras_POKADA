@@ -16,6 +16,7 @@ import {
   Package,
   PanelLeftClose,
   PanelLeft,
+  X,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket } from "@/lib/socket";
@@ -34,9 +35,16 @@ interface NavGroup {
 interface SidebarProps {
   collapsed?: boolean;
   onToggleCollapse?: () => void;
+  onNavigate?: () => void;
+  onCloseMobile?: () => void;
 }
 
-export default function Sidebar({ collapsed = false, onToggleCollapse }: SidebarProps) {
+export default function Sidebar({
+  collapsed = false,
+  onToggleCollapse,
+  onNavigate,
+  onCloseMobile,
+}: SidebarProps) {
   const { t } = useLanguage();
   const pathname = usePathname();
 
@@ -137,8 +145,10 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
 
   return (
     <aside
-      className={`bg-white border-r border-slate-200 flex flex-col h-screen sticky top-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-30 shrink-0 select-none ${
-        collapsed ? "w-20" : "w-64"
+      className={`bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none ${
+        onCloseMobile
+          ? "h-full w-full"
+          : `h-screen sticky top-0 z-30 shrink-0 ${collapsed ? "w-20" : "w-64"}`
       }`}
     >
       {/* ── Header: Logo Resmi POKADA dari landing page ── */}
@@ -173,19 +183,29 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
           </div>
         )}
 
-        <button
-          onClick={onToggleCollapse}
-          className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
-            collapsed ? "hidden" : "block"
-          }`}
-          title={t("admin.nav.collapse", "Kecilkan Sidebar")}
-        >
-          <PanelLeftClose className="w-4 h-4" />
-        </button>
+        {onCloseMobile ? (
+          <button
+            onClick={onCloseMobile}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors md:hidden"
+            title="Tutup Menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        ) : onToggleCollapse ? (
+          <button
+            onClick={onToggleCollapse}
+            className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors ${
+              collapsed ? "hidden" : "block"
+            }`}
+            title={t("admin.nav.collapse", "Kecilkan Sidebar")}
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
+        ) : null}
       </div>
 
       {/* When collapsed, toggle button on top bar */}
-      {collapsed && (
+      {collapsed && !onCloseMobile && (
         <div className="pt-2 px-3 pb-1 flex justify-center">
           <button
             onClick={onToggleCollapse}
@@ -216,6 +236,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      onClick={onNavigate}
                       title={collapsed ? item.label : undefined}
                       className={`group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
                         collapsed ? "justify-center" : ""
@@ -256,6 +277,7 @@ export default function Sidebar({ collapsed = false, onToggleCollapse }: Sidebar
       <div className="p-3 border-t border-slate-100 bg-slate-50/50">
         <Link
           href="/admin/profile"
+          onClick={onNavigate}
           className={`flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white hover:shadow-2xs transition-all ${
             collapsed ? "justify-center" : ""
           }`}

@@ -343,7 +343,7 @@ export default function BarangPage() {
             <p className="text-xs text-slate-500 mt-0.5">Kelola seluruh data aset fisik, kuantitas stok satuan, dan status operasional.</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowExportModal(true)}
               className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
@@ -430,7 +430,7 @@ export default function BarangPage() {
               <h2 className="text-sm font-bold text-slate-900 tracking-tight">Daftar Inventaris Barang</h2>
               <p className="text-[11px] text-slate-500 mt-0.5">Menampilkan {filteredItems.length} barang terdaftar</p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-slate-500 font-medium">Filter Kategori:</span>
                 <select

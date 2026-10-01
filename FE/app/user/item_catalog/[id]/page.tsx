@@ -147,7 +147,7 @@ export default function ItemDetailPage() {
   return (
     <div className="min-h-screen bg-[#eef2f9] text-slate-800">
       {/* ── Minimal topbar ── */}
-      <header className="bg-white border-b border-slate-100 px-8 py-4 sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-100 px-4 sm:px-8 py-4 sticky top-0 z-10">
         <Link
           href="/user/item_catalog"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0785BC] hover:text-[#0672a0] transition-colors"
@@ -157,9 +157,9 @@ export default function ItemDetailPage() {
         </Link>
       </header>
 
-      <div className={`max-w-[1120px] mx-auto px-5 sm:px-8 py-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+      <div className={`max-w-[1120px] mx-auto px-4 sm:px-8 py-6 sm:py-8 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-slate-900">{tr("catdetail.title", "Detail Barang")}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{tr("catdetail.title", "Detail Barang")}</h1>
           <p className="text-sm text-slate-500 mt-1">{tr("catdetail.subtitle", "Periksa barang dan lengkapi formulir pengajuan peminjaman.")}</p>
         </div>
 
@@ -180,7 +180,7 @@ export default function ItemDetailPage() {
               </div>
             )}
 
-            <div className="p-7">
+            <div className="p-4 sm:p-7">
               {loading ? (
                 <div className="space-y-2">
                   <div className="h-4 bg-slate-100 rounded animate-pulse w-1/3" />
@@ -210,7 +210,7 @@ export default function ItemDetailPage() {
           </div>
 
           {/* ── Request Form ── */}
-          <div className="w-full bg-white rounded-3xl shadow-sm p-7">
+          <div className="w-full bg-white rounded-3xl shadow-sm p-4 sm:p-7">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <p className="text-xs font-semibold text-[#0785BC] uppercase">{tr("catdetail.summary", "Ringkasan Peminjaman")}</p>
@@ -241,7 +241,7 @@ export default function ItemDetailPage() {
               </div>
 
               {/* Tanggal Mulai & Selesai */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-semibold text-slate-700 mb-1.5 block">
                     {tr("catdetail.start", "Tanggal Mulai")}

@@ -17,6 +17,7 @@ import {
   X,
   Clock3,
   CircleDot,
+  ArrowLeft,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket, joinChatRoom, leaveChatRoom } from "@/lib/socket";
@@ -831,10 +832,10 @@ export default function UserMessagesPage() {
   );
 
   return (
-    <UserLayout fullWidth={true} showSearch={false}>
+    <UserLayout fullWidth={true} showSearch={false} hideMobileTabs={Boolean(activeId)}>
       <div className="flex min-w-0 h-full min-h-[32rem] flex-col overflow-hidden bg-white lg:flex-row">
         {/* ── Left Pane: Conversation List ── */}
-        <div className="w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-80 lg:h-full lg:w-80 lg:border-b-0 lg:border-r">
+        <div className={`w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-full lg:w-80 lg:border-b-0 lg:border-r ${activeId ? "hidden lg:flex" : "flex"}`}>
           {/* Header */}
           <div className="p-4 border-b border-slate-100">
             <div className="flex items-center justify-between mb-3">
@@ -921,10 +922,18 @@ export default function UserMessagesPage() {
         </div>
 
         {/* ── Right Pane: Chat Window ── */}
-        <div className="flex-1 flex flex-col h-full bg-[#f8faff] min-w-0">
+        <div className={`flex-1 flex flex-col h-full bg-[#f8faff] min-w-0 ${activeId ? "flex" : "hidden lg:flex"}`}>
           {/* Chat Header */}
-          <div className="h-16 px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="h-16 px-4 sm:px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <button
+                type="button"
+                onClick={() => setActiveId(null)}
+                className="lg:hidden p-1.5 -ml-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors shrink-0"
+                title="Kembali ke daftar pesan"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
               <div className="w-10 h-10 rounded-xl bg-[#0785BC] text-white flex items-center justify-center shrink-0 shadow-xs shadow-[#0785BC]/20">
                 <Shield className="w-5 h-5" />
               </div>
@@ -987,7 +996,7 @@ export default function UserMessagesPage() {
           </div>
 
           {/* Messages Bubble Scroll Area */}
-          <div className="flex-1 p-6 overflow-y-auto space-y-4">
+          <div className="flex-1 p-3 sm:p-5 overflow-y-auto space-y-3 sm:space-y-4">
             {loadingMessages ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin text-[#0785BC] mb-2" />
@@ -1015,7 +1024,7 @@ export default function UserMessagesPage() {
                   return (
                     <React.Fragment key={m.id || index}>
                       {showDateBadge && (
-                        <div className="flex justify-center my-2 sticky top-1 z-10 select-none">
+                        <div className="w-full flex justify-center my-2 sticky top-1 z-10 select-none">
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-500 bg-white shadow-2xs border border-slate-200/80">
                             {formatChatDateBadge(m.rawDate)}
                           </span>
@@ -1222,7 +1231,7 @@ export default function UserMessagesPage() {
           </div>
 
           {/* Chat Input Bar */}
-          <div className="p-4 bg-white border-t border-slate-100 shrink-0">
+          <div className="p-2.5 sm:p-4 bg-white border-t border-slate-100 shrink-0">
             <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto">
               <input
                 type="text"
@@ -1234,15 +1243,15 @@ export default function UserMessagesPage() {
                     handleSend();
                   }
                 }}
-                placeholder="Tulis pesan ke admin sarpras... (Tekan Enter untuk kirim)"
+                placeholder="Tulis pesan ke admin..."
                 disabled={sending || !activeId}
-                className="flex-1 px-4 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all text-slate-800 placeholder-slate-400"
+                className="flex-1 min-w-0 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all text-slate-800 placeholder-slate-400"
               />
 
               <button
                 type="submit"
                 disabled={!input.trim() || sending || !activeId}
-                className="px-5 py-2.5 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-2xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                className="px-3.5 sm:px-5 py-2 sm:py-2.5 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-2xl font-semibold text-xs sm:text-sm flex items-center gap-2 shadow-xs transition-all disabled:opacity-50 cursor-pointer shrink-0"
               >
                 {sending ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

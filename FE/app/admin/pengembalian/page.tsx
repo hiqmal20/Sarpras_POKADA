@@ -404,7 +404,7 @@ export default function PengembalianPage() {
               Pantau jadwal jatuh tempo, proses konfirmasi pengembalian barang, dan telusuri riwayat riil.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={fetchData}
               disabled={loading}
