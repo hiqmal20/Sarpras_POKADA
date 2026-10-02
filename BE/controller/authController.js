@@ -92,8 +92,16 @@ exports.changePassword = async (req, res, next) => {
 // Logout
 exports.logout = async (req, res, next) => {
   try {
+    const clearOpts = {
+      ...cookieOptions,
+      maxAge: 0,
+      expires: new Date(0)
+    };
+    res.cookie('access_token', '', clearOpts);
+    res.cookie('refresh_token', '', clearOpts);
     res.clearCookie('access_token', cookieOptions);
     res.clearCookie('refresh_token', cookieOptions);
+    res.setHeader('Clear-Site-Data', '"cookies", "storage"');
     return sendSuccess(res, 'Berhasil logout', null, 200);
   } catch (err) {
     next(err);

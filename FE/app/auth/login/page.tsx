@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,7 +10,7 @@ import {
   EyeOff,
   IdCard,
 } from "lucide-react";
-import { api, setCurrentUser } from "@/lib/api";
+import { api, setCurrentUser, removeAuthToken } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,6 +21,31 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    removeAuthToken();
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      sessionStorage.setItem("logged_out", "true");
+    } catch {}
+    api.auth.logout().catch(() => {});
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("reason") === "timeout") {
+        setErrorMessage("Sesi Anda telah berakhir demi keamanan karena tidak ada aktivitas. Silakan masuk kembali.");
+      }
+
+      // Kunci riwayat agar tombol back browser tidak dapat kembali ke halaman sesi lama
+      window.history.pushState(null, "", window.location.href);
+      const handlePopState = () => {
+        window.history.pushState(null, "", window.location.href);
+      };
+      window.addEventListener("popstate", handlePopState);
+      return () => window.removeEventListener("popstate", handlePopState);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

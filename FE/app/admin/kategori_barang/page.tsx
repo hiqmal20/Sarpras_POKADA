@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
+import { toast } from "@/components/Toast";
 
 interface Category {
   id: string;
@@ -448,25 +449,31 @@ export default function KategoriBarangPage() {
   }, [categories, search, sortBy]);
 
   async function handleSave(data: { name: string; description: string }) {
+    if (!data.name.trim()) {
+      toast.warning("Nama kategori wajib diisi.", "Validasi Input");
+      return;
+    }
+
     if (modal.item) {
       const res = await api.categories.update(modal.item.id, data);
       if (res.status === "success") {
+        toast.success(`Kategori "${data.name}" berhasil diperbarui!`, "Berhasil Disimpan");
         setCategories((prev) =>
           prev.map((c) => (c.id === modal.item!.id ? { ...c, ...data } : c))
         );
+      } else {
+        toast.error(res.message || "Gagal memperbarui data kategori.", "Pembaruan Gagal");
       }
     } else {
       const res = await api.categories.create(data);
       if (res.status === "success" && res.data) {
+        toast.success(`Kategori "${data.name}" berhasil ditambahkan!`, "Berhasil Dibuat");
         setCategories((prev) => [
           ...prev,
           { ...(res.data as Category), item_count: 0 },
         ]);
       } else {
-        setCategories((prev) => [
-          ...prev,
-          { id: Date.now().toString(), ...data, item_count: 0 },
-        ]);
+        toast.error(res.message || "Gagal menambahkan kategori.", "Pembuatan Gagal");
       }
     }
     setModal({ open: false });
@@ -475,10 +482,15 @@ export default function KategoriBarangPage() {
   async function handleDeleteConfirm() {
     if (!deleteTarget) return;
     try {
-      await api.categories.delete(deleteTarget.id);
-      setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      const res = await api.categories.delete(deleteTarget.id);
+      if (res.status === "success") {
+        toast.success(`Kategori "${deleteTarget.name}" berhasil dihapus.`, "Berhasil Dihapus");
+        setCategories((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      } else {
+        toast.error(res.message || "Gagal menghapus kategori.", "Relasi Kategori Terikat");
+      }
     } catch (err: any) {
-      alert("Gagal menghapus kategori: " + (err.message || err));
+      toast.error(err.message || "Kategori tidak dapat dihapus karena masih digunakan oleh barang aktif.", "Relasi Kategori Terikat");
     } finally {
       setDeleteTarget(null);
     }

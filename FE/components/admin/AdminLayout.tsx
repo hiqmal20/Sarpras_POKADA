@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import api, { getAuthToken, getCurrentUser, isPrivilegedUser } from "@/lib/api";
+import api, { getAuthToken, getCurrentUser, isPrivilegedUser, removeAuthToken } from "@/lib/api";
 import { disconnectSocket, getSocket } from "@/lib/socket";
 import { useLanguage } from "@/lib/i18n";
 
@@ -42,22 +42,67 @@ export default function AdminLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    api.auth.getProfile().then((res) => {
-      if (res.status === "success" && res.data?.user) {
-        const u = res.data.user;
-        const role = (u.role || "").toLowerCase();
-        if (role !== "admin" && role !== "petugas") {
-          router.replace("/user/dashboard");
-        } else {
-          setAuthorized(true);
-        }
-      } else {
-        router.replace("/auth/login");
+    let isMounted = true;
+
+    const checkAuth = async () => {
+      if (!getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
+        setAuthorized(false);
+        window.location.replace("/auth/login");
+        return;
       }
-    }).catch(() => {
-      router.replace("/auth/login");
-    });
-  }, [router]);
+
+      try {
+        const res = await api.auth.getProfile();
+        if (!isMounted) return;
+        if (res.status === "success" && res.data?.user) {
+          const u = res.data.user;
+          const role = (u.role || "").toLowerCase();
+          if (role !== "admin" && role !== "petugas") {
+            setAuthorized(false);
+            window.location.replace("/user/dashboard");
+          } else {
+            setAuthorized(true);
+          }
+        } else {
+          setAuthorized(false);
+          window.location.replace("/auth/login");
+        }
+      } catch {
+        if (!isMounted) return;
+        setAuthorized(false);
+        window.location.replace("/auth/login");
+      }
+    };
+
+    checkAuth();
+
+    // Prevent restoring stale authorized state via Chrome Back/Forward Cache (bfcache)
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted || !getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
+        setAuthorized(false);
+        window.location.replace("/auth/login");
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        if (!getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
+          setAuthorized(false);
+          window.location.replace("/auth/login");
+        }
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("focus", handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      isMounted = false;
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("focus", handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -95,14 +140,16 @@ export default function AdminLayout({
       } catch {}
 
       const ms = minutes * 60 * 1000;
-      timeoutId = setTimeout(() => {
-        alert(t("admin.nav.session_timeout", `Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`));
+      timeoutId = setTimeout(async () => {
         try {
           disconnectSocket();
-          api.auth.logout();
+          await api.auth.logout();
         } catch {}
+        removeAuthToken();
         localStorage.clear();
-        window.location.href = "/auth/login?reason=timeout";
+        sessionStorage.clear();
+        sessionStorage.setItem("logged_out", "true");
+        window.location.replace("/auth/login?reason=timeout");
       }, ms);
     };
 

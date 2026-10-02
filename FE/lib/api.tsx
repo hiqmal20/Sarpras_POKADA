@@ -93,6 +93,15 @@ async function apiFetch<T>(
     }
 
     if (res.status === 401 && !isRetry && !endpoint.includes("/auth/")) {
+      // Cegah auto-refresh jika user sudah logout atau session telah dihapus
+      if (typeof window !== "undefined") {
+        if (!localStorage.getItem("user") || sessionStorage.getItem("logged_out") === "true") {
+          return {
+            status: "fail",
+            message: "Sesi Anda telah berakhir. Silakan login kembali.",
+          };
+        }
+      }
       if (!isRefreshing) {
         isRefreshing = true;
         try {
@@ -117,14 +126,25 @@ async function apiFetch<T>(
     if (!res.ok) {
       if (res.status === 401 && typeof window !== "undefined") {
         removeAuthToken();
+        try {
+          localStorage.removeItem("user");
+          sessionStorage.clear();
+        } catch {}
         if (!window.location.pathname.startsWith("/auth/")) {
-          window.location.href = "/auth/login";
+          window.location.replace("/auth/login");
         }
+      }
+      let errMessage = data?.message || `Permintaan gagal (HTTP ${res.status})`;
+      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+        errMessage = data.errors
+          .map((e: any) => (typeof e === "string" ? e : e.message || e.field || ""))
+          .filter(Boolean)
+          .join(". ");
       }
       return {
         ...data,
         status: data?.status && data.status !== "success" ? data.status : "error",
-        message: data?.message || `Permintaan gagal (HTTP ${res.status})`,
+        message: errMessage,
       };
     }
 
@@ -158,6 +178,11 @@ export const api = {
 
     login: (payload: { email: string; nomor_induk: string; password: string }) => {
       removeAuthToken();
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem("logged_out");
+        } catch {}
+      }
       return apiFetch<{ user: any; token: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -187,9 +212,18 @@ export const api = {
       }),
 
     logout: async () => {
-      const result = await apiFetch("/auth/logout", { method: "POST" });
+      try {
+        await apiFetch("/auth/logout", { method: "POST" });
+      } catch {}
       removeAuthToken();
-      return result;
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          sessionStorage.setItem("logged_out", "true");
+        } catch {}
+      }
+      return { status: "success", message: "Berhasil logout" };
     },
   },
 

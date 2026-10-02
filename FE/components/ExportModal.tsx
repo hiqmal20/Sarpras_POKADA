@@ -23,6 +23,7 @@ import {
   filterDataByDateRange,
   downloadStructuredTemplate,
 } from "@/lib/exportUtils";
+import { toast } from "@/components/Toast";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -111,13 +112,14 @@ export default function ExportModal({
           ? filteredItems.map(dataRowMapper)
           : filteredItems;
 
-        exportDataset(filenamePrefix, moduleName, rows, selectedFormat);
-        onClose();
-      }
-    } catch (err: any) {
-      console.error("Gagal melakukan ekspor:", err);
-      alert("Terjadi kesalahan saat memproses ekspor data: " + (err.message || err));
-    } finally {
+      exportDataset(filenamePrefix, moduleName, rows, selectedFormat);
+      toast.success(`Data ${moduleName} berhasil diekspor ke format ${selectedFormat.toUpperCase()}!`, "Ekspor Berhasil");
+      onClose();
+    }
+  } catch (err: any) {
+    console.error("Gagal melakukan ekspor:", err);
+    toast.error(err.message || "Terjadi kesalahan saat memproses ekspor data.", "Ekspor Gagal");
+  } finally {
       setExporting(false);
     }
   };
@@ -172,13 +174,16 @@ export default function ExportModal({
         const fail = res.failed ?? (res.data?.failed?.length || 0);
         setImportSummary({ success: succ, failed: fail });
         if (fail === 0) {
+          toast.success(`Seluruh ${succ} data berhasil diimpor!`, "Impor Selesai");
           setTimeout(() => {
             onClose();
           }, 1500);
+        } else {
+          toast.warning(`Impor selesai: ${succ} data masuk, ${fail} data gagal/duplikat.`, "Sebagian Gagal");
         }
       }
     } catch (err: any) {
-      alert("Gagal memproses impor: " + (err.message || err));
+      toast.error(err.message || "Gagal memproses impor berkas.", "Impor Gagal");
     } finally {
       setImporting(false);
     }

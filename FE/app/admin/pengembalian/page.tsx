@@ -22,6 +22,7 @@ import {
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
+import { toast } from "@/components/Toast";
 
 interface ReturnItemDetail {
   id: string;
@@ -375,9 +376,10 @@ export default function PengembalianPage() {
       });
       setConfirmingId(null);
       setConfirmNote("");
+      toast.success("Pengembalian fisik berhasil diverifikasi dan stok telah dipulihkan!", "Barang Kembali");
       await fetchData();
     } catch (err: any) {
-      alert("Gagal memproses pengembalian: " + (err.message || err));
+      toast.error(err.message || "Gagal memproses verifikasi pengembalian.", "Gagal");
     } finally {
       setActionLoading(false);
     }

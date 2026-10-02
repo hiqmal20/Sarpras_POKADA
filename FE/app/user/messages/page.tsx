@@ -14,6 +14,7 @@ import {
   Trash2,
   MoreVertical,
   ChevronDown,
+  Reply,
   X,
   Clock3,
   CircleDot,
@@ -21,9 +22,18 @@ import {
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket, joinChatRoom, leaveChatRoom } from "@/lib/socket";
-import { formatChatDateBadge, isDifferentDay, formatLastSeen } from "@/lib/chatHelper";
+import {
+  formatChatDateBadge,
+  isDifferentDay,
+  formatLastSeen,
+  parseMessageContent,
+  formatReplyMessage,
+  getCleanMessagePreview,
+  ReplyInfo,
+} from "@/lib/chatHelper";
 import { UserLayout } from "@/components/user";
 import { useLanguage } from "@/lib/i18n";
+import { toast } from "@/components/Toast";
 
 interface Conversation {
   id: string;
@@ -69,6 +79,8 @@ export default function UserMessagesPage() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ReplyInfo | null>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   const activeIdRef = useRef<string | null>(null);
   activeIdRef.current = activeId;
@@ -360,7 +372,13 @@ export default function UserMessagesPage() {
                 message.id.startsWith("temp-") &&
                 !merged.some((item) => item.text === message.text)
             );
-            const next = [...merged, ...pending];
+            const combined = [...merged, ...pending];
+            const seen = new Set<string>();
+            const next = combined.filter((m) => {
+              if (!m.id || seen.has(m.id)) return false;
+              seen.add(m.id);
+              return true;
+            });
             const changed =
               next.length !== previous.length ||
               next.some(
@@ -386,6 +404,7 @@ export default function UserMessagesPage() {
   useEffect(() => {
     if (!activeId) return;
 
+    setReplyingTo(null);
     joinChatRoom(activeId);
     fetchMessages(false);
 
@@ -449,7 +468,11 @@ export default function UserMessagesPage() {
         };
 
         setMessages((prev) => {
-          if (prev.some((m) => String(m.id) === formatted.id)) return prev;
+          if (prev.some((m) => String(m.id) === formatted.id)) {
+            return prev.filter(
+              (m) => !(m.id.startsWith("temp-") && m.text === formatted.text)
+            );
+          }
           const tempIdx = prev.findIndex(
             (m) => m.id.startsWith("temp-") && m.text === formatted.text
           );
@@ -717,24 +740,44 @@ export default function UserMessagesPage() {
     const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
       if (!data?.message) return;
       const realMsg = data.message;
-      setMessages((prev) =>
-        prev.map((m) =>
-          (data.tempId && m.id === data.tempId) || (m.id.startsWith("temp-") && m.text === realMsg.message)
-            ? {
-                ...m,
-                id: String(realMsg.id),
-                rawDate: realMsg.created_at || m.rawDate,
-                time: realMsg.created_at
-                  ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : m.time,
-                isRead: Boolean(realMsg.is_read),
-              }
-            : m
-        )
-      );
+      const realId = String(realMsg.id);
+
+      setMessages((prev) => {
+        const alreadyExists = prev.some((m) => m.id === realId);
+        if (alreadyExists) {
+          return prev.filter(
+            (m) =>
+              !(
+                (data.tempId && m.id === data.tempId) ||
+                (m.id.startsWith("temp-") && m.text === realMsg.message)
+              )
+          );
+        }
+
+        let replaced = false;
+        return prev.map((m) => {
+          if (
+            !replaced &&
+            ((data.tempId && m.id === data.tempId) ||
+              (m.id.startsWith("temp-") && m.text === realMsg.message))
+          ) {
+            replaced = true;
+            return {
+              ...m,
+              id: realId,
+              rawDate: realMsg.created_at || m.rawDate,
+              time: realMsg.created_at
+                ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : m.time,
+              isRead: Boolean(realMsg.is_read),
+            };
+          }
+          return m;
+        });
+      });
     };
 
     socket.on("message_sent", handleMessageSent);
@@ -828,6 +871,8 @@ export default function UserMessagesPage() {
     const text = input.trim();
     if (!text || !activeId || sending) return;
 
+    const fullText = replyingTo ? formatReplyMessage(replyingTo, text) : text;
+    setReplyingTo(null);
     setSending(true);
     setInput("");
 
@@ -844,7 +889,7 @@ export default function UserMessagesPage() {
       isMe: true,
       senderName: currentUser?.name || "Saya",
       senderRole: "user",
-      text,
+      text: fullText,
       rawDate: nowIso,
       time: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
       isRead: false,
@@ -862,13 +907,37 @@ export default function UserMessagesPage() {
       if (socket && socket.connected) {
         socket.emit("send_message", {
           chatId: activeId,
-          message: text,
+          message: fullText,
           tempId,
         });
       } else {
-        const result = await api.chats.sendMessage(activeId, { message: text });
+        const result = await api.chats.sendMessage(activeId, { message: fullText });
         if (result.status !== "success") {
           setMessages((prev) => prev.filter((message) => message.id !== tempId));
+        } else if (result.data) {
+          const realId = String(result.data.id);
+          setMessages((prev) => {
+            const alreadyExists = prev.some((m) => m.id === realId);
+            if (alreadyExists) {
+              return prev.filter((m) => m.id !== tempId);
+            }
+            return prev.map((m) =>
+              m.id === tempId
+                ? {
+                    ...m,
+                    id: realId,
+                    rawDate: result.data.created_at || m.rawDate,
+                    time: result.data.created_at
+                      ? new Date(result.data.created_at).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : m.time,
+                    isRead: Boolean(result.data.is_read),
+                  }
+                : m
+            );
+          });
         }
       }
     } catch (err) {
@@ -878,28 +947,44 @@ export default function UserMessagesPage() {
     }
   };
 
+  const handleStartReply = (m: Message) => {
+    const parsed = parseMessageContent(m.text);
+    setReplyingTo({
+      id: m.id,
+      senderName: m.isMe ? "Anda" : m.senderName,
+      text: parsed.text,
+    });
+    setEditingMessageId(null);
+    setOpenMessageMenu(null);
+    setTimeout(() => messageInputRef.current?.focus(), 50);
+  };
+
   const handleEditMessage = async (message: Message) => {
     if (!activeId || !editingText.trim()) return;
     const newText = editingText.trim();
+    const parsed = parseMessageContent(message.text);
+    const finalEditedText = parsed.replyTo
+      ? formatReplyMessage(parsed.replyTo, newText)
+      : newText;
     try {
-      const res = await api.chats.updateMessage(activeId, message.id, newText);
+      const res = await api.chats.updateMessage(activeId, message.id, finalEditedText);
       if (res.status === "success") {
         setMessages((prev) =>
-          prev.map((item) => (item.id === message.id ? { ...item, text: newText } : item))
+          prev.map((item) => (item.id === message.id ? { ...item, text: finalEditedText } : item))
         );
         const socket = getSocket();
         if (socket?.connected) {
           socket.emit("edit_message", {
             chatId: activeId,
             messageId: message.id,
-            message: newText,
+            message: finalEditedText,
           });
         }
         setEditingMessageId(null);
         setEditingText("");
       }
     } catch (err: any) {
-      alert("Gagal mengedit pesan: " + (err.message || err));
+      toast.error(err.message || "Gagal mengedit pesan.", "Gagal");
     }
   };
 
@@ -915,7 +1000,7 @@ export default function UserMessagesPage() {
         }
       }
     } catch (err: any) {
-      alert("Gagal menghapus pesan: " + (err.message || err));
+      toast.error(err.message || "Gagal menghapus pesan.", "Gagal");
     }
   };
 
@@ -932,9 +1017,10 @@ export default function UserMessagesPage() {
         setConversations(remaining);
         setActiveId(remaining[0]?.id || null);
         setMessages([]);
+        toast.success("Percakapan berhasil dihapus.", "Dihapus");
       }
     } catch (err: any) {
-      alert("Gagal menghapus percakapan: " + (err.message || err));
+      toast.error(err.message || "Gagal menghapus percakapan.", "Gagal");
     }
   };
 
@@ -1020,7 +1106,7 @@ export default function UserMessagesPage() {
                           {conv.time}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 truncate">{conv.preview}</p>
+                      <p className="text-xs text-slate-500 truncate">{getCleanMessagePreview(conv.preview)}</p>
                     </div>
 
                     {conv.unread && (
@@ -1127,22 +1213,36 @@ export default function UserMessagesPage() {
                 </p>
               </div>
             ) : (
-              messages.map((m, index) => {
-                const showDateBadge =
-                  index === 0 || isDifferentDay(m.rawDate, messages[index - 1]?.rawDate);
+              messages
+                .filter((m, idx, arr) => arr.findIndex((item) => item.id === m.id) === idx)
+                .sort((a, b) => new Date(a.rawDate || 0).getTime() - new Date(b.rawDate || 0).getTime())
+                .map((m, index, arr) => {
+                  const showDateBadge =
+                    index === 0 || isDifferentDay(m.rawDate, arr[index - 1]?.rawDate);
+                  const parsed = parseMessageContent(m.text);
 
-                if (m.isMe) {
-                  // User's own message (right side)
-                  return (
-                    <React.Fragment key={m.id || index}>
+                  if (m.isMe) {
+                    // User's own message (right side)
+                    return (
+                      <React.Fragment key={m.id ? `msg-${m.id}` : `idx-${index}`}>
                       {showDateBadge && (
-                        <div className="w-full flex justify-center my-2 sticky top-1 z-10 select-none">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-500 bg-white shadow-2xs border border-slate-200/80">
+                        <div className="w-full flex justify-center my-3 select-none">
+                          <span className="px-3 py-1 rounded-full text-[11px] font-medium text-slate-500 bg-slate-100/90 shadow-2xs border border-slate-200/80">
                             {formatChatDateBadge(m.rawDate)}
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-end items-end gap-1.5 group/bubble">
+                      <div id={`msg-${m.id}`} className="flex justify-end items-end gap-1.5 group/bubble transition-all">
+                        {!editingMessageId && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartReply(m)}
+                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1"
+                            title="Balas pesan ini"
+                          >
+                            <Reply className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <div
                           className={`relative w-fit max-w-[min(26rem,82vw)] bg-[#0785BC] text-white rounded-2xl rounded-tr-xs shadow-xs transition-all ${
                             editingMessageId === m.id
@@ -1150,6 +1250,29 @@ export default function UserMessagesPage() {
                               : "pl-3.5 pr-7 py-2"
                           }`}
                         >
+                          {/* Quoted Message Preview inside Bubble */}
+                          {parsed.replyTo && (
+                            <div
+                              onClick={() => {
+                                const target = document.getElementById(`msg-${parsed.replyTo?.id}`);
+                                if (target) {
+                                  target.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  target.classList.add("ring-2", "ring-sky-400", "rounded-2xl");
+                                  setTimeout(() => target.classList.remove("ring-2", "ring-sky-400", "rounded-2xl"), 1500);
+                                }
+                              }}
+                              className="mb-1.5 px-2.5 py-1.5 rounded-lg border-l-[3px] border-white bg-black/20 text-white text-left cursor-pointer transition-opacity hover:opacity-90 select-none"
+                            >
+                              <div className="text-[10px] font-bold text-white flex items-center gap-1">
+                                <Reply className="w-2.5 h-2.5" />
+                                <span>{parsed.replyTo.senderName}</span>
+                              </div>
+                              <p className="text-[11px] text-white/80 truncate mt-0.5">
+                                {parsed.replyTo.text}
+                              </p>
+                            </div>
+                          )}
+
                           {editingMessageId === m.id ? (
                             <div className="flex flex-col gap-2 w-full">
                               <span className="text-[11px] font-medium text-white/90">
@@ -1187,7 +1310,7 @@ export default function UserMessagesPage() {
                             <>
                               <div className="flex flex-wrap items-end justify-end gap-x-2 gap-y-0.5">
                                 <p className="text-xs sm:text-[13px] whitespace-pre-wrap leading-relaxed break-words">
-                                  {m.text}
+                                  {parsed.text}
                                 </p>
                                 <div className="flex items-center gap-1 text-[10px] text-white/80 font-mono select-none shrink-0 self-end ml-auto pb-0.5">
                                   <span>{m.time}</span>
@@ -1253,10 +1376,20 @@ export default function UserMessagesPage() {
                                     >
                                       <button
                                         type="button"
+                                        onClick={() => handleStartReply(m)}
+                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
+                                      >
+                                        <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover/item:bg-[#0785BC]/15 group-hover/item:text-[#0785BC] transition-colors">
+                                          <Reply className="h-3 w-3" />
+                                        </div>
+                                        <span>Balas</span>
+                                      </button>
+                                      <button
+                                        type="button"
                                         onClick={() => {
                                           setOpenMessageMenu(null);
                                           setEditingMessageId(m.id);
-                                          setEditingText(m.text);
+                                          setEditingText(parsed.text);
                                         }}
                                         className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
                                       >
@@ -1293,15 +1426,15 @@ export default function UserMessagesPage() {
 
                 // Admin's message (left side)
                 return (
-                  <React.Fragment key={m.id || index}>
+                  <React.Fragment key={m.id ? `msg-${m.id}` : `idx-${index}`}>
                     {showDateBadge && (
-                      <div className="flex justify-center my-2 sticky top-1 z-10 select-none">
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-500 bg-white shadow-2xs border border-slate-200/80">
+                      <div className="w-full flex justify-center my-3 select-none">
+                        <span className="px-3 py-1 rounded-full text-[11px] font-medium text-slate-500 bg-slate-100/90 shadow-2xs border border-slate-200/80">
                           {formatChatDateBadge(m.rawDate)}
                         </span>
                       </div>
                     )}
-                    <div className="flex items-start gap-2.5 max-w-[min(26rem,82vw)]">
+                    <div id={`msg-${m.id}`} className="flex items-start gap-2.5 max-w-[min(26rem,82vw)] group/bubble transition-all">
                       <div className="w-7 h-7 rounded-full bg-[#0785BC] text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 shadow-xs">
                         A
                       </div>
@@ -1315,9 +1448,31 @@ export default function UserMessagesPage() {
                           </span>
                         </div>
                         <div className="w-fit max-w-full bg-white border border-slate-200/80 text-slate-800 rounded-2xl rounded-tl-xs px-3.5 py-2 shadow-xs">
+                          {/* Quoted Message Preview inside Bubble */}
+                          {parsed.replyTo && (
+                            <div
+                              onClick={() => {
+                                const target = document.getElementById(`msg-${parsed.replyTo?.id}`);
+                                if (target) {
+                                  target.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  target.classList.add("ring-2", "ring-sky-400", "rounded-2xl");
+                                  setTimeout(() => target.classList.remove("ring-2", "ring-sky-400", "rounded-2xl"), 1500);
+                                }
+                              }}
+                              className="mb-1.5 px-2.5 py-1.5 rounded-lg border-l-[3px] border-[#0785BC] bg-slate-100/90 text-slate-800 text-left cursor-pointer transition-opacity hover:opacity-90 select-none"
+                            >
+                              <div className="text-[10px] font-bold text-[#0785BC] flex items-center gap-1">
+                                <Reply className="w-2.5 h-2.5" />
+                                <span>{parsed.replyTo.senderName}</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                                {parsed.replyTo.text}
+                              </p>
+                            </div>
+                          )}
                           <div className="flex flex-wrap items-end justify-end gap-x-2.5 gap-y-0.5">
                             <p className="text-xs sm:text-[13px] whitespace-pre-wrap leading-relaxed break-words">
-                              {m.text}
+                              {parsed.text}
                             </p>
                             <span className="text-[10px] text-slate-400 select-none shrink-0 self-end ml-auto font-mono pb-0.5">
                               {m.time}
@@ -1325,6 +1480,14 @@ export default function UserMessagesPage() {
                           </div>
                         </div>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => handleStartReply(m)}
+                        className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 self-center"
+                        title="Balas pesan ini"
+                      >
+                        <Reply className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </React.Fragment>
                 );
@@ -1344,8 +1507,30 @@ export default function UserMessagesPage() {
 
           {/* Chat Input Bar */}
           <div className="p-2.5 sm:p-4 bg-white border-t border-slate-100 shrink-0">
+            {replyingTo && (
+              <div className="max-w-4xl mx-auto mb-2 flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/90 border-l-4 border-[#0785BC] rounded-r-xl shadow-2xs animate-in fade-in slide-in-from-bottom-1 duration-150">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0785BC]">
+                    <Reply className="w-3 h-3" />
+                    <span>Membalas {replyingTo.senderName}</span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                    {replyingTo.text}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setReplyingTo(null)}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition-colors"
+                  title="Batal membalas"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
             <form onSubmit={handleSend} className="flex items-center gap-2 max-w-4xl mx-auto">
               <input
+                ref={messageInputRef}
                 type="text"
                 value={input}
                 onChange={(e) => handleInputChange(e.target.value)}
@@ -1354,8 +1539,11 @@ export default function UserMessagesPage() {
                     e.preventDefault();
                     handleSend();
                   }
+                  if (e.key === "Escape" && replyingTo) {
+                    setReplyingTo(null);
+                  }
                 }}
-                placeholder="Tulis pesan ke admin..."
+                placeholder={replyingTo ? `Balas ke ${replyingTo.senderName}...` : "Tulis pesan ke admin..."}
                 disabled={sending || !activeId}
                 className="flex-1 min-w-0 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all text-slate-800 placeholder-slate-400"
               />

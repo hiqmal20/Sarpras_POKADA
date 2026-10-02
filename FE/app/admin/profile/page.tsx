@@ -20,6 +20,7 @@ import {
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n";
+import { toast } from "@/components/Toast";
 
 export default function ProfilePage() {
   const { t } = useLanguage();
@@ -84,7 +85,7 @@ export default function ProfilePage() {
         setCurrentUser(updated);
         localStorage.setItem("user", JSON.stringify(updated));
         window.dispatchEvent(new Event("user-updated"));
-        alert(t("admin_profile.photo_ok", "Foto profil berhasil diperbarui!"));
+        toast.success(t("admin_profile.photo_ok", "Foto profil berhasil diperbarui!"), "Profil Diperbarui");
       } else {
         // Simpan via DataURL base64 langsung ke users table jika bucket storage tidak aktif
         const reader = new FileReader();
@@ -98,7 +99,7 @@ export default function ProfilePage() {
           try {
             await api.users.update(currentUser.id, { foto: base64Data });
           } catch {}
-          alert(t("admin_profile.photo_saved", "Foto profil berhasil disimpan!"));
+          toast.success(t("admin_profile.photo_saved", "Foto profil berhasil disimpan!"), "Profil Disimpan");
         };
         reader.readAsDataURL(file);
       }
@@ -115,7 +116,7 @@ export default function ProfilePage() {
         try {
           await api.users.update(currentUser.id, { foto: base64Data });
         } catch {}
-        alert(t("admin_profile.photo_saved", "Foto profil berhasil disimpan!"));
+        toast.success(t("admin_profile.photo_saved", "Foto profil berhasil disimpan!"), "Profil Disimpan");
       };
       reader.readAsDataURL(file);
     } finally {

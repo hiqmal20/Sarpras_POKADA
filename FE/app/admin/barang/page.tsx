@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
+import { toast } from "@/components/Toast";
 
 interface Category {
   id: string;
@@ -210,15 +211,15 @@ export default function BarangPage() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      alert("Nama barang wajib diisi.");
+      toast.warning("Nama barang wajib diisi sesuai inventaris fisik.", "Validasi Input");
       return;
     }
     if (!formData.code.trim()) {
-      alert("Kode inventaris barang wajib diisi.");
+      toast.warning("Kode inventaris barang wajib diisi untuk penomoran aset.", "Validasi Input");
       return;
     }
     if (!formData.category_id || formData.category_id.trim() === "") {
-      alert("Kategori barang belum dipilih. Silakan pilih kategori barang terlebih dahulu sebelum menyimpan.");
+      toast.warning("Silakan pilih kategori barang terlebih dahulu sebelum menyimpan.", "Kategori Belum Dipilih");
       return;
     }
 
@@ -247,24 +248,26 @@ export default function BarangPage() {
       if (editingId) {
         const res = await api.items.update(editingId, payload);
         if (res.status === "success") {
+          toast.success(`Data barang "${payload.name}" berhasil diperbarui!`, "Berhasil Disimpan");
           await fetchData();
           setShowModal(false);
           resetForm();
         } else {
-          alert("Gagal memperbarui barang: " + (res.message || "Terjadi kesalahan"));
+          toast.error(res.message || "Gagal memperbarui barang.", "Pembaruan Gagal");
         }
       } else {
         const res = await api.items.create(payload);
         if (res.status === "success") {
+          toast.success(`Barang baru "${payload.name}" berhasil ditambahkan ke inventaris!`, "Berhasil Ditambahkan");
           await fetchData();
           setShowModal(false);
           resetForm();
         } else {
-          alert("Gagal menambah barang: " + (res.message || "Terjadi kesalahan"));
+          toast.error(res.message || "Gagal menambah barang.", "Penyimpanan Gagal");
         }
       }
     } catch (err: any) {
-      alert("Terjadi kesalahan: " + (err?.message || "Error"));
+      toast.error(err?.message || "Terjadi kesalahan pada sistem.", "Error");
     } finally {
       setSaving(false);
     }
@@ -275,12 +278,13 @@ export default function BarangPage() {
     try {
       const res = await api.items.delete(id);
       if (res.status === "success") {
+        toast.success("Barang berhasil dihapus dari inventaris.", "Berhasil Dihapus");
         setItems((prev) => prev.filter((item) => item.id !== id));
       } else {
-        alert("Gagal menghapus: " + (res.message || "Error"));
+        toast.error(res.message || "Gagal menghapus barang.", "Gagal Menghapus");
       }
     } catch (err: any) {
-      alert("Gagal menghapus barang: " + err.message);
+      toast.error(err.message || "Gagal menghapus barang dari inventaris.", "Gagal Menghapus");
     }
   };
 

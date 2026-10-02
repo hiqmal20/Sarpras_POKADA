@@ -113,3 +113,51 @@ export function formatLastSeen(
   });
   return { text: lang === "en" ? `Last seen ${dateFormatted} at ${timeStr}` : `Terakhir dilihat ${dateFormatted} pukul ${timeStr}`, isOnline: false };
 }
+
+export interface ReplyInfo {
+  id: string;
+  senderName: string;
+  text: string;
+}
+
+export function parseMessageContent(rawText?: string | null): {
+  replyTo: ReplyInfo | null;
+  text: string;
+} {
+  if (!rawText) return { replyTo: null, text: "" };
+
+  const match = rawText.match(/^\[reply:(\{.*?\})\]\n?([\s\S]*)$/);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (parsed && typeof parsed === "object") {
+        return {
+          replyTo: {
+            id: String(parsed.id || ""),
+            senderName: String(parsed.senderName || "Pesan"),
+            text: String(parsed.text || ""),
+          },
+          text: match[2] || "",
+        };
+      }
+    } catch (_) {
+      // Fallback normal
+    }
+  }
+
+  return { replyTo: null, text: rawText };
+}
+
+export function formatReplyMessage(replyTo: ReplyInfo, actualText: string): string {
+  const cleanSnippet = replyTo.text.length > 120 ? replyTo.text.slice(0, 117) + "..." : replyTo.text;
+  const replyMeta: ReplyInfo = {
+    id: replyTo.id,
+    senderName: replyTo.senderName,
+    text: cleanSnippet.replace(/[\r\n]+/g, " "),
+  };
+  return `[reply:${JSON.stringify(replyMeta)}]\n${actualText}`;
+}
+
+export function getCleanMessagePreview(rawText?: string | null): string {
+  return parseMessageContent(rawText).text;
+}

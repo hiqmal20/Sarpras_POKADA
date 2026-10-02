@@ -27,6 +27,7 @@ import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
+import { toast } from "@/components/Toast";
 import { getNotificationTargetUrl } from "@/lib/notificationHelper";
 
 interface DashboardStats {
@@ -284,8 +285,9 @@ export default function DashboardAdminPage() {
           },
         });
       }
+      toast.success("Peminjaman berhasil divalidasi dan disetujui!", "Peminjaman Aktif");
     } catch (err) {
-      alert("Gagal menyetujui peminjaman: " + (err as Error).message);
+      toast.error((err as Error).message || "Gagal menyetujui peminjaman.", "Gagal Validasi");
     } finally {
       setActionLoading(null);
     }
@@ -306,8 +308,9 @@ export default function DashboardAdminPage() {
           },
         });
       }
+      toast.info("Peminjaman telah ditolak.", "Peminjaman Ditolak");
     } catch (err) {
-      alert("Gagal menolak peminjaman: " + (err as Error).message);
+      toast.error((err as Error).message || "Gagal menolak peminjaman.", "Gagal");
     } finally {
       setActionLoading(null);
     }

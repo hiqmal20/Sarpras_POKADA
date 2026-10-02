@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import api from "./api";
+import { toast } from "@/components/Toast";
 
 export type DateRangeFilter = "today" | "7days" | "30days" | "1year" | "custom" | "all";
 export type ExportFormat = "xlsx" | "csv";
@@ -129,7 +130,7 @@ export function exportDataset(
   format: ExportFormat = "xlsx"
 ): void {
   if (!rows || rows.length === 0) {
-    alert("Tidak ada data yang sesuai dengan filter untuk diekspor.");
+    toast.warning("Tidak ada data yang sesuai dengan filter untuk diekspor.", "Data Kosong");
     return;
   }
 
@@ -390,7 +391,7 @@ export async function exportComprehensiveSystemArchive(
   const totalRows = borrowingRows.length + returnRows.length + combinedInventoryRows.length + damageRows.length + userRows.length;
 
   if (totalRows === 0) {
-    alert("Tidak ada data riil ditemukan dalam rentang waktu yang dipilih.");
+    toast.warning("Tidak ada data riil ditemukan dalam rentang waktu yang dipilih.", "Data Kosong");
     return { success: false, totalRows: 0 };
   }
 

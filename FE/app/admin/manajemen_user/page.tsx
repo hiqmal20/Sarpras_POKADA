@@ -22,6 +22,7 @@ import {
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
+import { toast } from "@/components/Toast";
 
 interface User {
   id: string;
@@ -159,13 +160,17 @@ export default function ManajemenUserPage() {
         const fail = res.data?.failed?.length || 0;
         setImportSummary({ success: succ, failed: fail });
         await fetchUsers();
-        alert(res.message || `Import selesai: ${succ} berhasil, ${fail} gagal`);
-        if (fail === 0) setShowImportModal(false);
+        if (fail === 0) {
+          toast.success(`Import selesai: seluruh ${succ} data pengguna berhasil ditambahkan!`, "Import Berhasil");
+          setShowImportModal(false);
+        } else {
+          toast.warning(`Import selesai: ${succ} berhasil, ${fail} baris data gagal atau duplikat.`, "Sebagian Gagal");
+        }
       } else {
-        alert("Gagal memproses import CSV: " + (res.message || "Error"));
+        toast.error(res.message || "Gagal memproses import data CSV.", "Import Gagal");
       }
     } catch (err: any) {
-      alert("Terjadi kesalahan: " + (err.message || err));
+      toast.error(err.message || "Terjadi kesalahan saat memproses berkas CSV.", "Gagal");
     } finally {
       setImporting(false);
     }
@@ -244,48 +249,64 @@ export default function ManajemenUserPage() {
 
   const handleSaveUser = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.name.trim()) {
+      toast.warning("Nama lengkap pengguna wajib diisi.", "Validasi Input");
+      return;
+    }
+    if (!formData.email.trim()) {
+      toast.warning("Alamat email pengguna wajib diisi.", "Validasi Input");
+      return;
+    }
+    if (!formData.nomor_induk.trim()) {
+      toast.warning("Nomor Induk (NIM / NIP) wajib diisi untuk identitas sivitas kampus.", "Validasi Input");
+      return;
+    }
+
     setSaving(true);
 
     try {
       if (editingUser) {
         // Edit User
         const payload: any = {
-          name: formData.name,
-          nomor_induk: formData.nomor_induk,
+          name: formData.name.trim(),
+          nomor_induk: formData.nomor_induk.trim(),
           role: formData.role,
-          no_hp: formData.no_hp,
+          no_hp: formData.no_hp.trim(),
           status: formData.status,
         };
         const res = await api.users.update(editingUser.id, payload);
         if (res.status === "success") {
+          toast.success(`Data pengguna "${payload.name}" berhasil diperbarui!`, "Berhasil Disimpan");
           await fetchUsers();
           setShowModal(false);
           resetForm();
         } else {
-          alert("Gagal memperbarui pengguna: " + (res.message || "Error"));
+          toast.error(res.message || "Gagal memperbarui data pengguna.", "Pembaruan Gagal");
         }
       } else {
         // Add New User
         const payload = {
-          name: formData.name,
-          email: formData.email,
-          nomor_induk: formData.nomor_induk,
+          name: formData.name.trim(),
+          email: formData.email.trim(),
+          nomor_induk: formData.nomor_induk.trim(),
           role: formData.role,
-          no_hp: formData.no_hp,
+          no_hp: formData.no_hp.trim(),
           password: formData.password || "Pokada@123",
           status: formData.status,
         };
         const res = await api.users.create(payload);
         if (res.status === "success") {
+          toast.success(`Pengguna baru "${payload.name}" berhasil didaftarkan!`, "Pendaftaran Berhasil");
           await fetchUsers();
           setShowModal(false);
           resetForm();
         } else {
-          alert("Gagal menambahkan pengguna: " + (res.message || "Error"));
+          toast.error(res.message || "Gagal menambahkan akun pengguna baru.", "Pendaftaran Gagal");
         }
       }
     } catch (err: any) {
-      alert("Terjadi kesalahan: " + (err?.message || "Error"));
+      toast.error(err?.message || "Terjadi kesalahan saat menyimpan data pengguna.", "Error");
     } finally {
       setSaving(false);
     }
@@ -297,13 +318,14 @@ export default function ManajemenUserPage() {
     try {
       const res = await api.users.delete(id);
       if (res.status === "success") {
+        toast.success(`Pengguna "${name}" berhasil dihapus dari sistem.`, "Berhasil Dihapus");
         setUsers((prev) => prev.filter((u) => u.id !== id));
         setTotal((t) => Math.max(0, t - 1));
       } else {
-        alert("Gagal menghapus pengguna: " + (res.message || "Error"));
+        toast.error(res.message || "Gagal menghapus pengguna.", "Relasi Akun Terikat");
       }
     } catch (err: any) {
-      alert("Gagal menghapus pengguna: " + err.message);
+      toast.error(err.message || "Pengguna tidak dapat dihapus karena masih memiliki riwayat transaksi/peminjaman aktif.", "Relasi Akun Terikat");
     }
   };
 
@@ -787,10 +809,14 @@ export default function ManajemenUserPage() {
             await fetchUsers();
             const succ = res.data?.success?.length || 0;
             const fail = res.data?.failed?.length || 0;
-            alert(res.message || `Import selesai: ${succ} berhasil, ${fail} gagal`);
+            if (fail === 0) {
+              toast.success(`Import selesai: ${succ} data pengguna berhasil diimpor!`, "Import Berhasil");
+            } else {
+              toast.warning(`Import selesai: ${succ} berhasil, ${fail} baris gagal/duplikat.`, "Sebagian Berhasil");
+            }
             return { success: succ, failed: fail };
           } else {
-            alert("Gagal impor CSV pengguna: " + (res.message || "Error"));
+            toast.error(res.message || "Gagal impor CSV pengguna.", "Import Gagal");
             return { success: 0, failed: 1 };
           }
         }}

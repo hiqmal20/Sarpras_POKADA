@@ -205,12 +205,16 @@ export default function Navbar({
     router.push(targetUrl);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm(t("admin.nav.logout_confirm", "Apakah Anda yakin ingin logout?"))) {
-      // Putuskan socket lebih dulu agar server langsung mengirim status offline.
-      disconnectSocket();
+      try {
+        disconnectSocket();
+        await api.auth.logout();
+      } catch {}
       removeAuthToken();
-      router.push("/auth/login");
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("/auth/login");
     }
   };
 

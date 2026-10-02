@@ -223,11 +223,16 @@ export default function UserNavbar({
     router.push(getNotificationTargetUrl(notif, false));
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm(tr("nav.logout_confirm", "Apakah Anda yakin ingin logout?"))) {
-      disconnectSocket();
+      try {
+        disconnectSocket();
+        await api.auth.logout();
+      } catch {}
       removeAuthToken();
-      router.push("/auth/login");
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.replace("/auth/login");
     }
   };
 

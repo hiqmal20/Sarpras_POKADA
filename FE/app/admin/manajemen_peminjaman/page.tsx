@@ -23,6 +23,7 @@ import * as XLSX from "xlsx";
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
+import { toast } from "@/components/Toast";
 
 type StatusFilter = "semua" | "pending" | "active" | "overdue" | "completed";
 
@@ -396,8 +397,9 @@ export default function ManajemenPeminjamanPage() {
       if (selectedBorrowing?.id === id) {
         setSelectedBorrowing((prev) => prev ? { ...prev, status: "active", raw_status: "Dipinjam", admin_note: note || prev.admin_note } : null);
       }
+      toast.success("Pengajuan peminjaman berhasil disetujui!", "Peminjaman Aktif");
     } catch (err: any) {
-      alert("Gagal menyetujui: " + err.message);
+      toast.error(err.message || "Gagal menyetujui peminjaman.", "Gagal Validasi");
     } finally {
       setActionLoading(false);
     }
@@ -413,8 +415,9 @@ export default function ManajemenPeminjamanPage() {
       if (selectedBorrowing?.id === id) {
         setSelectedBorrowing((prev) => prev ? { ...prev, status: "rejected", raw_status: "Ditolak", admin_note: reason } : null);
       }
+      toast.info("Pengajuan peminjaman telah ditolak.", "Peminjaman Ditolak");
     } catch (err: any) {
-      alert("Gagal menolak: " + err.message);
+      toast.error(err.message || "Gagal memproses penolakan peminjaman.", "Gagal");
     } finally {
       setActionLoading(false);
     }
@@ -430,7 +433,7 @@ export default function ManajemenPeminjamanPage() {
 
     const pendingItems = borrowings.filter((b) => b.status === "pending");
     if (pendingItems.length === 0) {
-      alert("Tidak ada peminjaman berstatus pending yang perlu divalidasi.");
+      toast.info("Tidak ada peminjaman berstatus pending yang perlu divalidasi.", "Sudah Bersih");
       return;
     }
 
@@ -439,13 +442,14 @@ export default function ManajemenPeminjamanPage() {
         await api.borrowings.updateStatus(item.id, { status: "Dipinjam" });
       }
       await fetchData();
+      toast.success(`${pendingItems.length} peminjaman berhasil divalidasi sekaligus!`, "Validasi Massal");
     }
   }
 
   // Functional Export to Excel
   function handleExport() {
     if (borrowings.length === 0) {
-      alert("Tidak ada data peminjaman untuk diekspor.");
+      toast.warning("Tidak ada data peminjaman untuk diekspor ke Excel.", "Data Kosong");
       return;
     }
 

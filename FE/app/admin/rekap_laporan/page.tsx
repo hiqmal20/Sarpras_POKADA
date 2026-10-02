@@ -28,6 +28,7 @@ import {
 import api, { getCurrentUser } from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
+import { toast } from "@/components/Toast";
 
 type ReportStatus = "pending" | "in_progress" | "resolved";
 
@@ -462,15 +463,15 @@ export default function RekapLaporanPage() {
   const handleCreateReport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.user_id) {
-      alert("Silakan pilih peminjam / pelapor terlebih dahulu.");
+      toast.warning("Silakan pilih peminjam / pelapor terlebih dahulu.", "Pelapor Belum Dipilih");
       return;
     }
     if (!formData.item_id && !formData.package_id) {
-      alert("Silakan pilih barang atau paket yang mengalami kerusakan.");
+      toast.warning("Silakan pilih barang atau paket yang mengalami kerusakan.", "Aset Belum Dipilih");
       return;
     }
     if (!formData.title.trim()) {
-      alert("Judul masalah wajib diisi.");
+      toast.warning("Judul laporan / ringkasan masalah wajib diisi.", "Validasi Input");
       return;
     }
 
@@ -510,12 +511,12 @@ export default function RekapLaporanPage() {
         setBorrowingSearch("");
         setUserSearch("");
         setItemSearch("");
-        alert("Laporan kerusakan berhasil dibuat dan dicatat!");
+        toast.success("Laporan kerusakan berhasil dicatat dalam rekapitulasi sarpras.", "Laporan Dibuat");
       } else {
-        alert("Gagal membuat laporan: " + (res.message || "Error"));
+        toast.error(res.message || "Gagal mencatat laporan kerusakan.", "Penyimpanan Gagal");
       }
     } catch (err: any) {
-      alert("Terjadi kesalahan: " + (err?.message || "Error"));
+      toast.error(err?.message || "Terjadi kesalahan saat memproses laporan.", "Error");
     } finally {
       setSaving(false);
     }
@@ -565,12 +566,12 @@ export default function RekapLaporanPage() {
       const res = await api.damageReports.updateStatus(row.id, payload);
       if (res.status === "success" || res.data) {
         await fetchData();
-        alert("Laporan berhasil diselesaikan! Status kini Selesai dan detail riwayat dapat dilihat.");
+        toast.success(`Laporan "${row.title}" berhasil diselesaikan dan ditutup!`, "Status Selesai");
       } else {
-        alert("Gagal menyelesaikan laporan: " + (res.message || "Error"));
+        toast.error(res.message || "Gagal menyelesaikan laporan.", "Gagal");
       }
     } catch (err: any) {
-      alert("Terjadi kesalahan: " + (err?.message || "Error"));
+      toast.error(err?.message || "Terjadi kesalahan saat menyelesaikan status laporan.", "Error");
     }
   };
 
@@ -608,12 +609,12 @@ export default function RekapLaporanPage() {
       if (res.status === "success") {
         await fetchData();
         setActionReport(null);
-        alert("Status dan denda laporan berhasil diperbarui!");
+        toast.success("Status penanganan dan rincian denda berhasil diperbarui!", "Data Disimpan");
       } else {
-        alert("Gagal memperbarui laporan: " + (res.message || "Error"));
+        toast.error(res.message || "Gagal memperbarui data laporan.", "Pembaruan Gagal");
       }
     } catch (err: any) {
-      alert("Terjadi kesalahan: " + (err?.message || "Error"));
+      toast.error(err?.message || "Terjadi kesalahan saat menyimpan perubahan laporan.", "Error");
     } finally {
       setSubmittingAction(false);
     }

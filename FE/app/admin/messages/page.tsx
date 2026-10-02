@@ -10,15 +10,26 @@ import {
   RotateCcw,
   Check,
   CheckCheck,
+  Clock3,
   Pencil,
   MoreVertical,
+  Reply,
   X,
   ArrowLeft,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket, joinChatRoom, leaveChatRoom } from "@/lib/socket";
-import { formatChatDateBadge, isDifferentDay, formatLastSeen } from "@/lib/chatHelper";
+import { toast } from "@/components/Toast";
+import {
+  formatChatDateBadge,
+  isDifferentDay,
+  formatLastSeen,
+  parseMessageContent,
+  formatReplyMessage,
+  getCleanMessagePreview,
+  ReplyInfo,
+} from "@/lib/chatHelper";
 
 interface Message {
   id: string;
@@ -60,6 +71,8 @@ export default function MessagesPage() {
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
   const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ReplyInfo | null>(null);
+  const messageInputRef = useRef<HTMLInputElement>(null);
 
   const selectedConvRef = useRef<Conversation | null>(null);
   selectedConvRef.current = selectedConversation;
@@ -257,7 +270,13 @@ export default function MessagesPage() {
             const tempMsgs = prev.filter(
               (p) => p.id.startsWith("temp-") && !merged.some((m) => m.text === p.text)
             );
-            return [...merged, ...tempMsgs];
+            const combined = [...merged, ...tempMsgs];
+            const seen = new Set<string>();
+            return combined.filter((m) => {
+              if (!m.id || seen.has(m.id)) return false;
+              seen.add(m.id);
+              return true;
+            });
           });
 
           if (isInitial) {
@@ -315,7 +334,11 @@ export default function MessagesPage() {
       };
 
       setMessages((prev) => {
-        if (prev.some((m) => String(m.id) === formattedMsg.id)) return prev;
+        if (prev.some((m) => String(m.id) === formattedMsg.id)) {
+          return prev.filter(
+            (m) => !(m.id.startsWith("temp-") && m.text === formattedMsg.text)
+          );
+        }
         const tempIndex = prev.findIndex(
           (m) =>
             m.id.startsWith("temp-") &&
@@ -534,24 +557,44 @@ export default function MessagesPage() {
     const handleMessageSent = (data: { success: boolean; tempId?: string; message: any }) => {
       if (!data?.message) return;
       const realMsg = data.message;
-      setMessages((prev) =>
-        prev.map((m) =>
-          (data.tempId && m.id === data.tempId) || (m.id.startsWith("temp-") && m.text === realMsg.message)
-            ? {
-                ...m,
-                id: String(realMsg.id),
-                rawDate: realMsg.created_at || m.rawDate,
-                timestamp: realMsg.created_at
-                  ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : m.timestamp,
-                isRead: Boolean(realMsg.is_read),
-              }
-            : m
-        )
-      );
+      const realId = String(realMsg.id);
+
+      setMessages((prev) => {
+        const alreadyExists = prev.some((m) => m.id === realId);
+        if (alreadyExists) {
+          return prev.filter(
+            (m) =>
+              !(
+                (data.tempId && m.id === data.tempId) ||
+                (m.id.startsWith("temp-") && m.text === realMsg.message)
+              )
+          );
+        }
+
+        let replaced = false;
+        return prev.map((m) => {
+          if (
+            !replaced &&
+            ((data.tempId && m.id === data.tempId) ||
+              (m.id.startsWith("temp-") && m.text === realMsg.message))
+          ) {
+            replaced = true;
+            return {
+              ...m,
+              id: realId,
+              rawDate: realMsg.created_at || m.rawDate,
+              timestamp: realMsg.created_at
+                ? new Date(realMsg.created_at).toLocaleTimeString("id-ID", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : m.timestamp,
+              isRead: Boolean(realMsg.is_read),
+            };
+          }
+          return m;
+        });
+      });
     };
 
     const handleSocketError = (err: any) => {
@@ -641,6 +684,7 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (conv: Conversation) => {
     setSelectedConversation(conv);
+    setReplyingTo(null);
     setConversations((prev) =>
       prev.map((c) => (c.id === conv.id ? { ...c, unread: false } : c))
     );
@@ -669,8 +713,9 @@ export default function MessagesPage() {
       setConversations((prev) =>
         prev.map((c) => (c.id === chatId ? { ...c, lastMessage: "(Riwayat dibersihkan)" } : c))
       );
+      toast.success("Riwayat pesan berhasil dibersihkan.", "Riwayat Bersih");
     } catch (err: any) {
-      alert("Gagal membersihkan riwayat pesan: " + (err.message || err));
+      toast.error(err.message || "Gagal membersihkan riwayat pesan.", "Gagal");
     }
   };
 
@@ -696,33 +741,49 @@ export default function MessagesPage() {
         }
         return remaining;
       });
+      toast.success("Percakapan berhasil dihapus.", "Dihapus");
     } catch (err: any) {
-      alert("Gagal menghapus percakapan: " + (err.message || err));
+      toast.error(err.message || "Gagal menghapus percakapan.", "Gagal");
     }
   };
 
   const handleSaveEditMessage = async (msg: Message) => {
     if (!selectedConversation || !editingText.trim()) return;
     const newText = editingText.trim();
+    const parsed = parseMessageContent(msg.text);
+    const finalEditedText = parsed.replyTo
+      ? formatReplyMessage(parsed.replyTo, newText)
+      : newText;
     try {
-      const res = await api.chats.updateMessage(selectedConversation.id, msg.id, newText);
+      const res = await api.chats.updateMessage(selectedConversation.id, msg.id, finalEditedText);
       if (res.status === "success") {
-        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, text: newText } : m)));
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, text: finalEditedText } : m)));
         const socket = getSocket();
         if (socket?.connected) {
           socket.emit("edit_message", {
             chatId: selectedConversation.id,
             messageId: msg.id,
-            message: newText,
+            message: finalEditedText,
           });
         }
       }
     } catch (err: any) {
-      alert("Gagal mengedit pesan: " + (err.message || err));
+      toast.error(err.message || "Gagal mengedit pesan.", "Gagal");
     } finally {
       setEditingMessageId(null);
       setEditingText("");
     }
+  };
+
+  const handleStartReply = (msg: Message) => {
+    const parsed = parseMessageContent(msg.text);
+    setReplyingTo({
+      id: msg.id,
+      senderName: msg.senderRole === "admin" ? "Anda" : msg.senderName,
+      text: parsed.text,
+    });
+    setEditingMessageId(null);
+    setTimeout(() => messageInputRef.current?.focus(), 50);
   };
 
   const handleDeleteSingleMessage = async (messageId: string) => {
@@ -740,7 +801,7 @@ export default function MessagesPage() {
         }
       }
     } catch (err: any) {
-      alert("Gagal menghapus pesan: " + (err.message || err));
+      toast.error(err.message || "Gagal menghapus pesan.", "Gagal");
     }
   };
 
@@ -762,6 +823,10 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedConversation) return;
 
     const messageText = newMessage.trim();
+    const finalMessage = replyingTo
+      ? formatReplyMessage(replyingTo, messageText)
+      : messageText;
+    setReplyingTo(null);
     setNewMessage("");
     setSending(true);
 
@@ -777,7 +842,7 @@ export default function MessagesPage() {
       senderId: currentUser?.id || "admin",
       senderName: currentUser?.name || "Admin Support",
       senderRole: "admin",
-      text: messageText,
+      text: finalMessage,
       rawDate: nowIso,
       timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
       isRead: false,
@@ -797,12 +862,38 @@ export default function MessagesPage() {
       if (socket && socket.connected) {
         socket.emit("send_message", {
           chatId: selectedConversation.id,
-          message: messageText,
+          message: finalMessage,
+          tempId,
         });
       } else {
-        await api.chats.sendMessage(selectedConversation.id, {
-          message: messageText,
+        const res = await api.chats.sendMessage(selectedConversation.id, {
+          message: finalMessage,
         });
+        if (res?.status === "success" && res?.data) {
+          const realId = String(res.data.id);
+          setMessages((prev) => {
+            const alreadyExists = prev.some((m) => m.id === realId);
+            if (alreadyExists) {
+              return prev.filter((m) => m.id !== tempId);
+            }
+            return prev.map((m) =>
+              m.id === tempId
+                ? {
+                    ...m,
+                    id: realId,
+                    rawDate: res.data.created_at || m.rawDate,
+                    timestamp: res.data.created_at
+                      ? new Date(res.data.created_at).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : m.timestamp,
+                    isRead: Boolean(res.data.is_read),
+                  }
+                : m
+            );
+          });
+        }
       }
     } catch (err) {
       console.error("Gagal mengirim pesan:", err);
@@ -904,7 +995,7 @@ export default function MessagesPage() {
                           {conv.timestamp}
                         </span>
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate leading-snug">{conv.lastMessage}</p>
+                      <p className="text-[11px] text-slate-500 truncate leading-snug">{getCleanMessagePreview(conv.lastMessage)}</p>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0 mt-0.5">
@@ -1034,23 +1125,40 @@ export default function MessagesPage() {
                   <p>Mulai percakapan langsung dengan pengguna ini.</p>
                 </div>
               ) : (
-                messages.map((msg, index) => {
-                  const showDateBadge =
-                    index === 0 ||
-                    isDifferentDay(msg.rawDate, messages[index - 1].rawDate);
+                messages
+                  .filter((msg, idx, arr) => arr.findIndex((m) => m.id === msg.id) === idx)
+                  .sort((a, b) => new Date(a.rawDate || 0).getTime() - new Date(b.rawDate || 0).getTime())
+                  .map((msg, index, arr) => {
+                    const showDateBadge =
+                      index === 0 ||
+                      isDifferentDay(msg.rawDate, arr[index - 1]?.rawDate);
+                    const parsed = parseMessageContent(msg.text);
 
-                  return (
-                    <React.Fragment key={msg.id || index}>
+                    return (
+                      <React.Fragment key={msg.id ? `msg-${msg.id}` : `idx-${index}`}>
                       {showDateBadge && (
-                        <div className="w-full flex justify-center my-2 sticky top-1 z-10 select-none">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono text-slate-500 bg-white shadow-2xs border border-slate-200/80">
+                        <div className="w-full flex justify-center my-3 select-none">
+                          <span className="px-3 py-1 rounded-full text-[11px] font-medium text-slate-500 bg-slate-100/90 shadow-2xs border border-slate-200/80">
                             {formatChatDateBadge(msg.rawDate)}
                           </span>
                         </div>
                       )}
                       <div
-                        className={`flex ${msg.senderRole === "admin" ? "justify-end" : "justify-start"}`}
+                        id={`msg-${msg.id}`}
+                        className={`flex group/bubble items-end gap-1.5 transition-all ${
+                          msg.senderRole === "admin" ? "justify-end" : "justify-start"
+                        }`}
                       >
+                        {msg.senderRole === "admin" && !editingMessageId && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartReply(msg)}
+                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1"
+                            title="Balas pesan ini"
+                          >
+                            <Reply className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <div
                           className={`relative w-fit min-w-[70px] max-w-[min(26rem,82vw)] text-xs transition-all ${
                             msg.senderRole === "admin"
@@ -1058,6 +1166,37 @@ export default function MessagesPage() {
                               : "bg-white text-slate-800 border border-slate-200/90 shadow-2xs rounded-2xl rounded-tl-xs px-3.5 py-2"
                           }`}
                         >
+                          {/* Quoted Message Preview inside Bubble */}
+                          {parsed.replyTo && (
+                            <div
+                              onClick={() => {
+                                const target = document.getElementById(`msg-${parsed.replyTo?.id}`);
+                                if (target) {
+                                  target.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  target.classList.add("ring-2", "ring-sky-400", "rounded-2xl");
+                                  setTimeout(() => target.classList.remove("ring-2", "ring-sky-400", "rounded-2xl"), 1500);
+                                }
+                              }}
+                              className={`mb-1.5 px-2.5 py-1.5 rounded-lg border-l-[3px] text-left cursor-pointer transition-opacity hover:opacity-90 select-none ${
+                                msg.senderRole === "admin"
+                                  ? "border-white bg-black/20 text-white"
+                                  : "border-[#0785BC] bg-slate-100/90 text-slate-800"
+                              }`}
+                            >
+                              <div className={`text-[10px] font-bold flex items-center gap-1 ${
+                                msg.senderRole === "admin" ? "text-white" : "text-[#0785BC]"
+                              }`}>
+                                <Reply className="w-2.5 h-2.5" />
+                                <span>{parsed.replyTo.senderName}</span>
+                              </div>
+                              <p className={`text-[11px] truncate mt-0.5 ${
+                                msg.senderRole === "admin" ? "text-white/80" : "text-slate-600"
+                              }`}>
+                                {parsed.replyTo.text}
+                              </p>
+                            </div>
+                          )}
+
                           {editingMessageId === msg.id ? (
                             <div className="flex items-center gap-2">
                               <input
@@ -1094,7 +1233,7 @@ export default function MessagesPage() {
                               </button>
                             </div>
                           ) : (
-                            <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                            <p className="leading-relaxed whitespace-pre-wrap">{parsed.text}</p>
                           )}
 
                           {msg.senderRole === "admin" &&
@@ -1106,7 +1245,8 @@ export default function MessagesPage() {
                                   <MoreVertical className="h-3 w-3" />
                                 </summary>
                                 <div className="absolute right-0 bottom-full mb-1 z-20 min-w-28 overflow-hidden rounded-xl bg-white py-1 text-left text-xs text-slate-700 shadow-xl border border-slate-200 animate-scale-in">
-                                  <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(msg.text); }} className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-slate-50 transition-colors"><Pencil className="h-3.5 w-3.5 text-slate-500" /> Edit</button>
+                                  <button type="button" onClick={() => handleStartReply(msg)} className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-slate-50 transition-colors"><Reply className="h-3.5 w-3.5 text-slate-500" /> Balas</button>
+                                  <button type="button" onClick={() => { setEditingMessageId(msg.id); setEditingText(parsed.text); }} className="flex w-full items-center gap-2 px-3 py-1.5 hover:bg-slate-50 transition-colors"><Pencil className="h-3.5 w-3.5 text-slate-500" /> Edit</button>
                                   <button type="button" onClick={() => handleDeleteSingleMessage(msg.id)} className="flex w-full items-center gap-2 px-3 py-1.5 text-rose-600 hover:bg-rose-50 transition-colors"><Trash2 className="h-3.5 w-3.5 text-rose-500" /> Hapus</button>
                                 </div>
                               </details>
@@ -1121,20 +1261,30 @@ export default function MessagesPage() {
                             {msg.senderRole === "admin" && (
                               (() => {
                                 const isTemp = typeof msg.id === "string" && msg.id.startsWith("temp-");
-                                // Fixed: tick tidak lagi bergantung pada peerOnline agar tidak flicker 2→1 saat status online berubah
-                                const tick = msg.isRead ? "read" : isTemp ? "sent" : "delivered";
+                                const isUserOnline = selectedConversation?.userId
+                                  ? onlineUserIds.has(selectedConversation.userId)
+                                  : false;
+                                const tick = msg.isRead
+                                  ? "read"
+                                  : isUserOnline && !isTemp
+                                    ? "delivered"
+                                    : "sent";
                                 return (
                                   <span
                                     className="transition-colors duration-200"
                                     title={
-                                      tick === "read"
-                                        ? "Dibaca oleh pengguna ✓✓"
-                                        : tick === "delivered"
-                                          ? "Terkirim ke pengguna ✓✓"
-                                          : "Terkirim ✓"
+                                      isTemp
+                                        ? "Mengirim..."
+                                        : tick === "read"
+                                          ? "Dibaca oleh pengguna ✓✓"
+                                          : tick === "delivered"
+                                            ? "Terkirim ke pengguna (Online) ✓✓"
+                                            : "Terkirim ke server (Offline) ✓"
                                     }
                                   >
-                                    {tick === "read" ? (
+                                    {isTemp ? (
+                                      <Clock3 className="w-3.5 h-3.5 text-sky-100/70 animate-pulse" />
+                                    ) : tick === "read" ? (
                                       <CheckCheck className="w-3.5 h-3.5 text-[#38bdf8] stroke-[2.5] drop-shadow-[0_0_3px_rgba(56,189,248,0.7)]" />
                                     ) : tick === "delivered" ? (
                                       <CheckCheck className="w-3.5 h-3.5 text-sky-100/90 stroke-[2]" />
@@ -1147,6 +1297,16 @@ export default function MessagesPage() {
                             )}
                           </div>
                         </div>
+                        {msg.senderRole !== "admin" && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartReply(msg)}
+                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1"
+                            title="Balas pesan ini"
+                          >
+                            <Reply className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </React.Fragment>
                   );
@@ -1166,8 +1326,30 @@ export default function MessagesPage() {
 
             {/* Input Box (ChatGPT Prompt Input Aesthetic) */}
             <div className="p-2.5 sm:p-3 border-t border-slate-100 bg-white">
+              {replyingTo && (
+                <div className="max-w-4xl mx-auto mb-2 flex items-center justify-between gap-2 px-3 py-2 bg-slate-100/90 border-l-4 border-[#0785BC] rounded-r-xl shadow-2xs animate-in fade-in slide-in-from-bottom-1 duration-150">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0785BC]">
+                      <Reply className="w-3 h-3" />
+                      <span>Membalas {replyingTo.senderName}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                      {replyingTo.text}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setReplyingTo(null)}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition-colors"
+                    title="Batal membalas"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2 max-w-4xl mx-auto bg-slate-50/80 border border-slate-200 rounded-xl p-1.5 focus-within:ring-2 focus-within:ring-[#0785BC]/20 focus-within:border-[#0785BC] transition-all">
                 <input
+                  ref={messageInputRef}
                   type="text"
                   value={newMessage}
                   onChange={(e) => handleTypingInput(e.target.value)}
@@ -1176,8 +1358,11 @@ export default function MessagesPage() {
                       e.preventDefault();
                       handleSendMessage();
                     }
+                    if (e.key === "Escape" && replyingTo) {
+                      setReplyingTo(null);
+                    }
                   }}
-                  placeholder="Ketik pesan balasan..."
+                  placeholder={replyingTo ? `Balas ke ${replyingTo.senderName}...` : "Ketik pesan balasan..."}
                   className="flex-1 px-3 py-1.5 text-xs bg-transparent border-none focus:outline-none text-slate-800 placeholder-slate-400 min-w-0"
                 />
                 <button
