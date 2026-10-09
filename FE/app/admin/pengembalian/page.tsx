@@ -20,6 +20,7 @@ import {
   FileSpreadsheet,
 } from "lucide-react";
 import api from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
 import { toast } from "@/components/Toast";
@@ -317,6 +318,28 @@ export default function PengembalianPage() {
 
   useEffect(() => {
     fetchData();
+  }, [page]);
+
+  // Real-time: auto-refresh saat ada pengembalian / return request baru via Socket.IO
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleRefresh = () => {
+      fetchData();
+    };
+
+    socket.on('return_created', handleRefresh);
+    socket.on('return_request_created', handleRefresh);
+    socket.on('return_request_updated', handleRefresh);
+    socket.on('borrowing_updated', handleRefresh);
+
+    return () => {
+      socket.off('return_created', handleRefresh);
+      socket.off('return_request_created', handleRefresh);
+      socket.off('return_request_updated', handleRefresh);
+      socket.off('borrowing_updated', handleRefresh);
+    };
   }, [page]);
 
   const filtered = returns.filter((r) => {

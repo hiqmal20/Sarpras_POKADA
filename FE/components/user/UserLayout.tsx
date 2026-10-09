@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserSidebar from "./Sidebar";
 import UserNavbar from "./Navbar";
-import api, { getAuthToken, getCurrentUser, removeAuthToken } from "@/lib/api";
-import { disconnectSocket, getSocket } from "@/lib/socket";
-import { useLanguage } from "@/lib/i18n";
+import api, { getAuthToken, setCurrentUser } from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 
 interface UserLayoutProps {
   children: React.ReactNode;
@@ -31,110 +30,19 @@ export default function UserLayout({
   const [collapsed, setCollapsed] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { t: tr } = useLanguage();
-
-  // Idle Session Timeout Enforcer (Standar 30 Menit / Mengikuti Pengaturan Admin)
-  useEffect(() => {
-    if (!authorized) return;
-    let timeoutId: any = null;
-
-    const resetIdleTimer = () => {
-      if (timeoutId) clearTimeout(timeoutId);
-
-      let minutes = 30;
-      try {
-        const raw = localStorage.getItem("appSettings");
-        if (raw) {
-          const parsed = JSON.parse(raw);
-          const timeoutVal = parsed.security?.userSessionTimeout || parsed.security?.sessionTimeout;
-          if (timeoutVal) {
-            minutes = Number(timeoutVal) || 30;
-          }
-        }
-      } catch {}
-
-      const ms = minutes * 60 * 1000;
-      timeoutId = setTimeout(async () => {
-        try {
-          disconnectSocket();
-          await api.auth.logout();
-        } catch {}
-        removeAuthToken();
-        localStorage.clear();
-        sessionStorage.clear();
-        sessionStorage.setItem("logged_out", "true");
-        window.location.replace("/auth/login?reason=timeout");
-      }, ms);
-    };
-
-    const events = ["mousedown", "mousemove", "keydown", "scroll", "touchstart"];
-    events.forEach((ev) => window.addEventListener(ev, resetIdleTimer, { passive: true }));
-    window.addEventListener("settings-updated", resetIdleTimer);
-
-    resetIdleTimer();
-
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-      events.forEach((ev) => window.removeEventListener(ev, resetIdleTimer));
-      window.removeEventListener("settings-updated", resetIdleTimer);
-    };
-  }, [authorized, tr]);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const checkAuth = async () => {
-      if (!getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
-        setAuthorized(false);
-        window.location.replace("/auth/login");
-        return;
+    api.auth.me().then((res) => {
+      if (res.status === "success" && res.data?.user) {
+        setCurrentUser(res.data.user);
+        setAuthorized(true);
+      } else {
+        router.replace("/auth/login");
       }
-
-      try {
-        const res = await api.auth.me();
-        if (!isMounted) return;
-        if (res.status === "success" && res.data?.user) {
-          setAuthorized(true);
-        } else {
-          setAuthorized(false);
-          window.location.replace("/auth/login");
-        }
-      } catch {
-        if (!isMounted) return;
-        setAuthorized(false);
-        window.location.replace("/auth/login");
-      }
-    };
-
-    checkAuth();
-
-    // Prevent restoring stale authorized state via Chrome Back/Forward Cache (bfcache)
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted || !getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
-        setAuthorized(false);
-        window.location.replace("/auth/login");
-      }
-    };
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        if (!getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
-          setAuthorized(false);
-          window.location.replace("/auth/login");
-        }
-      }
-    };
-
-    window.addEventListener("pageshow", handlePageShow);
-    window.addEventListener("focus", handleVisibility);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      isMounted = false;
-      window.removeEventListener("pageshow", handlePageShow);
-      window.removeEventListener("focus", handleVisibility);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
+    }).catch(() => {
+      router.replace("/auth/login");
+    });
+  }, [router]);
 
   // Keep the authenticated user's socket alive across every user page.
   // This makes the user presence visible to admin even when the user is

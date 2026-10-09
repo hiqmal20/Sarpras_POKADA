@@ -454,8 +454,8 @@ exports.updateReport = async (id, {
         .update({ status: 'Dalam Pemeliharaan', updated_at: now })
         .eq('id', current.package_id);
     }
-  } else if (newReportStatus === 'Selesai') {
-    // Perbaikan selesai: pulihkan stok dan status menjadi Tersedia/Aktif
+  } else if (newReportStatus === 'Selesai' && current.status !== 'Selesai') {
+    // Perbaikan selesai: pulihkan stok dan status menjadi Tersedia/Aktif (hanya saat pertama kali berubah menjadi Selesai)
     if (current.item_id) {
       const { data: itm } = await supabase
         .from('items')

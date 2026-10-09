@@ -278,8 +278,8 @@ export default function Navbar({
 
   return (
     <header
-      className={`h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 gap-2 sm:gap-4 sticky top-0 z-20 transition-all duration-200 ${
-        scrolled ? "shadow-2xs border-slate-200" : ""
+      className={`h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md flex items-center justify-between px-3 sm:px-6 gap-2 sm:gap-4 sticky top-0 z-20 transition-all duration-200 dark:border-slate-800 dark:bg-[#111c30]/95 ${
+        scrolled ? "shadow-2xs border-slate-200 dark:border-slate-800" : ""
       }`}
     >
       {/* ── Left: Breadcrumb & Search Bar ── */}

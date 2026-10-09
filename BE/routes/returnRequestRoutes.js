@@ -38,6 +38,11 @@ router.post('/', validateRequest(createReturnRequestSchema), async (req, res, ne
     if (existing) return res.status(409).json({ status: 'fail', message: 'Permintaan pengembalian sudah diajukan.' });
     const { data, error } = await supabase.from('return_requests').insert([{ ...req.body, user_id: req.user.id, status: 'Menunggu Verifikasi' }]).select().single();
     if (error) throw error;
+    // Emit real-time event ke admin
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admins').emit('return_request_created', { returnRequest: data });
+    }
     res.status(201).json({ status: 'success', message: 'Permintaan pengembalian dikirim dan menunggu verifikasi petugas.', data });
   } catch (err) { next(err); }
 });
@@ -48,6 +53,14 @@ router.patch('/:id', requireRole(ROLES.ADMIN, ROLES.PETUGAS), validateRequest(up
     if (readError || !request) return res.status(404).json({ status: 'fail', message: 'Permintaan pengembalian tidak ditemukan.' });
     const { data, error } = await supabase.from('return_requests').update({ status: req.body.status, admin_note: req.body.admin_note || '', verified_by: req.user.id, verified_at: new Date().toISOString() }).eq('id', req.params.id).select().single();
     if (error) throw error;
+    // Emit real-time event ke admin dan user terkait
+    const io = req.app.get('io');
+    if (io) {
+      io.to('admins').emit('return_request_updated', { returnRequest: data });
+      if (request.user_id) {
+        io.to(String(request.user_id)).emit('return_request_updated', { returnRequest: data });
+      }
+    }
     res.json({ status: 'success', message: 'Status permintaan pengembalian diperbarui.', data });
   } catch (err) { next(err); }
 });

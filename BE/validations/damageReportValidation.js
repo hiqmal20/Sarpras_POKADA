@@ -3,9 +3,9 @@ const Joi = require('joi');
 // Admin membuat laporan manual
 const createDamageReportSchema = Joi.object({
   user_id: Joi.string().uuid().optional(),
-  item_id: Joi.string().uuid().allow(null, ''),
-  package_id: Joi.string().uuid().allow(null, ''),
-  borrowing_id: Joi.string().uuid().allow(null, ''),
+  item_id: Joi.string().uuid().empty('').default(null).allow(null),
+  package_id: Joi.string().uuid().empty('').default(null).allow(null),
+  borrowing_id: Joi.string().uuid().empty('').default(null).allow(null),
 
   title: Joi.string().trim().min(3).max(150).required().messages({
     'string.empty': 'Judul laporan wajib diisi',

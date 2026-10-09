@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx";
 import api from "@/lib/api";
+import { getSocket } from "@/lib/socket";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
 import { toast } from "@/components/Toast";
@@ -327,6 +328,32 @@ export default function ManajemenPeminjamanPage() {
 
   useEffect(() => {
     fetchData();
+  }, [activeFilter, page]);
+
+  // Real-time: auto-refresh saat ada peminjaman baru / status berubah via Socket.IO
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleBorrowingCreated = () => {
+      fetchData();
+    };
+    const handleBorrowingUpdated = () => {
+      fetchData();
+    };
+    const handleReturnCreated = () => {
+      fetchData();
+    };
+
+    socket.on('borrowing_created', handleBorrowingCreated);
+    socket.on('borrowing_updated', handleBorrowingUpdated);
+    socket.on('return_created', handleReturnCreated);
+
+    return () => {
+      socket.off('borrowing_created', handleBorrowingCreated);
+      socket.off('borrowing_updated', handleBorrowingUpdated);
+      socket.off('return_created', handleReturnCreated);
+    };
   }, [activeFilter, page]);
 
   // Real stats from API

@@ -25,6 +25,12 @@ exports.getPackageById = async (req, res, next) => {
 exports.createPackage = async (req, res, next) => {
   try {
     const data = await packageService.createNewPackage(req.body);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('package_created', { package: data });
+      io.emit('package_updated', { package: data });
+      io.emit('stock_updated', { type: 'package', action: 'create', package: data, id: data.id });
+    }
     return sendSuccess(res, 'Paket sarpras berhasil dibuat', data, 201);
   } catch (err) {
     next(err);
@@ -35,6 +41,11 @@ exports.createPackage = async (req, res, next) => {
 exports.updatePackage = async (req, res, next) => {
   try {
     const data = await packageService.updateExistingPackage(req.params.id, req.body);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('package_updated', { package: data });
+      io.emit('stock_updated', { type: 'package', action: 'update', package: data, id: data.id });
+    }
     return sendSuccess(res, 'Paket sarpras berhasil diperbarui', data, 200);
   } catch (err) {
     next(err);
@@ -45,6 +56,11 @@ exports.updatePackage = async (req, res, next) => {
 exports.deletePackage = async (req, res, next) => {
   try {
     await packageService.deleteExistingPackage(req.params.id);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('package_deleted', { id: req.params.id });
+      io.emit('stock_updated', { type: 'package', action: 'delete', id: req.params.id });
+    }
     return sendSuccess(res, 'Paket sarpras berhasil dihapus', null, 200);
   } catch (err) {
     next(err);
@@ -59,6 +75,10 @@ exports.importPackages = async (req, res, next) => {
     }
 
     const result = await packageService.importPackagesFromCSV(req.file.buffer);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('stock_updated', { type: 'package', action: 'import' });
+    }
     const message = `Import paket selesai: ${result.success.length} berhasil, ${result.failed.length} gagal`;
     return sendSuccess(res, message, result, result.failed.length > 0 ? 207 : 201);
   } catch (err) {
@@ -70,6 +90,11 @@ exports.importPackages = async (req, res, next) => {
 exports.adjustPackageStock = async (req, res, next) => {
   try {
     const data = await packageService.adjustPackageStock(req.params.id, req.body);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('package_updated', { package: data });
+      io.emit('stock_updated', { type: 'package', action: 'adjust', package: data, id: req.params.id });
+    }
     return sendSuccess(res, 'Stok paket berhasil diperbarui', data, 200);
   } catch (err) {
     next(err);

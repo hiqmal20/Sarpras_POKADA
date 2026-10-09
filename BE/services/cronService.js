@@ -11,17 +11,16 @@ const startOverdueChecker = () => {
     console.log('[CRON] Menjalankan pengecekan peminjaman lama...');
 
     try {
-      // Hitung 7 hari yang lalu
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const cutoffDate = sevenDaysAgo.toISOString();
+      // Gunakan tanggal pengembalian yang disepakati, bukan cutoff 7 hari tetap.
+      const today = new Date().toISOString();
 
-      // Ambil peminjaman yang statusnya 'Dipinjam' dan sudah lebih dari 7 hari
+      // Ambil peminjaman aktif yang sudah melewati planned_return_date.
       const { data: longBorrowings, error } = await supabase
         .from('borrowings')
-        .select('id, borrow_code, user_id, borrow_date')
+        .select('id, borrow_code, user_id, planned_return_date')
         .eq('status', 'Dipinjam')
-        .lt('borrow_date', cutoffDate);
+        .not('planned_return_date', 'is', null)
+        .lt('planned_return_date', today);
 
       if (error) {
         console.error('[CRON] Gagal mengambil data peminjaman:', error.message);
@@ -42,7 +41,7 @@ const startOverdueChecker = () => {
           await notifService.createNotification({
             user_id: b.user_id,
             title: 'Pengingat: Segera Kembalikan Barang',
-            message: `Peminjaman dengan kode ${b.borrow_code} sudah berjalan lebih dari 7 hari. Harap segera kembalikan barang ke petugas SARPRAS.`,
+            message: `Peminjaman dengan kode ${b.borrow_code} sudah melewati tanggal pengembalian yang direncanakan. Harap segera kembalikan barang ke petugas SARPRAS`,
             type: 'peminjaman',
             action_url: `/user/riwayat_peminjaman?code=${encodeURIComponent(b.borrow_code)}`,
             reference_id: b.id,

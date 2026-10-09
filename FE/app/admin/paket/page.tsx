@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
-import { toast } from "@/components/Toast";
+import { getSocket } from "@/lib/socket";
 
 interface AvailableItem {
   id: string;
@@ -163,7 +163,7 @@ export default function PaketPage() {
     if (!replenishModal.item_id) return;
     const addQty = Number(replenishModal.add_qty) || 0;
     if (addQty <= 0) {
-      toast.warning("Masukkan jumlah unit stok yang valid (minimal 1 unit).", "Validasi Stok");
+      alert("Masukkan jumlah unit yang ingin ditambahkan");
       return;
     }
 
@@ -186,12 +186,12 @@ export default function PaketPage() {
             setRichPackageDetail(updatedPkg.data);
           }
         }
-        toast.success(`Stok "${replenishModal.item_name}" berhasil ditambah +${addQty} unit! Kesiapan paket diperbarui otomatis.`, "Stok Bertambah");
+        alert(`Stok "${replenishModal.item_name}" berhasil ditambah +${addQty} unit! Kesiapan paket diperbarui otomatis.`);
       } else {
-        toast.error(res.message || "Gagal menambah stok barang komponen.", "Pembaruan Gagal");
+        alert("Gagal menambah stok: " + (res.message || "Error"));
       }
     } catch (err: any) {
-      toast.error(err?.message || "Terjadi kesalahan saat memproses penambahan stok.", "Error");
+      alert("Terjadi kesalahan: " + (err?.message || "Error"));
     }
   };
 
@@ -232,7 +232,7 @@ export default function PaketPage() {
     if (!packageStockModal.package_id) return;
     const qty = Number(packageStockModal.quantity) || 1;
     if (qty <= 0) {
-      toast.warning("Masukkan jumlah paket yang valid (minimal 1 paket).", "Validasi Paket");
+      alert("Masukkan jumlah paket yang valid (minimal 1).");
       return;
     }
 
@@ -244,11 +244,10 @@ export default function PaketPage() {
       });
 
       if (res.status === "success") {
-        toast.success(
+        alert(
           `Stok "${packageStockModal.package_name}" berhasil ${
             packageStockModal.action === "add" ? "ditambahkan +" : "dikurangi -"
-          }${qty} set paket! Stok komponen barang gudang otomatis disinkronkan.`,
-          "Sinkronisasi Stok"
+          }${qty} set paket! Stok komponen barang gudang otomatis disinkronkan.`
         );
         setPackageStockModal((prev) => ({ ...prev, open: false }));
         await fetchData();
@@ -260,10 +259,10 @@ export default function PaketPage() {
           }
         }
       } else {
-        toast.error(res.message || "Gagal menyesuaikan stok paket.", "Operasi Gagal");
+        alert("Gagal menyesuaikan stok paket: " + (res.message || "Error"));
       }
     } catch (err: any) {
-      toast.error(err.message || "Terjadi kendala saat menyinkronkan stok paket.", "Error");
+      alert("Terjadi kesalahan: " + (err.message || err));
     } finally {
       setSaving(false);
     }
@@ -293,17 +292,13 @@ export default function PaketPage() {
         const fail = res.data?.failed?.length || 0;
         setImportSummary({ success: succ, failed: fail });
         await fetchData();
-        if (fail === 0) {
-          toast.success(`Import selesai: ${succ} paket sarpras berhasil diimpor!`, "Import Berhasil");
-          setShowImportModal(false);
-        } else {
-          toast.warning(`Import selesai: ${succ} paket berhasil, ${fail} paket gagal diproses.`, "Sebagian Berhasil");
-        }
+        alert(res.message || `Import selesai: ${succ} paket berhasil, ${fail} gagal`);
+        if (fail === 0) setShowImportModal(false);
       } else {
-        toast.error(res.message || "Gagal memproses import CSV paket.", "Import Gagal");
+        alert("Gagal memproses import CSV paket: " + (res.message || "Error"));
       }
     } catch (err: any) {
-      toast.error(err.message || "Terjadi kesalahan saat memproses data CSV paket.", "Error");
+      alert("Terjadi kesalahan: " + (err.message || err));
     } finally {
       setImporting(false);
     }
@@ -347,6 +342,29 @@ export default function PaketPage() {
 
   useEffect(() => {
     fetchData();
+
+    const socket = getSocket();
+    const handleUpdate = () => {
+      fetchData();
+    };
+
+    if (socket) {
+      socket.on("stock_updated", handleUpdate);
+      socket.on("package_updated", handleUpdate);
+      socket.on("package_created", handleUpdate);
+      socket.on("package_deleted", handleUpdate);
+      socket.on("item_updated", handleUpdate);
+    }
+
+    return () => {
+      if (socket) {
+        socket.off("stock_updated", handleUpdate);
+        socket.off("package_updated", handleUpdate);
+        socket.off("package_created", handleUpdate);
+        socket.off("package_deleted", handleUpdate);
+        socket.off("item_updated", handleUpdate);
+      }
+    };
   }, []);
 
   const resetForm = () => {
@@ -431,7 +449,7 @@ export default function PaketPage() {
 
   const handleAddCustomPackageItem = () => {
     if (!customItemName.trim()) {
-      toast.warning("Nama barang khusus paket wajib diisi.", "Validasi Komponen");
+      alert("Nama barang khusus paket wajib diisi.");
       return;
     }
     const code = customItemCode.trim()
@@ -467,20 +485,16 @@ export default function PaketPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      toast.warning("Nama paket sarpras wajib diisi.", "Validasi Input");
-      return;
-    }
     if (selectedItems.length === 0) {
-      toast.warning("Harap tambahkan minimal 1 item ke dalam paket.", "Komponen Kosong");
+      alert("Harap tambahkan minimal 1 item ke dalam paket.");
       return;
     }
 
     setSaving(true);
     try {
       const payload: any = {
-        name: formData.name.trim(),
-        description: formData.description.trim(),
+        name: formData.name,
+        description: formData.description,
         status: formData.status,
         items: selectedItems.map((i) => ({
           item_id: i.item_id || undefined,
@@ -497,26 +511,24 @@ export default function PaketPage() {
       if (editingId) {
         const res = await api.packages.update(editingId, payload);
         if (res.status === "success") {
-          toast.success(`Paket sarpras "${payload.name}" berhasil diperbarui!`, "Berhasil Disimpan");
           await fetchData();
           setShowModal(false);
           resetForm();
         } else {
-          toast.error(res.message || "Gagal memperbarui paket sarpras.", "Pembaruan Gagal");
+          alert("Gagal memperbarui paket: " + (res.message || "Error"));
         }
       } else {
         const res = await api.packages.create(payload);
         if (res.status === "success") {
-          toast.success(`Paket baru "${payload.name}" berhasil dibuat dan komponen dikaitkan!`, "Berhasil Dibuat");
           await fetchData();
           setShowModal(false);
           resetForm();
         } else {
-          toast.error(res.message || "Gagal membuat paket baru.", "Pembuatan Gagal");
+          alert("Gagal membuat paket: " + (res.message || "Error"));
         }
       }
     } catch (err: any) {
-      toast.error(err?.message || "Terjadi kesalahan saat menyimpan paket.", "Error");
+      alert("Terjadi kesalahan: " + (err?.message || "Error"));
     } finally {
       setSaving(false);
     }
@@ -527,13 +539,12 @@ export default function PaketPage() {
     try {
       const res = await api.packages.delete(id);
       if (res.status === "success") {
-        toast.success("Paket sarpras berhasil dihapus.", "Berhasil Dihapus");
         setPackages((prev) => prev.filter((pkg) => pkg.id !== id));
       } else {
-        toast.error(res.message || "Gagal menghapus paket.", "Relasi Terikat");
+        alert("Gagal menghapus: " + (res.message || "Error"));
       }
     } catch (err: any) {
-      toast.error(err.message || "Paket tidak dapat dihapus karena memiliki riwayat peminjaman.", "Relasi Terikat");
+      alert("Gagal menghapus paket: " + err.message);
     }
   };
 
@@ -585,12 +596,11 @@ export default function PaketPage() {
         if (richPackageDetail?.id === pkg.id) {
           setRichPackageDetail((prev) => (prev ? { ...prev, status: nextStatus } : null));
         }
-        toast.success(`Status paket "${pkg.name}" kini ${nextStatus}.`, "Status Diubah");
       } else {
-        toast.error(res.message || "Gagal mengubah status paket.", "Operasi Gagal");
+        alert("Gagal mengubah status: " + (res.message || "Error"));
       }
     } catch (err: any) {
-      toast.error(err?.message || "Terjadi kesalahan saat mengubah status paket.", "Error");
+      alert("Terjadi kesalahan: " + (err?.message || "Error"));
     }
   };
 
@@ -2004,14 +2014,10 @@ export default function PaketPage() {
             await fetchData();
             const succ = res.data?.success?.length || 0;
             const fail = res.data?.failed?.length || 0;
-            if (fail === 0) {
-              toast.success(`Import paket selesai: ${succ} paket berhasil diimpor!`, "Import Berhasil");
-            } else {
-              toast.warning(`Import paket selesai: ${succ} berhasil, ${fail} baris gagal.`, "Sebagian Berhasil");
-            }
+            alert(res.message || `Import paket selesai: ${succ} berhasil, ${fail} gagal`);
             return { success: succ, failed: fail };
           } else {
-            toast.error(res.message || "Gagal impor CSV paket.", "Import Gagal");
+            alert("Gagal impor CSV paket: " + (res.message || "Error"));
             return { success: 0, failed: 1 };
           }
         }}

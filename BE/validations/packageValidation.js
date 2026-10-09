@@ -9,7 +9,7 @@ const createPackageSchema = Joi.object({
   status: Joi.string().valid('Aktif', 'Nonaktif', 'Non-Aktif', 'Tidak Aktif').default('Aktif'),
   items: Joi.array().items(
     Joi.object({
-      item_id: Joi.string().uuid().allow('', null),
+      item_id: Joi.string().uuid().empty('').default(null).allow(null),
       code: Joi.string().allow('', null),
       name: Joi.string().allow('', null),
       quantity: Joi.number().integer().min(1).default(1)
@@ -24,7 +24,7 @@ const updatePackageSchema = Joi.object({
   status: Joi.string().valid('Aktif', 'Nonaktif', 'Non-Aktif', 'Tidak Aktif'),
   items: Joi.array().items(
     Joi.object({
-      item_id: Joi.string().uuid().allow('', null),
+      item_id: Joi.string().uuid().empty('').default(null).allow(null),
       code: Joi.string().allow('', null),
       name: Joi.string().allow('', null),
       quantity: Joi.number().integer().min(1).default(1)

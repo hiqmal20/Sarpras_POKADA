@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controller/userController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
+const validateRequest = require('../middleware/validateRequest');
+const { updateUserSchema } = require('../validations/userValidation');
 const { uploadCSV, uploadImage } = require('../middleware/uploadMiddleware');
 const { uuidParamHandler } = require('../middleware/validateUuid');
 
@@ -38,7 +40,7 @@ router.put('/:id', (req, res, next) => {
     status: 'fail',
     message: 'Akses ditolak: Anda tidak memiliki izin untuk mengubah data user ini.'
   });
-}, userController.updateUser);
+}, validateRequest(updateUserSchema), userController.updateUser);
 router.delete('/:id', requireRole('Admin'), userController.deleteUser);
 
 module.exports = router;

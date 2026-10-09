@@ -297,7 +297,15 @@ input, button, select, textarea {
 /* app canvases (solid only — no opacity variants exist) */
 .dark [class*="bg-[#f8faff]"],
 .dark [class*="bg-[#eef2f9]"],
-.dark [class*="bg-[#f4f7fb]"] { background-color: #0b1220 !important; }
+.dark [class*="bg-[#f4f7fb]"],
+.dark [class*="bg-[#f8fafc]"],
+.dark [class*="bg-[#fafafa]"],
+.dark [class*="bg-[#fafcff]"] { background-color: #0b1220 !important; }
+
+.dark .bg-dot-grid {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1.2px, transparent 1.2px);
+  background-size: 20px 20px;
+}
 /* solid dark panels — exact match only so /25 /80 overlays stay translucent */
 .dark .bg-slate-900 { background-color: #111c30 !important; }
 .dark [class*="bg-slate-900/"] { background-color: rgba(17, 28, 48, 0.55) !important; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,9 +9,8 @@ import {
   Eye,
   EyeOff,
   IdCard,
-  ArrowLeft,
 } from "lucide-react";
-import { api, setCurrentUser, removeAuthToken } from "@/lib/api";
+import { api, setCurrentUser, setAuthToken, setRefreshToken } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,23 +21,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-
-  useEffect(() => {
-    removeAuthToken();
-    try {
-      localStorage.clear();
-      sessionStorage.clear();
-      sessionStorage.setItem("logged_out", "true");
-    } catch {}
-    api.auth.logout().catch(() => {});
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("reason") === "timeout") {
-        setErrorMessage("Sesi Anda telah berakhir demi keamanan karena tidak ada aktivitas. Silakan masuk kembali.");
-      }
-    }
-  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,10 +35,15 @@ export default function LoginPage() {
       });
 
       if (res.status === "success" && res.data) {
-        try {
-          sessionStorage.removeItem("logged_out");
-        } catch {}
-        setCurrentUser(res.data.user);
+        if (res.data.token) {
+          setAuthToken(res.data.token);
+        }
+        if (res.data.refreshToken) {
+          setRefreshToken(res.data.refreshToken);
+        }
+        if (res.data.user) {
+          setCurrentUser(res.data.user);
+        }
 
         const userRole = (res.data.user?.role || "").toLowerCase();
         if (userRole === "admin" || userRole === "petugas") {
@@ -93,10 +80,10 @@ export default function LoginPage() {
     outline-none
     transition-all
     duration-200
-    focus:border-[#0785BC]
+    focus:border-blue-300/80
     focus:bg-white/65
     focus:ring-2
-    focus:ring-[#0785BC]/20
+    focus:ring-blue-400/15
   `;
 
   const iconClass = `
@@ -180,16 +167,6 @@ export default function LoginPage() {
             />
 
             <div className="relative flex flex-col items-center">
-              <div className="w-full flex items-center justify-start mb-2">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#0785BC] transition-colors"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Kembali ke Beranda
-                </Link>
-              </div>
-
               <div
                 className="
                   flex
@@ -212,8 +189,8 @@ export default function LoginPage() {
                 />
               </div>
 
-              <span className="mt-2.5 text-base font-bold text-slate-800 tracking-wide">
-                SARPRAS<span className="text-[#0785BC]">POKADA</span>
+              <span className="mt-2.5 text-base font-bold text-blue-600 tracking-wide">
+                SARPRAS POKADA
               </span>
             </div>
 
@@ -362,19 +339,19 @@ export default function LoginPage() {
                   h-10
                   w-full
                   rounded-lg
-                  bg-[#0785BC]
+                  bg-blue-600
                   text-xs
                   font-semibold
                   text-white
                   shadow-md
-                  shadow-[#0785BC]/25
+                  shadow-blue-600/20
                   transition-all
                   duration-200
-                  hover:bg-[#0672a0]
+                  hover:bg-blue-700
                   active:scale-[0.99]
                   focus:outline-none
                   focus:ring-2
-                  focus:ring-[#0785BC]/30
+                  focus:ring-blue-500/30
                   disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
@@ -390,9 +367,9 @@ export default function LoginPage() {
                   href="/auth/register"
                   className="
                     font-semibold
-                    text-[#0785BC]
+                    text-blue-600
                     transition-colors
-                    hover:text-[#0672a0]
+                    hover:text-blue-700
                   "
                 >
                   Daftar di sini

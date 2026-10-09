@@ -90,7 +90,7 @@ function ItemCard({ item }: { item: Item }) {
     <Link
       href={`/user/item_catalog/${item.id}`}
       aria-disabled={empty}
-      className={`bg-white rounded-2xl border overflow-hidden flex flex-col h-full transition-all duration-200 group ${
+      className={`bg-white rounded-2xl border overflow-hidden flex flex-col h-full transition-all duration-300 group animate-fade-up ${
         empty
           ? "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
           : "border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 cursor-pointer"
@@ -169,7 +169,7 @@ function PackageCard({ pkg }: { pkg: PackageItem }) {
     <Link
       href={`/user/item_catalog?paket=${pkg.id}`}
       aria-disabled={!available}
-      className={`bg-white rounded-2xl border overflow-hidden flex flex-col h-full transition-all duration-200 group ${
+      className={`bg-white rounded-2xl border overflow-hidden flex flex-col h-full transition-all duration-300 group animate-fade-up ${
         available
           ? "border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)] overflow-hidden hover:shadow-[0_10px_28px_-10px_rgba(7,133,188,0.25)] hover:-translate-y-[2px] hover:border-[#0785BC]/30 cursor-pointer"
           : "border-rose-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.05)]"
@@ -448,14 +448,18 @@ function ItemCatalogContent() {
             </div>
           ) : showItems ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
-              {filtered.map((item) => (
-                <ItemCard key={item.id} item={item} />
+              {filtered.map((item, index) => (
+                <div key={item.id} style={{ animationDelay: `${index * 45}ms` }}>
+                  <ItemCard item={item} />
+                </div>
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-stretch">
-              {filteredPackages.map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} />
+              {filteredPackages.map((pkg, index) => (
+                <div key={pkg.id} style={{ animationDelay: `${index * 45}ms` }}>
+                  <PackageCard pkg={pkg} />
+                </div>
               ))}
             </div>
           )}

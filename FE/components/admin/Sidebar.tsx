@@ -145,14 +145,14 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none ${
+      className={`bg-white dark:bg-[#111c30] border-r border-slate-200 dark:border-slate-800 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] select-none ${
         onCloseMobile
           ? "h-full w-full"
           : `h-screen sticky top-0 z-30 shrink-0 ${collapsed ? "w-20" : "w-64"}`
       }`}
     >
       {/* ── Header: Logo Resmi POKADA dari landing page ── */}
-      <div className="h-16 px-4 border-b border-slate-100 flex items-center justify-between bg-white">
+      <div className="h-16 px-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-[#111c30]">
         {!collapsed ? (
           <div className="flex items-center gap-2.5 min-w-0 pr-1">
             <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-2xs shrink-0 bg-white">

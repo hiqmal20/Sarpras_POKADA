@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import api, { getAuthToken, getCurrentUser, isPrivilegedUser, removeAuthToken } from "@/lib/api";
+import api, { getAuthToken, getCurrentUser, setCurrentUser, isPrivilegedUser } from "@/lib/api";
 import { disconnectSocket, getSocket } from "@/lib/socket";
 import { useLanguage } from "@/lib/i18n";
 
@@ -42,67 +42,23 @@ export default function AdminLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const checkAuth = async () => {
-      if (!getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
-        setAuthorized(false);
-        window.location.replace("/auth/login");
-        return;
-      }
-
-      try {
-        const res = await api.auth.getProfile();
-        if (!isMounted) return;
-        if (res.status === "success" && res.data?.user) {
-          const u = res.data.user;
-          const role = (u.role || "").toLowerCase();
-          if (role !== "admin" && role !== "petugas") {
-            setAuthorized(false);
-            window.location.replace("/user/dashboard");
-          } else {
-            setAuthorized(true);
-          }
+    api.auth.getProfile().then((res) => {
+      if (res.status === "success" && res.data?.user) {
+        const u = res.data.user;
+        setCurrentUser(u);
+        const role = (u.role || "").toLowerCase();
+        if (role !== "admin" && role !== "petugas") {
+          router.replace("/user/dashboard");
         } else {
-          setAuthorized(false);
-          window.location.replace("/auth/login");
+          setAuthorized(true);
         }
-      } catch {
-        if (!isMounted) return;
-        setAuthorized(false);
-        window.location.replace("/auth/login");
+      } else {
+        router.replace("/auth/login");
       }
-    };
-
-    checkAuth();
-
-    // Prevent restoring stale authorized state via Chrome Back/Forward Cache (bfcache)
-    const handlePageShow = (e: PageTransitionEvent) => {
-      if (e.persisted || !getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
-        setAuthorized(false);
-        window.location.replace("/auth/login");
-      }
-    };
-
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") {
-        if (!getCurrentUser() || (typeof window !== "undefined" && sessionStorage.getItem("logged_out") === "true")) {
-          setAuthorized(false);
-          window.location.replace("/auth/login");
-        }
-      }
-    };
-
-    window.addEventListener("pageshow", handlePageShow);
-    window.addEventListener("focus", handleVisibility);
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () => {
-      isMounted = false;
-      window.removeEventListener("pageshow", handlePageShow);
-      window.removeEventListener("focus", handleVisibility);
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
+    }).catch(() => {
+      router.replace("/auth/login");
+    });
+  }, [router]);
 
   useEffect(() => {
     try {
@@ -128,28 +84,26 @@ export default function AdminLayout({
     const resetIdleTimer = () => {
       if (timeoutId) clearTimeout(timeoutId);
 
-      let minutes = 120;
+      let minutes = 30;
       try {
         const raw = localStorage.getItem("appSettings");
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed.security?.sessionTimeout) {
-            minutes = Number(parsed.security.sessionTimeout) || 120;
+            minutes = Number(parsed.security.sessionTimeout) || 30;
           }
         }
       } catch {}
 
       const ms = minutes * 60 * 1000;
-      timeoutId = setTimeout(async () => {
+      timeoutId = setTimeout(() => {
+        alert(t("admin.nav.session_timeout", `Sesi Anda telah berakhir karena tidak ada aktivitas selama ${minutes} menit. Silakan login kembali.`));
         try {
           disconnectSocket();
-          await api.auth.logout();
+          api.auth.logout();
         } catch {}
-        removeAuthToken();
         localStorage.clear();
-        sessionStorage.clear();
-        sessionStorage.setItem("logged_out", "true");
-        window.location.replace("/auth/login?reason=timeout");
+        window.location.href = "/auth/login?reason=timeout";
       }, ms);
     };
 
@@ -178,14 +132,14 @@ export default function AdminLayout({
 
   if (!authorized) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#0b1220]">
         <div className="w-8 h-8 border-4 border-[#0785BC] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen h-dvh overflow-hidden bg-[#f8fafc] text-slate-900">
+    <div className="flex h-screen h-dvh overflow-hidden bg-[#f8fafc] dark:bg-[#0b1220] text-slate-900 dark:text-slate-100">
       {/* Sleek ChatGPT / n8n Desktop Sidebar */}
       <div className="hidden md:block shrink-0">
         <Sidebar
@@ -212,7 +166,7 @@ export default function AdminLayout({
       )}
 
       {/* Main Canvas Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-dot-grid">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-dot-grid dark:bg-dot-grid-dark">
         {/* Top Command Bar / Navbar */}
         <Navbar
           showSearch={showSearch}
@@ -231,7 +185,7 @@ export default function AdminLayout({
 
         {/* Mobile bottom navigation bar */}
         {!hideMobileTabs && (
-          <nav className="md:hidden shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur px-2 py-2">
+          <nav className="md:hidden shrink-0 border-t border-slate-200 bg-white/95 backdrop-blur px-2 py-2 dark:border-slate-800 dark:bg-[#111c30]/95">
             <AdminMobileTabs onOpenMenu={() => setMobileOpen(true)} />
           </nav>
         )}

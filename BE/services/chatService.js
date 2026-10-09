@@ -39,7 +39,10 @@ exports.findAllChats = async ({ user_id, admin_id, status }, currentUserId) => {
     `)
     .order('updated_at', { ascending: false });
 
-  if (user_id) query = query.or(`user_id.eq.${user_id},admin_id.eq.${user_id}`);
+  if (user_id) {
+    const cleanUserId = String(user_id).replace(/[^a-zA-Z0-9-]/g, '');
+    if (cleanUserId) query = query.or(`user_id.eq.${cleanUserId},admin_id.eq.${cleanUserId}`);
+  }
   if (admin_id) query = query.eq('admin_id', admin_id);
   if (status) query = query.eq('status', status);
 
@@ -239,6 +242,10 @@ exports.deleteChat = async (chatId, userId, userRole) => {
 };
 
 exports.clearChatMessages = async (chatId, userId, userRole) => {
+  const isStaff = [ROLES.ADMIN, ROLES.PETUGAS].includes(userRole);
+  if (!isStaff) {
+    throw new AppError('Akses ditolak: Hanya Admin atau Petugas yang dapat membersihkan riwayat percakapan', 403);
+  }
   await verifyChatAccess(chatId, userId, userRole);
   const { error } = await supabase.from('chat_messages').delete().eq('chat_id', chatId);
   if (error) throw error;

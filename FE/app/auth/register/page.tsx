@@ -12,7 +12,7 @@ import {
   ChevronDown,
   ArrowLeft,
 } from "lucide-react";
-import { api, setAuthToken, setCurrentUser } from "@/lib/api";
+import { api, setAuthToken, setRefreshToken, setCurrentUser } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -59,6 +59,10 @@ export default function RegisterPage() {
         } catch {}
         if (res.data.token) {
           setAuthToken(res.data.token);
+        }
+
+        if (res.data.refreshToken) {
+          setRefreshToken(res.data.refreshToken);
         }
 
         if (res.data.user) {

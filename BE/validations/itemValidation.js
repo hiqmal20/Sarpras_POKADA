@@ -21,7 +21,7 @@ const createItemSchema = Joi.object({
 });
 
 const updateItemSchema = Joi.object({
-  category_id: Joi.string().uuid().allow(null, ''),
+  category_id: Joi.string().uuid().empty('').default(null).allow(null),
   name: Joi.string().trim().min(2).max(150),
   code: Joi.string().trim().min(2).max(50),
   description: Joi.string().allow('', null),

@@ -12,13 +12,48 @@ export interface ApiResponse<T = any> {
   errors?: Array<{ field: string; message: string }>;
 }
 
-export const getAuthToken = (): string | null => null;
-export const setAuthToken = (_token: string): void => {};
-export const getRefreshToken = (): string | null => null;
-export const setRefreshToken = (_refreshToken: string): void => {};
+export const getAuthToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token") || localStorage.getItem("access_token");
+};
+
+export const setAuthToken = (token: string): void => {
+  if (typeof window !== "undefined") {
+    if (token) {
+      localStorage.setItem("token", token);
+      localStorage.setItem("access_token", token);
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("access_token");
+    }
+  }
+};
+
+export const getRefreshToken = (): string | null => {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("refreshToken") || localStorage.getItem("refresh_token");
+};
+
+export const setRefreshToken = (refreshToken: string): void => {
+  if (typeof window !== "undefined") {
+    if (refreshToken) {
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.setItem("refresh_token", refreshToken);
+    } else {
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("refresh_token");
+    }
+  }
+};
 
 export const removeAuthToken = (): void => {
-  if (typeof window !== "undefined") localStorage.removeItem("user");
+  if (typeof window !== "undefined") {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refreshToken");
+    localStorage.removeItem("refresh_token");
+  }
 };
 
 export const getCurrentUser = (): any | null => {
@@ -61,7 +96,40 @@ function toQueryString(params?: Record<string, any>): string {
   return q ? `?${q}` : "";
 }
 
-let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function performTokenRefresh(): Promise<boolean> {
+  if (refreshPromise) return refreshPromise;
+
+  refreshPromise = (async () => {
+    try {
+      const storedRefreshToken = getRefreshToken();
+      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        if (data.data?.token) {
+          setAuthToken(data.data.token);
+        }
+        if (data.data?.refreshToken) {
+          setRefreshToken(data.data.refreshToken);
+        }
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
 
 async function apiFetch<T>(
   endpoint: string,
@@ -70,9 +138,11 @@ async function apiFetch<T>(
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
-  const headers: HeadersInit = {
+  const token = getAuthToken();
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...options.headers,
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers as Record<string, string> || {}),
   };
 
   try {
@@ -92,59 +162,28 @@ async function apiFetch<T>(
       };
     }
 
+    // Refresh token otomatis jika mendapat 401 dan bukan endpoint auth
     if (res.status === 401 && !isRetry && !endpoint.includes("/auth/")) {
-      // Cegah auto-refresh jika user sudah logout atau session telah dihapus
-      if (typeof window !== "undefined") {
-        if (!localStorage.getItem("user") || sessionStorage.getItem("logged_out") === "true") {
-          return {
-            status: "fail",
-            message: "Sesi Anda telah berakhir. Silakan login kembali.",
-          };
-        }
-      }
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-          });
-          const refreshData = await refreshRes.json();
-          if (refreshData.status === "success") {
-            isRefreshing = false;
-            return apiFetch<T>(endpoint, options, true);
-          }
-        } catch {
-          // ignore
-        } finally {
-          isRefreshing = false;
-        }
+      const refreshed = await performTokenRefresh();
+      if (refreshed) {
+        return apiFetch<T>(endpoint, options, true);
       }
     }
 
     if (!res.ok) {
+      // Hanya redirect ke login jika 401 dan bukan pada halaman atau endpoint auth
       if (res.status === 401 && typeof window !== "undefined") {
-        removeAuthToken();
-        try {
-          localStorage.removeItem("user");
-          sessionStorage.clear();
-        } catch {}
-        if (!window.location.pathname.startsWith("/auth/")) {
-          window.location.replace("/auth/login");
+        if (!endpoint.includes("/auth/")) {
+          removeAuthToken();
+          if (!window.location.pathname.startsWith("/auth/")) {
+            window.location.href = "/auth/login";
+          }
         }
-      }
-      let errMessage = data?.message || `Permintaan gagal (HTTP ${res.status})`;
-      if (data?.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-        errMessage = data.errors
-          .map((e: any) => (typeof e === "string" ? e : e.message || e.field || ""))
-          .filter(Boolean)
-          .join(". ");
       }
       return {
         ...data,
         status: data?.status && data.status !== "success" ? data.status : "error",
-        message: errMessage,
+        message: data?.message || `Permintaan gagal (HTTP ${res.status})`,
       };
     }
 
@@ -171,23 +210,16 @@ export const api = {
       role?: string;
       no_hp?: string;
     }) =>
-      apiFetch<{ user: any; token: string }>("/auth/register", {
+      apiFetch<{ user: any; token: string; refreshToken?: string }>("/auth/register", {
         method: "POST",
         body: JSON.stringify(payload),
       }),
 
-    login: (payload: { email: string; nomor_induk: string; password: string }) => {
-      removeAuthToken();
-      if (typeof window !== "undefined") {
-        try {
-          sessionStorage.removeItem("logged_out");
-        } catch {}
-      }
-      return apiFetch<{ user: any; token: string }>("/auth/login", {
+    login: (payload: { email: string; nomor_induk: string; password: string }) =>
+      apiFetch<{ user: any; token: string; refreshToken?: string }>("/auth/login", {
         method: "POST",
         body: JSON.stringify(payload),
-      });
-    },
+      }),
 
     getProfile: () => apiFetch<{ user: any }>("/auth/me", { method: "GET" }),
 
@@ -212,18 +244,9 @@ export const api = {
       }),
 
     logout: async () => {
-      try {
-        await apiFetch("/auth/logout", { method: "POST" });
-      } catch {}
+      const result = await apiFetch("/auth/logout", { method: "POST" });
       removeAuthToken();
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.clear();
-          sessionStorage.clear();
-          sessionStorage.setItem("logged_out", "true");
-        } catch {}
-      }
-      return { status: "success", message: "Berhasil logout" };
+      return result;
     },
   },
 

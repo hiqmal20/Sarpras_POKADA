@@ -107,13 +107,28 @@ export default function MessagesPage() {
     const toastEl = document.createElement("div");
     toastEl.className =
       "fixed top-4 right-4 z-[100] max-w-xs w-full bg-slate-900 text-white rounded-2xl shadow-xl p-3.5 animate-fade-in flex items-start gap-2.5";
-    toastEl.innerHTML = `
-      <div class="w-8 h-8 rounded-xl bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shrink-0">💬</div>
-      <div class="min-w-0">
-        <p class="font-bold text-xs leading-snug truncate">${title}</p>
-        <p class="text-[11px] text-slate-300 leading-relaxed line-clamp-2 mt-0.5">${body}</p>
-      </div>
-    `;
+
+    const iconEl = document.createElement("div");
+    iconEl.className =
+      "w-8 h-8 rounded-xl bg-[#0785BC] text-white flex items-center justify-center font-bold text-xs shrink-0";
+    iconEl.textContent = "💬";
+
+    const contentEl = document.createElement("div");
+    contentEl.className = "min-w-0";
+
+    const titleEl = document.createElement("p");
+    titleEl.className = "font-bold text-xs leading-snug truncate";
+    titleEl.textContent = title;
+
+    const bodyEl = document.createElement("p");
+    bodyEl.className = "text-[11px] text-slate-300 leading-relaxed line-clamp-2 mt-0.5";
+    bodyEl.textContent = body;
+
+    contentEl.appendChild(titleEl);
+    contentEl.appendChild(bodyEl);
+    toastEl.appendChild(iconEl);
+    toastEl.appendChild(contentEl);
+
     document.body.appendChild(toastEl);
     setTimeout(() => toastEl.remove(), 4500);
   };

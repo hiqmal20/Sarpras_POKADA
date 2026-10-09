@@ -18,6 +18,7 @@ import {
 import api, { getCurrentUser } from "@/lib/api";
 import { UserLayout } from "@/components/user";
 import { useLanguage } from "@/lib/i18n";
+import { getSocket } from "@/lib/socket";
 
 interface BorrowingItem {
   id: string;
@@ -283,6 +284,20 @@ export default function UserDashboardPage() {
     window.addEventListener("user-updated", syncUser);
     window.addEventListener("storage", syncUser);
 
+    // Real-time socket updates for items, stock, and borrowings
+    const socket = getSocket();
+    const handleUpdate = () => {
+      loadDashboardData();
+    };
+
+    if (socket) {
+      socket.on("stock_updated", handleUpdate);
+      socket.on("item_updated", handleUpdate);
+      socket.on("item_created", handleUpdate);
+      socket.on("borrowing_updated", handleUpdate);
+      socket.on("borrowing_created", handleUpdate);
+    }
+
     // Polling real-time updates every 30 seconds (like admin)
     const interval = setInterval(() => {
       loadDashboardData();
@@ -292,6 +307,13 @@ export default function UserDashboardPage() {
       clearInterval(interval);
       window.removeEventListener("user-updated", syncUser);
       window.removeEventListener("storage", syncUser);
+      if (socket) {
+        socket.off("stock_updated", handleUpdate);
+        socket.off("item_updated", handleUpdate);
+        socket.off("item_created", handleUpdate);
+        socket.off("borrowing_updated", handleUpdate);
+        socket.off("borrowing_created", handleUpdate);
+      }
     };
   }, [syncUser, loadDashboardData]);
 

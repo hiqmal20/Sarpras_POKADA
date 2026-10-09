@@ -217,6 +217,19 @@ module.exports = (io, app) => {
         if (!chatId || !message || !message.trim()) {
           return socket.emit('error', { message: 'chatId dan message wajib diisi' });
         }
+        if (message.trim().length > 5000) {
+          return socket.emit('error', { message: 'Pesan maksimal 5000 karakter' });
+        }
+        if (attachment_url !== undefined && attachment_url !== null && attachment_url !== '') {
+          try {
+            const parsedUrl = new URL(String(attachment_url));
+            if (parsedUrl.protocol !== 'https:' || parsedUrl.username || parsedUrl.password) {
+              return socket.emit('error', { message: 'URL lampiran tidak valid' });
+            }
+          } catch (_) {
+            return socket.emit('error', { message: 'URL lampiran tidak valid' });
+          }
+        }
 
         const { data: chat } = await supabase
           .from('chats')
@@ -314,9 +327,23 @@ module.exports = (io, app) => {
       }
     });
 
+    // Helper untuk memverifikasi hak akses pengguna terhadap chat
+    const getChatAccess = async (chatId) => {
+      const { data: chat, error } = await supabase
+        .from('chats')
+        .select('id, user_id, admin_id')
+        .eq('id', chatId)
+        .single();
+      if (error || !chat) return null;
+      const isStaff = [ROLES.ADMIN, ROLES.PETUGAS].includes(user.role);
+      const isParticipant = chat.user_id === user.id || chat.admin_id === user.id;
+      if (!isStaff && !isParticipant) return false;
+      return { chat, isStaff, isParticipant };
+    };
+
     // Event: User sedang mengetik
     socket.on('typing', (chatId) => {
-      if (chatId) {
+      if (chatId && socket.rooms.has(chatId)) {
         socket.to(chatId).emit('user_typing', {
           chatId,
           user: {
@@ -331,7 +358,7 @@ module.exports = (io, app) => {
 
     // Event: User berhenti mengetik
     socket.on('stop_typing', (chatId) => {
-      if (chatId) {
+      if (chatId && socket.rooms.has(chatId)) {
         socket.to(chatId).emit('user_stop_typing', {
           chatId,
           user: {
@@ -347,6 +374,9 @@ module.exports = (io, app) => {
     socket.on('mark_as_read', async (chatId) => {
       try {
         if (!chatId) return;
+
+        const access = await getChatAccess(chatId);
+        if (!access) return;
 
         await supabase
           .from('chat_messages')
@@ -373,6 +403,27 @@ module.exports = (io, app) => {
         const { chatId, messageId, message: newContent } = data;
         if (!chatId || !messageId || !newContent || !newContent.trim()) return;
 
+        const access = await getChatAccess(chatId);
+        if (!access) {
+          return socket.emit('error', { message: 'Akses ditolak ke chat ini' });
+        }
+
+        // Pastikan hanya pengirim asli yang dapat mengedit pesannya
+        const { data: existingMsg, error: fetchErr } = await supabase
+          .from('chat_messages')
+          .select('id, chat_id, sender_id')
+          .eq('id', messageId)
+          .eq('chat_id', chatId)
+          .single();
+
+        if (fetchErr || !existingMsg) {
+          return socket.emit('error', { message: 'Pesan tidak ditemukan' });
+        }
+
+        if (existingMsg.sender_id !== user.id) {
+          return socket.emit('error', { message: 'Anda hanya dapat mengubah pesan Anda sendiri' });
+        }
+
         const { data: updatedMsg, error } = await supabase
           .from('chat_messages')
           .update({ message: newContent.trim() })
@@ -395,6 +446,27 @@ module.exports = (io, app) => {
         const { chatId, messageId } = data;
         if (!chatId || !messageId) return;
 
+        const access = await getChatAccess(chatId);
+        if (!access) {
+          return socket.emit('error', { message: 'Akses ditolak ke chat ini' });
+        }
+
+        // Pengirim pesan atau Staff (Admin/Petugas) yang boleh menghapus
+        const { data: existingMsg, error: fetchErr } = await supabase
+          .from('chat_messages')
+          .select('id, chat_id, sender_id')
+          .eq('id', messageId)
+          .eq('chat_id', chatId)
+          .single();
+
+        if (fetchErr || !existingMsg) {
+          return socket.emit('error', { message: 'Pesan tidak ditemukan' });
+        }
+
+        if (existingMsg.sender_id !== user.id && !access.isStaff) {
+          return socket.emit('error', { message: 'Anda hanya dapat menghapus pesan Anda sendiri' });
+        }
+
         const { error } = await supabase
           .from('chat_messages')
           .delete()
@@ -413,6 +485,12 @@ module.exports = (io, app) => {
     socket.on('clear_chat', async (chatId) => {
       try {
         if (!chatId) return;
+
+        const access = await getChatAccess(chatId);
+        if (!access || !access.isStaff) {
+          return socket.emit('error', { message: 'Hanya Admin atau Petugas yang dapat membersihkan riwayat percakapan' });
+        }
+
         await supabase.from('chat_messages').delete().eq('chat_id', chatId);
         io.to(chatId).emit('chat_cleared', { chatId });
       } catch (err) {
@@ -424,6 +502,12 @@ module.exports = (io, app) => {
     socket.on('delete_chat', async (chatId) => {
       try {
         if (!chatId) return;
+
+        const access = await getChatAccess(chatId);
+        if (!access) {
+          return socket.emit('error', { message: 'Akses ditolak: Anda bukan peserta chat ini' });
+        }
+
         await supabase.from('chat_messages').delete().eq('chat_id', chatId);
         await supabase.from('chats').delete().eq('id', chatId);
         io.to(chatId).emit('chat_deleted', { chatId });
