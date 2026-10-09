@@ -4,8 +4,10 @@ const returnController = require('../controller/returnController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../constants/roles');
 const validateRequest = require('../middleware/validateRequest');
+const { uuidParamHandler } = require('../middleware/validateUuid');
 const { createReturnSchema } = require('../validations/returnValidation');
 
+router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 router.get('/', requireRole(ROLES.ADMIN, ROLES.PETUGAS), returnController.getAllReturns);

@@ -296,7 +296,9 @@ export default function SettingsPage() {
         await api.auth.logout();
       } catch {}
       localStorage.clear();
-      window.location.href = "/auth/login";
+      sessionStorage.clear();
+      sessionStorage.setItem("logged_out", "true");
+      window.location.replace("/auth/login");
     }
   };
 
@@ -315,7 +317,9 @@ export default function SettingsPage() {
         await api.auth.logout();
       } catch {}
       localStorage.clear();
-      window.location.href = "/auth/login";
+      sessionStorage.clear();
+      sessionStorage.setItem("logged_out", "true");
+      window.location.replace("/auth/login");
     }
   };
 

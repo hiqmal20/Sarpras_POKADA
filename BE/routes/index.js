@@ -13,6 +13,7 @@ const damageReportRoutes = require('./damageReportRoutes');
 const chatRoutes = require('./chatRoutes');
 const notificationRoutes = require('./notificationRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
+const auditLogRoutes = require('./auditLogRoutes');
 
 // Daftarkan semua sub-routes
 router.use('/auth', authRoutes);
@@ -27,5 +28,6 @@ router.use('/damage-reports', damageReportRoutes);
 router.use('/chats', chatRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/audit-logs', auditLogRoutes);
 
 module.exports = router;

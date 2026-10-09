@@ -10,6 +10,7 @@ import {
   IdCard,
   Phone,
   ChevronDown,
+  ArrowLeft,
 } from "lucide-react";
 import { api, setAuthToken, setCurrentUser } from "@/lib/api";
 
@@ -53,6 +54,9 @@ export default function RegisterPage() {
       });
 
       if (res.status === "success" && res.data) {
+        try {
+          sessionStorage.removeItem("logged_out");
+        } catch {}
         if (res.data.token) {
           setAuthToken(res.data.token);
         }
@@ -107,10 +111,10 @@ export default function RegisterPage() {
     outline-none
     transition-all
     duration-200
-    focus:border-blue-300/80
+    focus:border-[#0785BC]
     focus:bg-white/65
     focus:ring-2
-    focus:ring-blue-400/15
+    focus:ring-[#0785BC]/20
   `;
 
   const iconClass = `
@@ -194,6 +198,16 @@ export default function RegisterPage() {
             />
 
             <div className="relative flex flex-col items-center">
+              <div className="w-full flex items-center justify-start mb-2">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#0785BC] transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Kembali ke Beranda
+                </Link>
+              </div>
+
               <div
                 className="
                   flex
@@ -216,8 +230,8 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <span className="mt-2.5 text-base font-bold text-blue-600 tracking-wide">
-                SARPRAS POKADA
+              <span className="mt-2.5 text-base font-bold text-slate-800 tracking-wide">
+                SARPRAS<span className="text-[#0785BC]">POKADA</span>
               </span>
             </div>
 
@@ -420,19 +434,19 @@ export default function RegisterPage() {
                   h-10
                   w-full
                   rounded-lg
-                  bg-blue-600
+                  bg-[#0785BC]
                   text-xs
                   font-semibold
                   text-white
                   shadow-md
-                  shadow-blue-600/20
+                  shadow-[#0785BC]/25
                   transition-all
                   duration-200
-                  hover:bg-blue-700
+                  hover:bg-[#0672a0]
                   active:scale-[0.99]
                   focus:outline-none
                   focus:ring-2
-                  focus:ring-blue-500/30
+                  focus:ring-[#0785BC]/30
                   disabled:cursor-not-allowed
                   disabled:opacity-50
                 "
@@ -448,9 +462,9 @@ export default function RegisterPage() {
                   href="/auth/login"
                   className="
                     font-semibold
-                    text-blue-600
+                    text-[#0785BC]
                     transition-colors
-                    hover:text-blue-700
+                    hover:text-[#0672a0]
                   "
                 >
                   Masuk di sini

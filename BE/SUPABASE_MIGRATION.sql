@@ -99,4 +99,107 @@ ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ DEFAULT NOW();
 -- Index untuk performa query status user
 CREATE INDEX IF NOT EXISTS idx_users_last_seen ON users(last_seen);
 
+-- ============================================================
+-- NEW MIGRATION: Atomic Stock Management (Cegah Race Condition)
+-- ============================================================
+
+-- 1. Fungsi pengurangan stok secara atomic dengan Row-Level Lock (FOR UPDATE)
+CREATE OR REPLACE FUNCTION decrement_item_stock(p_item_id UUID, p_quantity INT)
+RETURNS jsonb AS $$
+DECLARE
+  v_item record;
+BEGIN
+  -- Kunci baris spesifik ini selama transaksi untuk mencegah double booking / race condition
+  SELECT id, name, stock, available_stock, status
+  INTO v_item
+  FROM items
+  WHERE id = p_item_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Barang dengan ID % tidak ditemukan', p_item_id;
+  END IF;
+
+  IF v_item.status <> 'Tersedia' THEN
+    RAISE EXCEPTION 'Barang "%" sedang tidak tersedia (status: %)', v_item.name, v_item.status;
+  END IF;
+
+  IF v_item.available_stock < p_quantity THEN
+    RAISE EXCEPTION 'Stok tidak mencukupi untuk "%". Tersedia: %, Diminta: %', v_item.name, v_item.available_stock, p_quantity;
+  END IF;
+
+  UPDATE items
+  SET
+    available_stock = available_stock - p_quantity,
+    status = CASE WHEN available_stock - p_quantity = 0 THEN 'Stok Kosong' ELSE status END
+  WHERE id = p_item_id
+  RETURNING * INTO v_item;
+
+  RETURN to_jsonb(v_item);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 2. Fungsi penambahan / pemulihan stok secara atomic
+CREATE OR REPLACE FUNCTION increment_item_stock(p_item_id UUID, p_quantity INT)
+RETURNS jsonb AS $$
+DECLARE
+  v_item record;
+BEGIN
+  SELECT id, stock, available_stock, status
+  INTO v_item
+  FROM items
+  WHERE id = p_item_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Barang dengan ID % tidak ditemukan', p_item_id;
+  END IF;
+
+  UPDATE items
+  SET
+    available_stock = LEAST(stock, available_stock + p_quantity),
+    status = CASE WHEN status = 'Stok Kosong' AND LEAST(stock, available_stock + p_quantity) > 0 THEN 'Tersedia' ELSE status END
+  WHERE id = p_item_id
+  RETURNING * INTO v_item;
+
+  RETURN to_jsonb(v_item);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================
+-- NEW MIGRATION: Tabel Audit Log (Audit Trail Keamanan & Aktivitas)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  user_email TEXT,
+  user_role TEXT,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  details JSONB DEFAULT '{}'::jsonb,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index audit logs untuk filter & pencarian cepat
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON public.audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON public.audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_entity ON public.audit_logs(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
+
+-- Aktifkan RLS di audit_logs
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- Policy: service_role punya akses penuh, user biasa tidak dapat memodifikasi audit log
+DROP POLICY IF EXISTS "service_role_all_audit_logs" ON public.audit_logs;
+CREATE POLICY "service_role_all_audit_logs" ON public.audit_logs
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+
 

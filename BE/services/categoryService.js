@@ -1,5 +1,6 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { sanitizeSearch } = require('../utils/sanitizeSearch');
 
 exports.findAllCategories = async ({ search }) => {
   let query = supabase
@@ -8,7 +9,7 @@ exports.findAllCategories = async ({ search }) => {
     .order('created_at', { ascending: false });
 
   if (search) {
-    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    const safeSearch = sanitizeSearch(search);
     if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
   }
 

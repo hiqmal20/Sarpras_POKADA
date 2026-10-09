@@ -1,6 +1,7 @@
 const userService = require('../services/userService');
 const { sendSuccess } = require('../utils/responseHandler');
 const AppError = require('../utils/appError');
+const { recordLog } = require('../services/auditLogService');
 
 // Get all users
 exports.getAllUsers = async (req, res, next) => {
@@ -37,6 +38,13 @@ exports.getUserById = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   try {
     const data = await userService.createUserProfile(req.body);
+    recordLog({
+      action: 'CREATE_USER',
+      entityType: 'users',
+      entityId: data?.id,
+      details: { email: data?.email, role: data?.role, nomor_induk: data?.nomor_induk },
+      req
+    });
     return sendSuccess(res, 'Profil pengguna berhasil disimpan', data, 201);
   } catch (err) {
     next(err);
@@ -98,6 +106,13 @@ exports.updateUser = async (req, res, next) => {
       Object.keys(payload).forEach((k) => payload[k] === undefined && delete payload[k]);
     }
     const data = await userService.updateUserProfile(req.params.id, payload);
+    recordLog({
+      action: 'UPDATE_USER',
+      entityType: 'users',
+      entityId: req.params.id,
+      details: { changed_fields: Object.keys(payload) },
+      req
+    });
     return sendSuccess(res, 'Profil pengguna berhasil diperbarui', data, 200);
   } catch (err) {
     next(err);
@@ -108,6 +123,12 @@ exports.updateUser = async (req, res, next) => {
 exports.deleteUser = async (req, res, next) => {
   try {
     await userService.deleteUser(req.params.id);
+    recordLog({
+      action: 'DELETE_USER',
+      entityType: 'users',
+      entityId: req.params.id,
+      req
+    });
     return sendSuccess(res, 'Pengguna berhasil dihapus', null, 200);
   } catch (err) {
     next(err);

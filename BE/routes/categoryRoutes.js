@@ -4,8 +4,10 @@ const categoryController = require('../controller/categoryController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../constants/roles');
 const validateRequest = require('../middleware/validateRequest');
+const { uuidParamHandler } = require('../middleware/validateUuid');
 const { createCategorySchema, updateCategorySchema } = require('../validations/categoryValidation');
 
+router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 router.get('/', categoryController.getAllCategories);

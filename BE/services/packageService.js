@@ -1,5 +1,6 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { sanitizeSearch } = require('../utils/sanitizeSearch');
 
 /**
  * Cek apakah semua item dalam package tersedia.
@@ -58,7 +59,7 @@ exports.findAllPackages = async ({ status, search }) => {
 
   if (status) query = query.eq('status', status);
   if (search) {
-    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    const safeSearch = sanitizeSearch(search);
     if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
   }
 

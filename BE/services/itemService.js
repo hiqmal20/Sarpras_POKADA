@@ -1,5 +1,6 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { sanitizeSearch } = require('../utils/sanitizeSearch');
 
 exports.findAllItems = async ({ category_id, status, condition, search, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
@@ -13,7 +14,7 @@ exports.findAllItems = async ({ category_id, status, condition, search, page = 1
   if (status) query = query.eq('status', status);
   if (condition) query = query.eq('condition', condition);
   if (search) {
-    const safeSearch = String(search).replace(/[(),.%]/g, ' ').trim().slice(0, 80);
+    const safeSearch = sanitizeSearch(search);
     if (safeSearch) query = query.ilike('name', `%${safeSearch}%`);
   }
 

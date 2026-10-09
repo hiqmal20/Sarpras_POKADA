@@ -1,7 +1,9 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { sanitizeSearch } = require('../utils/sanitizeSearch');
+const { incrementStock } = require('../utils/stockManager');
 
-exports.findAllReturns = async ({ user_id, page = 1, limit = 20 }) => {
+exports.findAllReturns = async ({ user_id, search, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
 
   const borrowingsRelation = user_id ? 'borrowings!inner' : 'borrowings';
@@ -25,6 +27,13 @@ exports.findAllReturns = async ({ user_id, page = 1, limit = 20 }) => {
 
   if (user_id) {
     query = query.eq('borrowings.user_id', user_id);
+  }
+
+  if (search) {
+    const safeSearch = sanitizeSearch(search);
+    if (safeSearch) {
+      query = query.or(`receiver_notes.ilike.%${safeSearch}%`);
+    }
   }
 
   const { data: returns, count, error } = await query.range(offset, offset + Number(limit) - 1);
@@ -168,23 +177,8 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
           if (condError) throw condError;
         }
 
-        const { data: itemData, error: itemReadError } = await supabase
-          .from('items')
-          .select('available_stock, stock')
-          .eq('id', bItem.item_id)
-          .single();
-
-        if (itemReadError || !itemData) throw itemReadError || new AppError('Barang tidak ditemukan saat pengembalian', 500);
-
-        const restoredStock = Math.min(itemData.stock, itemData.available_stock + bItem.quantity);
-        const { error: stockError } = await supabase
-          .from('items')
-          .update({
-            available_stock: restoredStock,
-            update_at: now
-          })
-          .eq('id', bItem.item_id);
-        if (stockError) throw stockError;
+        // Kembalikan stok secara aman dari race condition
+        await incrementStock(bItem.item_id, bItem.quantity);
       }
     }
   } catch (err) {

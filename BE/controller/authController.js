@@ -1,11 +1,22 @@
 const authService = require('../services/authService');
 const { sendSuccess } = require('../utils/responseHandler');
+const { recordLog } = require('../services/auditLogService');
 
 // Register user baru
 exports.register = async (req, res, next) => {
   try {
     const result = await authService.registerUser(req.body);
     setAuthCookies(res, result);
+    recordLog({
+      userId: result.user?.id,
+      userEmail: result.user?.email,
+      userRole: result.user?.role,
+      action: 'REGISTER',
+      entityType: 'users',
+      entityId: result.user?.id,
+      details: { email: result.user?.email, name: result.user?.name },
+      req
+    });
     return sendSuccess(res, 'Registrasi berhasil! Akun telah terdaftar.', { user: result.user }, 201);
   } catch (err) {
     next(err);
@@ -29,8 +40,24 @@ exports.login = async (req, res, next) => {
   try {
     const result = await authService.loginUser(req.body);
     setAuthCookies(res, result);
+    recordLog({
+      userId: result.user?.id,
+      userEmail: result.user?.email,
+      userRole: result.user?.role,
+      action: 'LOGIN',
+      entityType: 'auth',
+      entityId: result.user?.id,
+      details: { email: result.user?.email },
+      req
+    });
     return sendSuccess(res, 'Login berhasil!', { user: result.user }, 200);
   } catch (err) {
+    recordLog({
+      action: 'LOGIN_FAILED',
+      entityType: 'auth',
+      details: { email: req.body?.email, error: err.message },
+      req
+    });
     next(err);
   }
 };
@@ -83,6 +110,12 @@ exports.changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const result = await authService.changePassword(req.user, currentPassword, newPassword);
+    recordLog({
+      action: 'CHANGE_PASSWORD',
+      entityType: 'users',
+      entityId: req.user?.id,
+      req
+    });
     return sendSuccess(res, 'Password berhasil diubah', result, 200);
   } catch (err) {
     next(err);
@@ -92,6 +125,11 @@ exports.changePassword = async (req, res, next) => {
 // Logout
 exports.logout = async (req, res, next) => {
   try {
+    recordLog({
+      action: 'LOGOUT',
+      entityType: 'auth',
+      req
+    });
     const clearOpts = {
       ...cookieOptions,
       maxAge: 0,

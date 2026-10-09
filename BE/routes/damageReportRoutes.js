@@ -4,8 +4,10 @@ const damageReportController = require('../controller/damageReportController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../constants/roles');
 const validateRequest = require('../middleware/validateRequest');
+const { uuidParamHandler } = require('../middleware/validateUuid');
 const { createDamageReportSchema, updateDamageReportSchema } = require('../validations/damageReportValidation');
 
+router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 // GET semua laporan

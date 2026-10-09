@@ -3,6 +3,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
+const hpp = require('hpp');
+const compression = require('compression');
 const dotenv = require('dotenv');
 const cookieParser = require('cookie-parser');
 
@@ -54,7 +56,22 @@ setupSocketHandlers(io, app);
 // Make io accessible in other files
 app.set('io', io);
 
+// Trust proxy for secure cookies and reverse proxies (Heroku, Render, Cloudflare, Nginx)
+app.set('trust proxy', 1);
+
+// Enforce HTTPS in production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    const proto = req.headers['x-forwarded-proto'];
+    if (proto && proto !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
 app.use(helmet());
+app.use(compression());
 app.use(cors({
   origin: (origin, callback) => {
     if (isOriginAllowed(origin)) {
@@ -79,6 +96,7 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(hpp());
 app.use(cookieParser());
 
 app.use('/api', apiLimiter);

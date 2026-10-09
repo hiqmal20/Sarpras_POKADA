@@ -4,8 +4,10 @@ const supabase = require('../config/supabaseClient');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../constants/roles');
 const validateRequest = require('../middleware/validateRequest');
+const { uuidParamHandler } = require('../middleware/validateUuid');
 const { createReturnRequestSchema, updateReturnRequestSchema } = require('../validations/returnRequestValidation');
 
+router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 router.get('/', async (req, res, next) => {

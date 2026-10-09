@@ -3,6 +3,9 @@ const router = express.Router();
 const userController = require('../controller/userController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { uploadCSV, uploadImage } = require('../middleware/uploadMiddleware');
+const { uuidParamHandler } = require('../middleware/validateUuid');
+
+router.param('id', uuidParamHandler);
 
 // Semua route users butuh login
 router.use(requireAuth);

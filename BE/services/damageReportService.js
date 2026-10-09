@@ -1,5 +1,6 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { sanitizeSearch } = require('../utils/sanitizeSearch');
 
 /**
  * Generate unique report code dengan prefix ITM- atau PKG-
@@ -12,7 +13,7 @@ const generateReportCode = (damageType) => {
   return `${prefix}-${dateStr}-${randomStr}`;
 };
 
-exports.findAllReports = async ({ user_id, item_id, status, report_type, damage_type, fine_status, start_date, end_date, page = 1, limit = 20 }) => {
+exports.findAllReports = async ({ user_id, item_id, status, report_type, damage_type, fine_status, start_date, end_date, search, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
 
   let query = supabase
@@ -33,6 +34,12 @@ exports.findAllReports = async ({ user_id, item_id, status, report_type, damage_
   if (damage_type && damage_type !== 'undefined' && damage_type !== 'all') query = query.eq('damage_type', damage_type); // Filter: per_item | per_package
   if (start_date) query = query.gte('created_at', start_date);
   if (end_date) query = query.lte('created_at', end_date);
+  if (search) {
+    const safeSearch = sanitizeSearch(search);
+    if (safeSearch) {
+      query = query.or(`report_code.ilike.%${safeSearch}%,title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`);
+    }
+  }
   if (fine_status && fine_status !== 'undefined' && fine_status !== 'all') {
     if (fine_status === 'Belum Dibayar' || fine_status === 'unpaid') {
       query = query.eq('fine_status', 'Belum Dibayar').gt('fine_amount', 0);

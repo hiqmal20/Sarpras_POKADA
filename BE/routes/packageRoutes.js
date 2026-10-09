@@ -4,9 +4,11 @@ const packageController = require('../controller/packageController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../constants/roles');
 const validateRequest = require('../middleware/validateRequest');
+const { uuidParamHandler } = require('../middleware/validateUuid');
 const { createPackageSchema, updatePackageSchema } = require('../validations/packageValidation');
 const uploadCSV = require('../middleware/uploadMiddleware').uploadCSV;
 
+router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 router.get('/', packageController.getAllPackages);

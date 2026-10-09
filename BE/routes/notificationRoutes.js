@@ -3,7 +3,9 @@ const router = express.Router();
 const notificationController = require('../controller/notificationController');
 const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 const { ROLES } = require('../constants/roles');
+const { uuidParamHandler } = require('../middleware/validateUuid');
 
+router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 router.get('/', notificationController.getUserNotifications);

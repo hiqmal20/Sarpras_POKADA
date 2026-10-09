@@ -2,6 +2,10 @@ const express = require('express');
 const router = express.Router();
 const chatController = require('../controller/chatController');
 const { requireAuth } = require('../middleware/authMiddleware');
+const { uuidParamHandler } = require('../middleware/validateUuid');
+
+router.param('chatId', uuidParamHandler);
+router.param('messageId', uuidParamHandler);
 
 router.use(requireAuth);
 

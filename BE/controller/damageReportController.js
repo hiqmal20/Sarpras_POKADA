@@ -2,6 +2,7 @@ const damageReportService = require('../services/damageReportService');
 const { sendSuccess } = require('../utils/responseHandler');
 const AppError = require('../utils/appError');
 const { ROLES } = require('../constants/roles');
+const { recordLog } = require('../services/auditLogService');
 
 // GET all reports
 exports.getAllReports = async (req, res, next) => {
@@ -69,6 +70,13 @@ exports.createReport = async (req, res, next) => {
       req.body.description = req.body.damage_description;
     }
     const data = await damageReportService.createNewReport(req.body);
+    recordLog({
+      action: 'CREATE_DAMAGE_REPORT',
+      entityType: 'damage_reports',
+      entityId: data?.id,
+      details: { report_code: data?.report_code, report_type: data?.report_type },
+      req
+    });
     return sendSuccess(res, 'Laporan kerusakan/kehilangan berhasil dibuat', data, 201);
   } catch (err) {
     next(err);
@@ -82,6 +90,13 @@ exports.createReport = async (req, res, next) => {
 exports.updateReport = async (req, res, next) => {
   try {
     const data = await damageReportService.updateReport(req.params.id, req.body);
+    recordLog({
+      action: 'UPDATE_DAMAGE_REPORT',
+      entityType: 'damage_reports',
+      entityId: req.params.id,
+      details: { status: req.body?.status, fine_amount: req.body?.fine_amount, fine_status: req.body?.fine_status },
+      req
+    });
     return sendSuccess(res, 'Laporan berhasil diperbarui', data, 200);
   } catch (err) {
     next(err);

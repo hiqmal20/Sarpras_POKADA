@@ -1,5 +1,7 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
+const { sanitizeSearch } = require('../utils/sanitizeSearch');
+const { decrementStock, incrementStock } = require('../utils/stockManager');
 
 const generateBorrowCode = () => {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
@@ -28,7 +30,12 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
 
   if (user_id) query = query.eq('user_id', user_id);
   if (status) query = query.eq('status', status);
-  if (search) query = query.or(`borrow_code.ilike.%${search}%,purpose.ilike.%${search}%`);
+  if (search) {
+    const safeSearch = sanitizeSearch(search);
+    if (safeSearch) {
+      query = query.or(`borrow_code.ilike.%${safeSearch}%,purpose.ilike.%${safeSearch}%`);
+    }
+  }
 
   query = query.range(offset, offset + Number(limit) - 1);
 
@@ -163,25 +170,8 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
         note: item.note || ''
       });
 
-      const { data: currentItem, error: stockReadError } = await supabase
-        .from('items')
-        .select('available_stock')
-        .eq('id', item.item_id)
-        .single();
-
-      if (stockReadError || !currentItem) {
-        throw new AppError(`Gagal membaca stok barang ${item.item_id}`, 500);
-      }
-
-      const newStock = Math.max(0, currentItem.available_stock - qty);
-      const { error: stockUpdateError } = await supabase
-        .from('items')
-        .update({ available_stock: newStock })
-        .eq('id', item.item_id);
-
-      if (stockUpdateError) {
-        throw new AppError(`Gagal mengurangi stok barang: ${stockUpdateError.message}`, 500);
-      }
+      // Kurangi stok dengan proteksi race condition (RPC lock / OCC retry)
+      await decrementStock(item.item_id, qty);
       stockAdjustments.push({ item_id: item.item_id, qty });
     }
 
@@ -193,17 +183,7 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
   } catch (err) {
     for (const adj of stockAdjustments) {
       try {
-        const { data: currentItem } = await supabase
-          .from('items')
-          .select('available_stock')
-          .eq('id', adj.item_id)
-          .single();
-        if (currentItem) {
-          await supabase
-            .from('items')
-            .update({ available_stock: currentItem.available_stock + adj.qty })
-            .eq('id', adj.item_id);
-        }
+        await incrementStock(adj.item_id, adj.qty);
       } catch (_) { /* best effort rollback */ }
     }
     try {
@@ -276,18 +256,7 @@ exports.updateStatus = async (id, { status, admin_note }) => {
 
   if (isCancelling && bItems) {
     for (const bItem of bItems) {
-      const { data: itemData } = await supabase
-        .from('items')
-        .select('available_stock')
-        .eq('id', bItem.item_id)
-        .single();
-
-      if (itemData) {
-        await supabase
-          .from('items')
-          .update({ available_stock: itemData.available_stock + bItem.quantity })
-          .eq('id', bItem.item_id);
-      }
+      await incrementStock(bItem.item_id, bItem.quantity);
     }
   }
 

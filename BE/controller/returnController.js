@@ -1,5 +1,6 @@
 const returnService = require('../services/returnService');
 const { sendSuccess } = require('../utils/responseHandler');
+const { recordLog } = require('../services/auditLogService');
 
 // Get all returns
 exports.getAllReturns = async (req, res, next) => {
@@ -58,6 +59,13 @@ exports.createReturn = async (req, res, next) => {
       payload.received_by = req.user.id;
     }
     const data = await returnService.createReturnRecord(payload, { requester: req.user });
+    recordLog({
+      action: 'PROCESS_RETURN',
+      entityType: 'returns',
+      entityId: data?.id,
+      details: { borrowing_id: payload.borrowing_id, condition: payload.condition },
+      req
+    });
     return sendSuccess(res, 'Pengembalian barang berhasil diproses', data, 201);
   } catch (err) {
     next(err);
