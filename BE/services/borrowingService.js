@@ -3,6 +3,14 @@ const AppError = require('../utils/appError');
 const { sanitizeSearch } = require('../utils/sanitizeSearch');
 const { decrementStock, incrementStock } = require('../utils/stockManager');
 
+const normalizeQuantity = (value, itemId) => {
+  const quantity = Number(value);
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new AppError(`Jumlah barang untuk item ${itemId} harus berupa bilangan bulat minimal 1`, 400);
+  }
+  return quantity;
+};
+
 const generateBorrowCode = () => {
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
   const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -128,7 +136,7 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
       throw new AppError(`Barang "${itemData.name}" sedang tidak tersedia (status: ${itemData.status})`, 400);
     }
 
-    const requestedQty = Number(item.quantity) || 1;
+    const requestedQty = normalizeQuantity(item.quantity, item.item_id);
     if (itemData.available_stock < requestedQty) {
       throw new AppError(`Stok tidak mencukupi untuk "${itemData.name}". Tersedia: ${itemData.available_stock}, Diminta: ${requestedQty}`, 400);
     }
@@ -160,7 +168,7 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
     // Insert items & kurangi stok
     const borrowingItemsPayload = [];
     for (const item of items) {
-      const qty = Number(item.quantity) || 1;
+      const qty = normalizeQuantity(item.quantity, item.item_id);
 
       borrowingItemsPayload.push({
         borrowing_id: newBorrowing.id,

@@ -849,7 +849,7 @@ export default function PaketPage() {
                   ) : filteredPackages.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-5 py-10 text-center text-slate-400 text-xs">
-                        Belum ada paket sarpras. Klik tombol "Tambah Paket" untuk membuat bundel baru.
+                        Belum ada paket sarpras. Klik tombol &quot;Tambah Paket&quot; untuk membuat bundel baru.
                       </td>
                     </tr>
                   ) : (
@@ -1025,7 +1025,7 @@ export default function PaketPage() {
                 </div>
               ) : filteredPackages.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 text-xs">
-                  Belum ada paket sarpras. Klik tombol "Tambah Paket" untuk membuat bundel baru.
+                  Belum ada paket sarpras. Klik tombol &quot;Tambah Paket&quot; untuk membuat bundel baru.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">

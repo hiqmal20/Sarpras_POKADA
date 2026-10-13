@@ -55,6 +55,7 @@ interface Borrowing {
   borrower_role?: string;
   borrower_foto?: string | null;
   borrow_date: string;
+  raw_borrow_date?: string | null;
   planned_return_date?: string;
   return_date: string;
   status: string; // "pending" | "active" | "overdue" | "completed"
@@ -241,8 +242,13 @@ export default function ManajemenPeminjamanPage() {
             items: itemsList,
           };
         });
-        setBorrowings(mapped);
-        setTotal(res.total || mapped.length);
+        const newestFirst = [...mapped].sort((a, b) => {
+          const aTime = a.raw_borrow_date ? new Date(a.raw_borrow_date).getTime() : 0;
+          const bTime = b.raw_borrow_date ? new Date(b.raw_borrow_date).getTime() : 0;
+          return bTime - aTime;
+        });
+        setBorrowings(newestFirst);
+        setTotal(res.total || newestFirst.length);
 
         // Auto-select borrowing jika diarahkan dari shortcut notifikasi (hanya sekali saat pertama buka)
         if (!hasHandledUrlRef.current && typeof window !== "undefined") {

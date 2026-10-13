@@ -12,7 +12,6 @@ import {
   Headphones,
   Pencil,
   Trash2,
-  MoreVertical,
   ChevronDown,
   Reply,
   X,
@@ -21,7 +20,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
-import { getSocket, joinChatRoom, leaveChatRoom } from "@/lib/socket";
+import { getSocket, joinChatRoom } from "@/lib/socket";
 import {
   formatChatDateBadge,
   isDifferentDay,
@@ -32,7 +31,6 @@ import {
   ReplyInfo,
 } from "@/lib/chatHelper";
 import { UserLayout } from "@/components/user";
-import { useLanguage } from "@/lib/i18n";
 import { toast } from "@/components/Toast";
 
 interface Conversation {

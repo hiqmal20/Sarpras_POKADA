@@ -269,7 +269,12 @@ export default function PengembalianPage() {
         });
       }
 
-      setReturns(itemsCombined);
+      const newestFirst = [...itemsCombined].sort((a, b) => {
+        const aTime = a.raw_date ? new Date(a.raw_date).getTime() : 0;
+        const bTime = b.raw_date ? new Date(b.raw_date).getTime() : 0;
+        return bTime - aTime;
+      });
+      setReturns(newestFirst);
       setTotal(itemsCombined.length);
 
       // Auto-select pengembalian jika diarahkan dari shortcut notifikasi (hanya sekali saat pertama buka)

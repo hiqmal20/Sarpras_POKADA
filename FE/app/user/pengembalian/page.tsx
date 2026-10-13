@@ -15,7 +15,6 @@ import {
   IdCard,
   CalendarDays,
   Search,
-  ExternalLink,
   ChevronRight,
   Sparkles,
   ClipboardCheck,
@@ -25,7 +24,6 @@ import {
   Layers,
   Send,
   Eye,
-  Check,
 } from "lucide-react";
 import api from "@/lib/api";
 import { UserLayout } from "@/components/user";
