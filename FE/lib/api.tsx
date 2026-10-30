@@ -1,5 +1,19 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+function normalizeApiUrl(rawUrl?: string): string {
+  const fallback = "http://localhost:5000/api";
+  const raw = (rawUrl || "").trim();
+  if (!raw) return fallback;
+
+  // Hapus trailing slashes
+  const clean = raw.replace(/\/+$/, "");
+
+  // Pastikan selalu berakhiran /api jika belum ada
+  if (!clean.endsWith("/api")) {
+    return `${clean}/api`;
+  }
+  return clean;
+}
+
+export const API_BASE_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 export interface ApiResponse<T = any> {
   status: "success" | "fail" | "error";
@@ -197,9 +211,15 @@ async function apiFetch<T>(
 
     return data;
   } catch (error: any) {
+    const isFailedToFetch =
+      error?.message?.includes("Failed to fetch") ||
+      error?.name === "TypeError";
+
     return {
       status: "error",
-      message: error?.message || "Gagal menghubungi server",
+      message: isFailedToFetch
+        ? "Gagal menghubungi server (Failed to fetch). Pastikan backend di Render sudah aktif (Render gratis butuh ~30-50 detik saat bangun dari mode sleep) dan domain Vercel sudah diizinkan di CORS backend."
+        : error?.message || "Gagal menghubungi server",
     };
   }
 }

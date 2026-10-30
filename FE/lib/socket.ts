@@ -6,10 +6,10 @@ const joinedChatRooms = new Set<string>();
 
 export const getSocketUrl = (): string => {
   if (process.env.NEXT_PUBLIC_SOCKET_URL) {
-    return process.env.NEXT_PUBLIC_SOCKET_URL;
+    return process.env.NEXT_PUBLIC_SOCKET_URL.trim().replace(/\/+$/, "");
   }
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "");
+    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/api\/?$/, "").replace(/\/+$/, "");
   }
   if (typeof window !== "undefined" && window.location.hostname) {
     const protocol = window.location.protocol === "https:" ? "https:" : "http:";

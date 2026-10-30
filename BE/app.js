@@ -22,14 +22,36 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
-  : ['http://localhost:3000'];
+const envOrigins = [
+  process.env.ALLOWED_ORIGINS,
+  process.env.FRONTEND_URL,
+  process.env.CORS_ORIGIN
+]
+  .filter(Boolean)
+  .join(',')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+// Selalu izinkan localhost dan semua subdomain vercel.app secara bawaan
+const defaultAllowed = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://*.vercel.app'
+];
+
+const allowedOrigins = Array.from(new Set([...defaultAllowed, ...envOrigins]));
 
 const isOriginAllowed = (origin) => {
   if (!origin) return true;
   if (allowedOrigins.includes('*')) return true;
   const cleanOrigin = origin.replace(/\/+$/, '');
+
+  // Izinkan localhost atau 127.0.0.1 dengan port berapapun
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(cleanOrigin)) {
+    return true;
+  }
+
   return allowedOrigins.some((allowed) => {
     const cleanAllowed = allowed.replace(/\/+$/, '');
     if (cleanAllowed === cleanOrigin) return true;
@@ -41,6 +63,20 @@ const isOriginAllowed = (origin) => {
     }
     return false;
   });
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`[CORS] Ditolak untuk origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 };
 
 // Setup Socket.IO dengan CORS
@@ -70,9 +106,17 @@ app.set('io', io);
 // Trust proxy for secure cookies and reverse proxies (Heroku, Render, Cloudflare, Nginx)
 app.set('trust proxy', 1);
 
+// Helmet dengan cross-origin policy agar API dapat diakses dari domain frontend berbeda (misal Vercel)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
+app.use(compression());
+app.use(cors(corsOptions));
+
 // Enforce HTTPS in production
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') return next();
     const proto = req.headers['x-forwarded-proto'];
     if (proto && proto !== 'https') {
       return res.redirect(301, `https://${req.headers.host}${req.url}`);
@@ -80,19 +124,6 @@ if (process.env.NODE_ENV === 'production') {
     next();
   });
 }
-
-app.use(helmet());
-app.use(compression());
-app.use(cors({
-  origin: (origin, callback) => {
-    if (isOriginAllowed(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
 
 // Cookie-authenticated state-changing requests must originate from an allowed UI.
 app.use((req, res, next) => {

@@ -39,7 +39,8 @@ function tryDecodeToken(token?: string) {
 }
 
 async function getVerifiedUser(request: NextRequest, token?: string) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const rawApiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api").trim().replace(/\/+$/, "");
+  const apiUrl = rawApiUrl.endsWith("/api") ? rawApiUrl : `${rawApiUrl}/api`;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
