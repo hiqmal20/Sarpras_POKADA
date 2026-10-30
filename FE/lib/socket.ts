@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL, getAuthToken, setAuthToken, setRefreshToken, getRefreshToken } from "./api";
 
 let socketInstance: Socket | null = null;
 const joinedChatRooms = new Set<string>();
@@ -48,6 +48,10 @@ export const getSocket = (): Socket | null => {
   if (!socketInstance) {
     const socketUrl = getSocketUrl();
     socketInstance = io(socketUrl, {
+      auth: (cb) => {
+        const token = getAuthToken();
+        cb({ token });
+      },
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -65,10 +69,25 @@ export const getSocket = (): Socket | null => {
     socketInstance.on("connect_error", (err) => {
       if (err.message?.includes("Authentication error")) {
         console.warn("⚠️ WebSocket authentication warning:", err.message);
+        const storedRefreshToken = getRefreshToken();
         fetch(`${API_BASE_URL}/auth/refresh`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
-        }).then(() => socketInstance?.connect()).catch(() => {});
+          body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.data?.token) {
+              setAuthToken(data.data.token);
+              if (data.data.refreshToken) setRefreshToken(data.data.refreshToken);
+              if (socketInstance) {
+                socketInstance.auth = { token: data.data.token };
+                socketInstance.connect();
+              }
+            }
+          })
+          .catch(() => {});
       } else {
         console.warn("⚠️ WebSocket connection error:", err.message);
       }

@@ -37,6 +37,11 @@ const errorHandler = (err, req, res, next) => {
     return sendError(res, 'Akses ditolak oleh CORS', 403);
   }
 
+  // Body JSON/urlencoded terlalu besar (biasanya gambar Data URL belum dikompres)
+  if (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413) {
+    return sendError(res, 'Ukuran data terlalu besar. Gunakan gambar maksimal 8MB.', 413);
+  }
+
   // Multer file size exceeded
   if (err.name === 'MulterError' && err.code === 'LIMIT_FILE_SIZE') {
     return sendError(res, 'Ukuran file terlalu besar. Maksimal 2MB untuk CSV dan 5MB untuk gambar', 400);

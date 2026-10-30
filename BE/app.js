@@ -29,7 +29,18 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 const isOriginAllowed = (origin) => {
   if (!origin) return true;
   if (allowedOrigins.includes('*')) return true;
-  return allowedOrigins.includes(origin);
+  const cleanOrigin = origin.replace(/\/+$/, '');
+  return allowedOrigins.some((allowed) => {
+    const cleanAllowed = allowed.replace(/\/+$/, '');
+    if (cleanAllowed === cleanOrigin) return true;
+    if (cleanAllowed.includes('*')) {
+      const pattern = new RegExp(
+        '^' + cleanAllowed.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'
+      );
+      return pattern.test(cleanOrigin);
+    }
+    return false;
+  });
 };
 
 // Setup Socket.IO dengan CORS
@@ -94,8 +105,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+// Gambar pada form inventaris/paket dikirim sebagai Data URL JSON.
+// Batasi tetap secara wajar agar upload normal tidak gagal dengan 413.
+// Form inventaris dan paket dapat membawa gambar sebagai Data URL. Batas ini
+// harus lebih besar dari ukuran file karena Base64 menambah sekitar 33% ukuran.
+app.use(express.json({ limit: '20mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 app.use(hpp());
 app.use(cookieParser());
 
@@ -136,10 +151,10 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🌐 HTTP API: http://localhost:${PORT}`);
-  console.log(`⚡ WebSocket: ws://localhost:${PORT}`);
+  console.log(`🌐 HTTP API listening on port ${PORT}`);
+  console.log('⚡ WebSocket server enabled');
   // Aktifkan cron job pendeteksi peminjaman terlambat
   startOverdueChecker();
 });

@@ -8,7 +8,7 @@ const { uuidParamHandler } = require('../middleware/validateUuid');
 const { createPackageSchema, updatePackageSchema } = require('../validations/packageValidation');
 const Joi = require('joi');
 const stockAdjustmentSchema = Joi.object({
-  action: Joi.string().valid('add', 'subtract', 'increase', 'decrease').required(),
+  action: Joi.string().valid('add', 'reduce', 'subtract', 'increase', 'decrease').required(),
   quantity: Joi.number().integer().min(1).max(100000).required()
 });
 const uploadCSV = require('../middleware/uploadMiddleware').uploadCSV;

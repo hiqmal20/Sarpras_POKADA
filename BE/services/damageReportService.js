@@ -21,7 +21,7 @@ exports.findAllReports = async ({ user_id, item_id, status, report_type, damage_
     .select(`
       *,
       users (id, name, nomor_induk, email, no_hp, role, foto),
-      items (id, name, code, image_url, condition, status),
+      items (id, name, code:item_code, image_url, condition, status),
       packages (id, name, status),
       borrowings (id, borrow_code, purpose, borrow_date, status)
     `, { count: 'exact' })
@@ -114,7 +114,7 @@ exports.findReportById = async (id) => {
     .select(`
       *,
       users (id, name, nomor_induk, email, no_hp, role, foto),
-      items (id, name, code, image_url, condition, status, stock, available_stock, category_id, categories (id, name)),
+      items (id, name, code:item_code, image_url, condition, status, stock, available_stock, category_id, categories (id, name)),
       packages (id, name, status),
       borrowings (id, borrow_code, purpose, borrow_date, status, actual_return_date)
     `)
@@ -135,7 +135,7 @@ exports.findReportById = async (id) => {
         condition_before,
         condition_after,
         note,
-        items (id, name, code, image_url, condition, status)
+        items (id, name, code:item_code, image_url, condition, status)
       `)
       .eq('borrowing_id', data.borrowing_id);
 
@@ -155,7 +155,7 @@ exports.findReportById = async (id) => {
       // Ambil semua items dalam peminjaman ini
       const { data: allItems } = await supabase
         .from('borrowings_items')
-        .select('item_id, items (id, name, code)')
+        .select('item_id, items (id, name, code:item_code)')
         .eq('borrowing_id', data.borrowing_id);
 
       data.package_info = {

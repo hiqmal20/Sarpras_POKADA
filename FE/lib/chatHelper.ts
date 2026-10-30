@@ -118,6 +118,8 @@ export interface ReplyInfo {
   id: string;
   senderName: string;
   text: string;
+  senderId?: string;
+  isDeleted?: boolean;
 }
 
 export function parseMessageContent(rawText?: string | null): {
@@ -140,7 +142,7 @@ export function parseMessageContent(rawText?: string | null): {
           text: match[2] || "",
         };
       }
-    } catch (_) {
+    } catch {
       // Fallback normal
     }
   }
@@ -160,4 +162,38 @@ export function formatReplyMessage(replyTo: ReplyInfo, actualText: string): stri
 
 export function getCleanMessagePreview(rawText?: string | null): string {
   return parseMessageContent(rawText).text;
+}
+
+export function resolveReplyInfo(
+  msg: {
+    reply_to?: any;
+    reply_to_message_id?: string | null;
+    replyTo?: ReplyInfo | null;
+    message?: string;
+    text?: string;
+  },
+  currentUserId?: string | null
+): ReplyInfo | null {
+  if (msg.replyTo) return msg.replyTo;
+
+  if (msg.reply_to) {
+    const isMe = Boolean(currentUserId && msg.reply_to.sender_id === currentUserId);
+    const senderName = isMe ? "Anda" : (msg.reply_to.sender?.name || "Pengguna");
+    const rawSnippet = String(msg.reply_to.message || "");
+    const cleanSnippet = getCleanMessagePreview(rawSnippet);
+    const text = cleanSnippet.length > 120 ? cleanSnippet.slice(0, 117) + "..." : cleanSnippet;
+    return {
+      id: String(msg.reply_to.id || msg.reply_to_message_id || ""),
+      senderName,
+      text: msg.reply_to.is_deleted ? "Pesan telah dihapus" : (text || "Pesan"),
+      senderId: msg.reply_to.sender_id,
+      isDeleted: Boolean(msg.reply_to.is_deleted)
+    };
+  }
+
+  const rawText = msg.message || msg.text || "";
+  const parsed = parseMessageContent(rawText);
+  if (parsed.replyTo) return parsed.replyTo;
+
+  return null;
 }

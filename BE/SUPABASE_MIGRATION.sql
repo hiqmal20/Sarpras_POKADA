@@ -3,6 +3,20 @@
 -- Jalankan ini di Supabase Dashboard → SQL Editor
 -- ============================================================
 
+-- Pastikan tabel damage_reports sudah ada (buat jika belum ada)
+CREATE TABLE IF NOT EXISTS damage_reports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  item_id UUID,
+  title TEXT NOT NULL DEFAULT '',
+  description TEXT DEFAULT '',
+  image_url TEXT,
+  report_type TEXT DEFAULT 'Kerusakan',
+  status TEXT DEFAULT 'Menunggu Review',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  update_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Tambah kolom fine_amount (nominal denda dalam Rupiah)
 ALTER TABLE damage_reports
 ADD COLUMN IF NOT EXISTS fine_amount BIGINT DEFAULT 0;
@@ -61,6 +75,28 @@ WHERE damage_type IS NULL;
 -- WHERE report_code IS NULL AND damage_type = 'per_item';
 
 -- ============================================================
+-- Kompatibilitas Audit Logs
+-- ============================================================
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  user_email TEXT,
+  user_role TEXT,
+  action TEXT NOT NULL DEFAULT 'UNKNOWN',
+  entity TEXT,
+  entity_type TEXT,
+  entity_id TEXT,
+  details JSONB,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS user_email TEXT;
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS user_role TEXT;
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS entity_type TEXT;
+ALTER TABLE public.audit_logs ADD COLUMN IF NOT EXISTS entity TEXT;
+
+-- ============================================================
 -- Verifikasi: lihat struktur tabel setelah migration
 -- ============================================================
 -- SELECT column_name, data_type, column_default
@@ -71,6 +107,17 @@ WHERE damage_type IS NULL;
 -- ============================================================
 -- NEW MIGRATION: Shortcut Direct Link / Redirect di Notifications
 -- ============================================================
+
+-- Pastikan tabel notifications sudah ada
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID,
+  title TEXT NOT NULL DEFAULT '',
+  message TEXT NOT NULL DEFAULT '',
+  type TEXT DEFAULT 'system',
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- Tambah kolom action_url untuk menyimpan shortcut direct URL tujuan
 ALTER TABLE notifications
@@ -91,6 +138,17 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_i
 -- ============================================================
 -- NEW MIGRATION: Status Last Seen & Online di Tabel Users
 -- ============================================================
+
+-- Pastikan tabel users sudah ada
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nomor_induk TEXT UNIQUE,
+  name TEXT,
+  email TEXT UNIQUE,
+  role TEXT DEFAULT 'Mahasiswa',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  update_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 -- Tambah kolom last_seen untuk mencatat riwayat terakhir online user/admin
 ALTER TABLE users

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import { AdminLayout } from "@/components/admin";
@@ -694,7 +694,7 @@ export default function PaketPage() {
           </div>
         </div>
 
-        {/* ── Stat Cards (n8n Node Style) ── */}
+        {/* ΓöÇΓöÇ Stat Cards (n8n Node Style) ΓöÇΓöÇ */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
@@ -1011,7 +1011,7 @@ export default function PaketPage() {
               </table>
             </div>
           ) : (
-            /* ── Grid View Tampilan Kartu Paket ── */
+            /* ΓöÇΓöÇ Grid View Tampilan Kartu Paket ΓöÇΓöÇ */
             <div className="p-6">
               {loading ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -1243,7 +1243,7 @@ export default function PaketPage() {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
-                {/* ── SISI KIRI: Identitas Paket (5 kolom) ── */}
+                {/* ΓöÇΓöÇ SISI KIRI: Identitas Paket (5 kolom) ΓöÇΓöÇ */}
                 <div className="md:col-span-5 space-y-4">
                   <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/40 space-y-4">
                     <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider text-[#0785BC]">
@@ -1370,7 +1370,7 @@ export default function PaketPage() {
                   </div>
                 </div>
 
-                {/* ── SISI KANAN: Komponen Barang (Mix) (7 kolom) ── */}
+                {/* ΓöÇΓöÇ SISI KANAN: Komponen Barang (Mix) (7 kolom) ΓöÇΓöÇ */}
                 <div className="md:col-span-7 space-y-4">
                   <div className="p-4.5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-3.5 flex flex-col h-full">
                     <div className="flex items-center justify-between">
@@ -1481,7 +1481,7 @@ export default function PaketPage() {
                               <option value="">-- Pilih Barang Per Item --</option>
                               {filteredAvailableItems.map((item) => (
                                 <option key={item.id} value={item.id}>
-                                  [{item.category || "Umum"}] {item.name} ({item.code}) — Sisa Stok: {item.available_stock} unit
+                                  [{item.category || "Umum"}] {item.name} ({item.code}) ΓÇö Sisa Stok: {item.available_stock} unit
                                 </option>
                               ))}
                             </select>
@@ -1655,7 +1655,7 @@ export default function PaketPage() {
         </div>
       )}
 
-      {/* ── Modern Detail Modal Paket ── */}
+      {/* ΓöÇΓöÇ Modern Detail Modal Paket ΓöÇΓöÇ */}
       {showDetail && selectedPackage && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-3xl w-full overflow-hidden border border-slate-200 shadow-2xl flex flex-col max-h-[90vh] my-auto animate-scale-in">
@@ -1898,7 +1898,7 @@ export default function PaketPage() {
                                     {pi.items?.category || pi.items?.categories?.name}
                                   </span>
                                 )}
-                                <span>• Kondisi: <strong className="text-slate-600">{pi.items?.condition || "Baik"}</strong></span>
+                                <span>ΓÇó Kondisi: <strong className="text-slate-600">{pi.items?.condition || "Baik"}</strong></span>
                               </div>
                             </div>
                           </div>
@@ -1983,7 +1983,7 @@ export default function PaketPage() {
         </div>
       )}
 
-      {/* ── Unified Modal Ekspor & Impor Paket Sarpras ── */}
+      {/* ΓöÇΓöÇ Unified Modal Ekspor & Impor Paket Sarpras ΓöÇΓöÇ */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
@@ -2023,7 +2023,7 @@ export default function PaketPage() {
         }}
       />
 
-      {/* ── Dialog Cepat Tambah Stok Barang (Agar Paket Otomatis Aktif Kembali) ── */}
+      {/* ΓöÇΓöÇ Dialog Cepat Tambah Stok Barang (Agar Paket Otomatis Aktif Kembali) ΓöÇΓöÇ */}
       {replenishModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto animate-scale-in">
@@ -2111,7 +2111,7 @@ export default function PaketPage() {
         </div>
       )}
 
-      {/* ── Dialog Manajemen Stok Paket (Tambah / Kurangi Stok Paket) ── */}
+      {/* ΓöÇΓöÇ Dialog Manajemen Stok Paket (Tambah / Kurangi Stok Paket) ΓöÇΓöÇ */}
       {packageStockModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto animate-scale-in">
@@ -2227,7 +2227,7 @@ export default function PaketPage() {
                     return (
                       <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600 py-0.5 border-b border-slate-200/50 last:border-b-0">
                         <span className="truncate max-w-[180px]">
-                          • {pi.items?.name || "Barang"}
+                          ΓÇó {pi.items?.name || "Barang"}
                         </span>
                         <span className={`font-bold ${packageStockModal.action === "add" ? "text-emerald-600" : "text-rose-600"}`}>
                           {sign}{delta} unit

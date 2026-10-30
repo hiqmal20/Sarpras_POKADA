@@ -592,7 +592,7 @@ export default function LandingPage() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      Live Flow Active
+                      Alur Sistem Aktif
                     </span>
                   </div>
                 </div>
@@ -643,7 +643,7 @@ export default function LandingPage() {
                                     : "bg-slate-100 text-slate-500"
                                 }`}
                               >
-                                {isActive ? "● Executing" : "Ready"}
+                                {isActive ? "● Berjalan" : "Siap"}
                               </span>
                             </div>
 
@@ -654,9 +654,9 @@ export default function LandingPage() {
 
                             {isActive && (
                               <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-[#0785BC] font-semibold animate-fade-in gap-2">
-                                <span className="truncate">Output: {node.output}</span>
+                                <span className="truncate">Hasil: {node.output}</span>
                                 <span className="flex items-center gap-0.5 shrink-0">
-                                  Next &rarr;
+                                  Berikutnya &rarr;
                                 </span>
                               </div>
                             )}

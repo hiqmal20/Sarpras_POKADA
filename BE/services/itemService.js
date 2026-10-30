@@ -23,8 +23,13 @@ exports.findAllItems = async ({ category_id, status, condition, search, page = 1
   const { data, count, error } = await query;
   if (error) throw error;
 
+  const normalizedItems = (data || []).map((item) => ({
+    ...item,
+    code: item.code ?? item.item_code ?? ""
+  }));
+
   return {
-    items: data,
+    items: normalizedItems,
     total: count,
     page: Number(page),
     limit: Number(limit),
@@ -78,6 +83,7 @@ exports.findItemById = async (id) => {
 
   return {
     ...data,
+    code: data.code ?? data.item_code ?? "",
     statistics: {
       total_borrowings: totalBorrowings || 0,
       active_borrowings: activeBorrowings || 0,
@@ -94,13 +100,14 @@ exports.findItemById = async (id) => {
 };
 
 exports.createNewItem = async (payload) => {
-  const { code, stock = 0, available_stock } = payload;
+  const { code, stock = 0, available_stock, ...itemFields } = payload;
+  const itemCode = String(code || '').trim().toUpperCase();
 
   // Cek duplikasi kode barang
   const { data: existingCode } = await supabase
     .from('items')
     .select('id')
-    .eq('code', code)
+    .eq('item_code', itemCode)
     .maybeSingle();
 
   if (existingCode) {
@@ -115,7 +122,8 @@ exports.createNewItem = async (payload) => {
   const { data, error } = await supabase
     .from('items')
     .insert([{
-      ...payload,
+      ...itemFields,
+      item_code: itemCode,
       stock: numStock,
       available_stock: numAvailable,
       status: finalStatus,
@@ -131,10 +139,15 @@ exports.createNewItem = async (payload) => {
 };
 
 exports.updateExistingItem = async (id, payload) => {
+  const { code, ...safePayload } = payload || {};
   const updateData = {
-    ...payload,
+    ...safePayload,
     update_at: new Date().toISOString()
   };
+
+  if (code !== undefined) {
+    updateData.item_code = String(code).trim().toUpperCase();
+  }
 
   if (payload.stock !== undefined) {
     updateData.stock = Number(payload.stock);

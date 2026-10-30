@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -90,7 +90,7 @@ function useMount() {
   return mounted;
 }
 
-// ── Donut / Pie Chart Component (n8n Node Visualizer Aesthetic) ──
+// ΓöÇΓöÇ Donut / Pie Chart Component (n8n Node Visualizer Aesthetic) ΓöÇΓöÇ
 interface PieSlice {
   label: string;
   value: number;
@@ -107,18 +107,15 @@ function PieChart({
   unitLabel?: string;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
-  const size = 240;
   const strokeWidth = 24;
   const center = 120;
   const radius = 80;
   const circumference = 2 * Math.PI * radius;
 
   const validTotal = total > 0 ? total : 1;
-  let accumulated = 0;
-
   return (
     <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-around gap-6 lg:gap-10 py-4 px-2 w-full">
-      {/* ── Symmetrical Donut Canvas (Clean Flat Joins, No Overlap) ── */}
+      {/* ΓöÇΓöÇ Symmetrical Donut Canvas (Clean Flat Joins, No Overlap) ΓöÇΓöÇ */}
       <div className="relative w-48 h-48 sm:w-56 sm:h-56 shrink-0 flex items-center justify-center p-2">
         <svg
           viewBox="0 0 240 240"
@@ -137,9 +134,9 @@ function PieChart({
           {data.map((slice, i) => {
             const ratio = validTotal > 0 ? slice.value / validTotal : 0;
             if (ratio <= 0) return null;
+            const accumulated = data.slice(0, i).reduce((sum, item) => sum + (validTotal > 0 ? item.value / validTotal : 0), 0);
             const strokeDasharray = `${ratio * circumference} ${circumference}`;
             const strokeDashoffset = -accumulated * circumference;
-            accumulated += ratio;
             const isHovered = hovered === i;
             const isAnyHovered = hovered !== null;
 
@@ -180,7 +177,7 @@ function PieChart({
         </div>
       </div>
 
-      {/* ── Legend Breakdown Grid ── */}
+      {/* ΓöÇΓöÇ Legend Breakdown Grid ΓöÇΓöÇ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs w-full sm:max-w-md flex-1">
         {data.map((slice, i) => {
           const pct = validTotal > 0 && slice.value > 0 ? Math.round((slice.value / validTotal) * 100) : 0;
@@ -345,7 +342,7 @@ export default function DashboardAdminPage() {
       tag: "ASET KAMPUS",
       tagColor: "bg-sky-50 text-sky-700 border-sky-200",
       value: totalUnitsDisplay,
-      sub: `${totalTypesDisplay} jenis barang • ${stats?.items.tersedia ?? 0} unit siap pinjam`,
+      sub: `${totalTypesDisplay} jenis barang ΓÇó ${stats?.items.tersedia ?? 0} unit siap pinjam`,
       link: "/admin/barang",
       icon: <Package className="w-4 h-4 text-[#0785BC]" />,
       accentColor: "#0785BC",
@@ -393,7 +390,7 @@ export default function DashboardAdminPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* ── Top Header Banner (Rapi & Terstruktur Kampus) ── */}
+        {/* ΓöÇΓöÇ Top Header Banner (Rapi & Terstruktur Kampus) ΓöÇΓöÇ */}
         <div className={`bg-white border border-slate-200 rounded-2xl p-5 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div className="flex items-center gap-3.5">
             <div className="w-10 h-10 rounded-xl bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center font-bold shadow-2xs">
@@ -432,7 +429,7 @@ export default function DashboardAdminPage() {
           </div>
         </div>
 
-        {/* ── 4 Structured Stat Cards ── */}
+        {/* ΓöÇΓöÇ 4 Structured Stat Cards ΓöÇΓöÇ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statCards.map((card, i) => (
             <Link
@@ -469,7 +466,7 @@ export default function DashboardAdminPage() {
           ))}
         </div>
 
-        {/* ── Central Visualization & Live Activity Stream ── */}
+        {/* ΓöÇΓöÇ Central Visualization & Live Activity Stream ΓöÇΓöÇ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Donut Distribution Card */}
           <div className={`lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 flex flex-col justify-between ${mounted ? "animate-fade-up delay-150" : "opacity-0"}`}>
@@ -579,7 +576,7 @@ export default function DashboardAdminPage() {
           </div>
         </div>
 
-        {/* ── Persetujuan Tertunda Table (Structured Linear/ChatGPT Table) ── */}
+        {/* ΓöÇΓöÇ Persetujuan Tertunda Table (Structured Linear/ChatGPT Table) ΓöÇΓöÇ */}
         <div className={`bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden ${mounted ? "animate-fade-up delay-250" : "opacity-0"}`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-slate-200/80 bg-slate-50/50">
             <div>
@@ -694,7 +691,7 @@ export default function DashboardAdminPage() {
         </div>
       </div>
 
-      {/* ── Modal Master Export ── */}
+      {/* ΓöÇΓöÇ Modal Master Export ΓöÇΓöÇ */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}

@@ -40,10 +40,9 @@ const recordLog = async ({
 
     const payload = {
       user_id: finalUserId,
-      user_email: finalEmail,
-      user_role: finalRole,
       action: String(action || 'UNKNOWN'),
-      entity_type: String(entityType || 'general'),
+      // Schema live memakai kolom entity (bukan entity_type/user_email/user_role).
+      entity: String(entityType || 'general'),
       entity_id: entityId ? String(entityId) : null,
       details: typeof details === 'object' && details !== null ? details : { raw: details },
       ip_address: ipAddress,
@@ -85,14 +84,14 @@ const findAllLogs = async ({
 
   if (user_id) query = query.eq('user_id', user_id);
   if (action) query = query.eq('action', action);
-  if (entity_type) query = query.eq('entity_type', entity_type);
+  if (entity_type) query = query.eq('entity', entity_type);
   if (start_date) query = query.gte('created_at', start_date);
   if (end_date) query = query.lte('created_at', end_date);
 
   if (search) {
     const safeSearch = sanitizeSearch(search);
     if (safeSearch) {
-      query = query.or(`user_email.ilike.%${safeSearch}%,action.ilike.%${safeSearch}%,entity_type.ilike.%${safeSearch}%`);
+      query = query.or(`action.ilike.%${safeSearch}%,entity.ilike.%${safeSearch}%`);
     }
   }
 

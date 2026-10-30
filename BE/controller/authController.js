@@ -17,7 +17,11 @@ exports.register = async (req, res, next) => {
       details: { email: result.user?.email, name: result.user?.name },
       req
     });
-    return sendSuccess(res, 'Registrasi berhasil! Akun telah terdaftar.', { user: result.user }, 201);
+    return sendSuccess(res, 'Registrasi berhasil! Akun telah terdaftar.', {
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken
+    }, 201);
   } catch (err) {
     next(err);
   }
@@ -26,7 +30,7 @@ exports.register = async (req, res, next) => {
 const cookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   path: '/'
 };
 
@@ -50,7 +54,11 @@ exports.login = async (req, res, next) => {
       details: { email: result.user?.email },
       req
     });
-    return sendSuccess(res, 'Login berhasil!', { user: result.user }, 200);
+    return sendSuccess(res, 'Login berhasil!', {
+      user: result.user,
+      token: result.token,
+      refreshToken: result.refreshToken
+    }, 200);
   } catch (err) {
     recordLog({
       action: 'LOGIN_FAILED',
@@ -72,7 +80,10 @@ exports.refresh = async (req, res, next) => {
     const tokenFromCookie = req.cookies?.refresh_token;
     const result = await authService.refreshToken(tokenFromCookie || refreshToken);
     setAuthCookies(res, result);
-    return sendSuccess(res, 'Token berhasil diperbarui', null, 200);
+    return sendSuccess(res, 'Token berhasil diperbarui', {
+      token: result.token,
+      refreshToken: result.refreshToken
+    }, 200);
   } catch (err) {
     next(err);
   }

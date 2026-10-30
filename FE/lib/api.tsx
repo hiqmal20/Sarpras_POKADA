@@ -22,9 +22,12 @@ export const setAuthToken = (token: string): void => {
     if (token) {
       localStorage.setItem("token", token);
       localStorage.setItem("access_token", token);
+      const isSecure = window.location.protocol === "https:";
+      document.cookie = `access_token=${encodeURIComponent(token)}; path=/; max-age=86400; SameSite=Lax${isSecure ? "; Secure" : ""}`;
     } else {
       localStorage.removeItem("token");
       localStorage.removeItem("access_token");
+      document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
     }
   }
 };
@@ -39,9 +42,12 @@ export const setRefreshToken = (refreshToken: string): void => {
     if (refreshToken) {
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("refresh_token", refreshToken);
+      const isSecure = window.location.protocol === "https:";
+      document.cookie = `refresh_token=${encodeURIComponent(refreshToken)}; path=/; max-age=${30 * 86400}; SameSite=Lax${isSecure ? "; Secure" : ""}`;
     } else {
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("refresh_token");
+      document.cookie = "refresh_token=; path=/; max-age=0; SameSite=Lax";
     }
   }
 };
@@ -53,6 +59,8 @@ export const removeAuthToken = (): void => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("refresh_token");
+    document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "refresh_token=; path=/; max-age=0; SameSite=Lax";
   }
 };
 
@@ -271,8 +279,12 @@ export const api = {
       try {
         const formData = new FormData();
         formData.append("photo", file);
+        const token = getAuthToken();
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
         const res = await fetch(`${API_BASE_URL}/users/${id}/photo`, {
           method: "POST",
+          headers,
           credentials: "include",
           body: formData,
         });
@@ -285,8 +297,12 @@ export const api = {
     importCSV: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
+      const token = getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${API_BASE_URL}/users/import`, {
         method: "POST",
+        headers,
         credentials: "include",
         body: formData,
       });
@@ -344,8 +360,12 @@ export const api = {
     importCSV: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
+      const token = getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${API_BASE_URL}/packages/import`, {
         method: "POST",
+        headers,
         credentials: "include",
         body: formData,
       });
@@ -456,7 +476,7 @@ export const api = {
       }),
     getMessages: (chatId: string) =>
       apiFetch<any[]>(`/chats/${chatId}/messages`, { method: "GET" }),
-    sendMessage: (chatId: string, payload: { message: string; attachment_url?: string }) =>
+    sendMessage: (chatId: string, payload: { message: string; attachment_url?: string; reply_to_message_id?: string | null }) =>
       apiFetch<any>(`/chats/${chatId}/messages`, {
         method: "POST",
         body: JSON.stringify(payload),

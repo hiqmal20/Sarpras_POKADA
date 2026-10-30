@@ -19,25 +19,58 @@ const redirectToUserDashboard = (request: NextRequest) => {
   return response;
 };
 
-async function getVerifiedUser(request: NextRequest) {
+function tryDecodeToken(token?: string) {
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], "base64").toString("utf-8"));
+    if (payload.exp && Date.now() >= payload.exp * 1000) {
+      return null;
+    }
+    return {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.user_metadata?.role || payload.app_metadata?.role || "Mahasiswa",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function getVerifiedUser(request: NextRequest, token?: string) {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), 6000);
 
   try {
+    const headers: Record<string, string> = {
+      cookie: request.headers.get("cookie") || "",
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${apiUrl.replace(/\/$/, "")}/auth/me`, {
       method: "GET",
-      headers: { cookie: request.headers.get("cookie") || "" },
+      headers,
       cache: "no-store",
       signal: controller.signal,
     });
 
-    if (!response.ok) return null;
+    if (response.status === 401 || response.status === 403) {
+      return null;
+    }
+
+    if (!response.ok) {
+      return tryDecodeToken(token);
+    }
+
     const body = await response.json();
     return body?.status === "success" ? body.data?.user || null : null;
   } catch {
-    return null;
+    return tryDecodeToken(token);
   } finally {
     clearTimeout(timeout);
   }
@@ -49,13 +82,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasSessionCookie = Boolean(
-    request.cookies.get("access_token")?.value || request.cookies.get("refresh_token")?.value
-  );
-  if (!hasSessionCookie) return redirectToLogin(request);
+  const token = request.cookies.get("access_token")?.value;
+  const refreshToken = request.cookies.get("refresh_token")?.value;
+
+  if (!token && !refreshToken) {
+    return redirectToLogin(request);
+  }
 
   // Backend remains the source of truth for token validity, account status, and role.
-  const verifiedUser = await getVerifiedUser(request);
+  const verifiedUser = await getVerifiedUser(request, token);
   if (!verifiedUser) return redirectToLogin(request);
 
   if (pathname.startsWith("/admin") && !["Admin", "Petugas"].includes(verifiedUser.role)) {
