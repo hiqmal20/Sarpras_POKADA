@@ -249,20 +249,20 @@ input, button, select, textarea {
 /* ---- white surfaces → dark card; low-opacity overlays stay translucent ----
    (solid badges like bg-white/95 become cards, gradient decor like
    bg-white/10 stays a light veil) */
-.dark [class*="bg-white"]:not([class*="bg-white/"]):not([class*="hover:"]):not([class*="group-hover:"]) { background-color: var(--card) !important; }
+.dark [class*="bg-white"]:not([class*="bg-white/"]) { background-color: var(--card) !important; }
 .dark [class*="bg-white/"] { background-color: rgba(255, 255, 255, 0.12) !important; }
 .dark :is([class*="bg-white/6"], [class*="bg-white/7"], [class*="bg-white/8"], [class*="bg-white/9"]) {
   background-color: var(--card) !important;
 }
 /* ---- neutral soft surfaces → subtle white wash ---- */
-.dark [class*="bg-slate-50"]:not([class*="hover:"]):not([class*="group-hover:"]),
-.dark [class*="bg-slate-100"]:not([class*="hover:"]):not([class*="group-hover:"]),
-.dark [class*="bg-gray-50"]:not([class*="hover:"]):not([class*="group-hover:"]),
-.dark [class*="bg-gray-100"]:not([class*="hover:"]):not([class*="group-hover:"]),
-.dark [class*="bg-neutral-50"]:not([class*="hover:"]):not([class*="group-hover:"]),
-.dark [class*="bg-neutral-100"]:not([class*="hover:"]):not([class*="group-hover:"]) { background-color: rgba(255, 255, 255, 0.04) !important; }
-.dark [class*="bg-slate-200"]:not([class*="hover:"]):not([class*="group-hover:"]),
-.dark [class*="bg-gray-200"]:not([class*="hover:"]):not([class*="group-hover:"]) { background-color: rgba(255, 255, 255, 0.08) !important; }
+.dark [class*="bg-slate-50"],
+.dark [class*="bg-slate-100"],
+.dark [class*="bg-gray-50"],
+.dark [class*="bg-gray-100"],
+.dark [class*="bg-neutral-50"],
+.dark [class*="bg-neutral-100"] { background-color: rgba(255, 255, 255, 0.04) !important; }
+.dark [class*="bg-slate-200"],
+.dark [class*="bg-gray-200"] { background-color: rgba(255, 255, 255, 0.08) !important; }
 /* ---- pastel status backgrounds → dark tinted ---- */
 .dark [class*="bg-blue-50"],
 .dark [class*="bg-sky-50"],
