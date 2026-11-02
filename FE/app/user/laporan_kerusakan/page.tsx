@@ -202,8 +202,24 @@ export default function UserDamageReportsPage() {
                 <label className="group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 px-5 text-center transition hover:border-[#0785BC]/60 hover:bg-cyan-50/50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-cyan-700">
                   <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#0785BC] shadow-sm transition group-hover:scale-105 dark:bg-slate-700"><ImagePlus className="h-5 w-5" /></div>
                   <span className="text-xs font-black text-slate-700 dark:text-slate-200">Klik untuk unggah foto</span>
-                  <span className="mt-1 text-[11px] text-slate-400">Format JPG, PNG atau WEBP</span>
-                  <input type="file" accept="image/*" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => setPhotoUrl(reader.result as string); reader.readAsDataURL(file); }} />
+                  <span className="mt-1 text-[11px] text-slate-400">Format JPG, PNG atau WEBP (Maksimal 3MB)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) return;
+                      if (file.size > 3 * 1024 * 1024) {
+                        setFeedback({ type: "error", text: "Ukuran gambar melebihi batas maksimal 3MB." });
+                        event.target.value = "";
+                        return;
+                      }
+                      const reader = new FileReader();
+                      reader.onload = () => setPhotoUrl(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
                 </label>
               ) : (
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 dark:border-slate-700"><img src={photoUrl} alt="Preview kerusakan" className="max-h-64 w-full object-contain" /><button type="button" onClick={() => setPhotoUrl("")} className="absolute right-3 top-3 rounded-xl bg-slate-950/70 p-2 text-white shadow-lg hover:bg-rose-600 cursor-pointer"><X className="h-4 w-4" /></button></div>

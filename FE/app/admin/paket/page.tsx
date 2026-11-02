@@ -28,6 +28,7 @@ import {
 import api from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
 import { getSocket } from "@/lib/socket";
+import { useLanguage } from "@/lib/i18n";
 
 interface AvailableItem {
   id: string;
@@ -98,6 +99,7 @@ interface PackageComponentItem {
 }
 
 export default function PaketPage() {
+  const { t, lang } = useLanguage();
   const [packages, setPackages] = useState<PackageData[]>([]);
   const [availableItems, setAvailableItems] = useState<AvailableItem[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -657,7 +659,7 @@ export default function PaketPage() {
     <AdminLayout
       showSearch
       searchValue={searchQuery}
-      searchPlaceholder="Cari paket sarpras..."
+      searchPlaceholder={t("admin.pkg.search_ph", "Cari paket sarpras...")}
       onSearchChange={setSearchQuery}
     >
       <div className="space-y-6">
@@ -665,44 +667,48 @@ export default function PaketPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Paket Bundling Sarpras</h1>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                {t("admin.pkg.title", "Paket Bundling Sarpras")}
+              </h1>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
                 {packages.length} BUNDLES
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Kelola paket set peralatan siap pakai untuk kegiatan perkuliahan dan acara.</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {t("admin.pkg.sub", "Kelola paket set peralatan siap pakai untuk kegiatan perkuliahan dan acara.")}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
-              Ekspor Data
+              {t("admin.pkg.export_btn", "Ekspor Data")}
             </button>
             <button
               onClick={() => {
                 resetForm();
                 setShowModal(true);
               }}
-              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              Tambah Paket
+              {t("admin.pkg.add_btn", "Tambah Paket")}
             </button>
           </div>
         </div>
 
-        {/* ΓöÇΓöÇ Stat Cards (n8n Node Style) ΓöÇΓöÇ */}
+        {/* ── Stat Cards (n8n Node Style) ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200 mb-1.5">
-                  BUNDLES
+                  {t("admin.pkg.kpi_total_tag", "BUNDLES")}
                 </span>
-                <p className="text-xs font-medium text-slate-500">Total Paket Sarpras</p>
+                <p className="text-xs font-medium text-slate-500">{t("admin.pkg.kpi_total_title", "Total Paket Sarpras")}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
                 <Package className="w-4 h-4" />
@@ -710,9 +716,9 @@ export default function PaketPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">
-                {loading ? "..." : packages.length} <span className="text-xs text-slate-500 font-normal">paket terdaftar</span>
+                {loading ? "..." : packages.length} <span className="text-xs text-slate-500 font-normal">{t("admin.pkg.kpi_total_sub", "paket terdaftar")}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Kombinasi multi-item terintegrasi</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{t("admin.items.kpi_total_desc", "Kombinasi multi-item terintegrasi")}</p>
             </div>
           </div>
 
@@ -720,9 +726,9 @@ export default function PaketPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1.5">
-                  READY
+                  {t("admin.pkg.kpi_ready_tag", "READY")}
                 </span>
-                <p className="text-xs font-medium text-slate-500">Siap Dipinjam (Komplit)</p>
+                <p className="text-xs font-medium text-slate-500">{t("admin.pkg.kpi_ready_title", "Siap Dipinjam (Komplit)")}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
@@ -730,7 +736,7 @@ export default function PaketPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
-                {loading ? "..." : readyPackagesCount} <span className="text-xs text-emerald-700/60 font-normal">paket siap pakai</span>
+                {loading ? "..." : readyPackagesCount} <span className="text-xs text-emerald-700/60 font-normal">{t("admin.pkg.kpi_ready_sub", "paket siap pakai")}</span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">Semua komponen barang berstatus cukup</p>
             </div>
@@ -740,9 +746,9 @@ export default function PaketPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-700 border border-amber-200 mb-1.5">
-                  PARTIAL
+                  {t("admin.pkg.kpi_limited_tag", "PARTIAL")}
                 </span>
-                <p className="text-xs font-medium text-slate-500">Komponen Terbatas</p>
+                <p className="text-xs font-medium text-slate-500">{t("admin.pkg.kpi_limited_title", "Komponen Terbatas")}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 text-amber-600 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4" />
@@ -750,7 +756,7 @@ export default function PaketPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-amber-600 tabular-nums tracking-tight">
-                {loading ? "..." : limitedPackagesCount} <span className="text-xs text-amber-700/60 font-normal">paket menunggu stok</span>
+                {loading ? "..." : limitedPackagesCount} <span className="text-xs text-amber-700/60 font-normal">{t("admin.pkg.kpi_limited_sub", "paket menunggu stok")}</span>
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">Sebagian item sedang dipinjam terpisah</p>
             </div>
@@ -766,13 +772,13 @@ export default function PaketPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5">
                 <Tag className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-xs text-slate-400 font-medium">Kategori:</span>
+                <span className="text-xs text-slate-400 font-medium">{t("admin.pkg.th_category", "Kategori")}:</span>
                 <select
                   value={packageCategoryFilter}
                   onChange={(e) => setPackageCategoryFilter(e.target.value)}
-                  className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                  className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all cursor-pointer"
                 >
-                  <option value="all">Semua Kategori</option>
+                  <option value="all">{t("admin.items.all_categories", "Semua Kategori")}</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.name}>
                       {c.name}
@@ -781,15 +787,15 @@ export default function PaketPage() {
                 </select>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xs text-slate-400 font-medium">Ketersediaan:</span>
+                <span className="text-xs text-slate-400 font-medium">{t("admin.pkg.th_availability", "Ketersediaan")}:</span>
                 <select
                   value={availabilityFilter}
                   onChange={(e) => setAvailabilityFilter(e.target.value)}
-                  className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                  className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-1.5 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all cursor-pointer"
                 >
-                  <option value="all">Semua Ketersediaan</option>
-                  <option value="ready">Siap Dipinjam (Lengkap)</option>
-                  <option value="limited">Stok Terbatas / Tidak Lengkap</option>
+                  <option value="all">{lang === "en" ? "All Availability" : "Semua Ketersediaan"}</option>
+                  <option value="ready">{lang === "en" ? "Ready (Complete)" : "Siap Dipinjam (Lengkap)"}</option>
+                  <option value="limited">{lang === "en" ? "Limited / Incomplete" : "Stok Terbatas / Tidak Lengkap"}</option>
                 </select>
               </div>
 
@@ -803,7 +809,7 @@ export default function PaketPage() {
                       ? "bg-white text-[#0785BC] shadow-xs font-semibold"
                       : "text-slate-500 hover:text-slate-700"
                   }`}
-                  title="Tampilan Tabel (List)"
+                  title={t("admin.items.view_list", "Tampilan Tabel (List)")}
                 >
                   <List className="w-3.5 h-3.5" />
                 </button>
@@ -815,7 +821,7 @@ export default function PaketPage() {
                       ? "bg-white text-[#0785BC] shadow-xs font-semibold"
                       : "text-slate-500 hover:text-slate-700"
                   }`}
-                  title="Tampilan Grid (Kartu)"
+                  title={t("admin.items.view_grid", "Tampilan Grid (Kartu)")}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
@@ -828,11 +834,11 @@ export default function PaketPage() {
               <table className="w-full text-sm">
                 <thead className="bg-slate-50/75 border-b border-slate-100">
                   <tr>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Paket Barang</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Item Termasuk</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Ketersediaan</th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Status</th>
-                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase">Aksi</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">{t("admin.pkg.th_name", "Paket Barang")}</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">{t("admin.pkg.th_components", "Item Termasuk")}</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">{t("admin.pkg.th_availability", "Ketersediaan")}</th>
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase">{t("admin.pkg.th_status", "Status")}</th>
+                    <th className="px-5 py-3 text-right text-xs font-semibold text-slate-500 uppercase">{t("admin.items.th_action", "Aksi")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -2227,7 +2233,7 @@ export default function PaketPage() {
                     return (
                       <div key={idx} className="flex justify-between items-center text-[11px] text-slate-600 py-0.5 border-b border-slate-200/50 last:border-b-0">
                         <span className="truncate max-w-[180px]">
-                          ΓÇó {pi.items?.name || "Barang"}
+                        {pi.items?.name || "Barang"}
                         </span>
                         <span className={`font-bold ${packageStockModal.action === "add" ? "text-emerald-600" : "text-rose-600"}`}>
                           {sign}{delta} unit

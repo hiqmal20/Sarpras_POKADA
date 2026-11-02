@@ -1,6 +1,7 @@
 ﻿"use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { AdminLayout } from "@/components/admin";
 import {
   Plus,
@@ -28,6 +29,7 @@ import {
 import api from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
 import { getSocket } from "@/lib/socket";
+import { useLanguage } from "@/lib/i18n";
 
 interface Category {
   id: string;
@@ -82,6 +84,41 @@ interface ItemDetailData extends Item {
 }
 
 export default function BarangPage() {
+  return (
+    <Suspense
+      fallback={
+        <AdminLayout>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <Loader2 className="w-8 h-8 text-[#0785BC] animate-spin" />
+          </div>
+        </AdminLayout>
+      }
+    >
+      <BarangContent />
+    </Suspense>
+  );
+}
+
+function BarangContent() {
+  const { t, lang } = useLanguage();
+  const searchParams = useSearchParams();
+
+  const formatCondition = (cond: string) => {
+    if (cond === "Baik") return t("condition.good", "Baik");
+    if (cond === "Rusak Ringan") return t("condition.slight", "Rusak Ringan");
+    if (cond === "Rusak Berat") return t("condition.heavy", "Rusak Berat");
+    if (cond === "Hilang") return t("condition.lost", "Hilang");
+    return cond;
+  };
+
+  const formatStatus = (st: string) => {
+    if (st === "Tersedia") return t("status.available", "Tersedia");
+    if (st === "Stok Kosong") return t("status.out_of_stock", "Stok Kosong");
+    if (st === "Dipinjam") return t("status.borrowed", "Dipinjam");
+    if (st === "Dalam Perbaikan") return t("status.repair", "Dalam Perbaikan");
+    return st;
+  };
+
   const [items, setItems] = useState<Item[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,6 +135,26 @@ export default function BarangPage() {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [showExportModal, setShowExportModal] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
+  useEffect(() => {
+    const catNameParam = searchParams.get("kategori") || searchParams.get("category");
+    const catIdParam = searchParams.get("category_id");
+
+    if (catIdParam) {
+      setCategoryFilter(catIdParam);
+    } else if (catNameParam) {
+      const matched = categories.find(
+        (c) =>
+          c.id === catNameParam ||
+          c.name.toLowerCase() === catNameParam.toLowerCase()
+      );
+      if (matched) {
+        setCategoryFilter(matched.id);
+      } else {
+        setCategoryFilter(catNameParam);
+      }
+    }
+  }, [searchParams, categories]);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -345,11 +402,20 @@ export default function BarangPage() {
   const totalAvailableCount = items.reduce((acc, curr) => acc + (curr.available_stock ?? curr.stock ?? 0), 0);
   const damagedItemCount = items.filter((i) => i.condition !== "Baik").length;
 
+  const selectedCategoryObj = categories.find(
+    (c) => c.id === categoryFilter || c.name.toLowerCase() === categoryFilter.toLowerCase()
+  );
+  const selectCategoryValue = selectedCategoryObj
+    ? selectedCategoryObj.id
+    : categoryFilter === "all"
+    ? "all"
+    : categoryFilter;
+
   return (
     <AdminLayout
       showSearch
       searchValue={searchQuery}
-      searchPlaceholder="Cari barang berdasarkan nama, kode, lokasi..."
+      searchPlaceholder={t("admin.items.search_ph", "Cari barang berdasarkan nama, kode, lokasi...")}
       onSearchChange={setSearchQuery}
     >
       <div className="space-y-6">
@@ -357,41 +423,47 @@ export default function BarangPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Katalog Inventaris Barang</h1>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                {t("admin.items.catalog_title", "Katalog Inventaris Barang")}
+              </h1>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                {items.length} ITEMS
+                {items.length} {t("admin.items.items_badge", "ITEMS")}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Kelola seluruh data aset fisik, kuantitas stok satuan, dan status operasional.</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {t("admin.items.catalog_sub", "Kelola seluruh data aset fisik, kuantitas stok satuan, dan status operasional.")}
+            </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowExportModal(true)}
-              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
+              className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/90 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-2xs cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
-              Ekspor Data
+              {t("admin.items.export_btn", "Ekspor Data")}
             </button>
             <button
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs"
+              className="flex items-center gap-2 px-3.5 py-2 bg-[#0785BC] text-white text-xs font-semibold rounded-lg hover:bg-[#0672a0] active:scale-95 transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              Tambah Barang
+              {t("admin.items.add_btn", "Tambah Barang")}
             </button>
           </div>
         </div>
 
-        {/* ΓöÇΓöÇ Stat Cards (n8n Node Style) ΓöÇΓöÇ */}
+        {/* ── Stat Cards (n8n Node Style) ── */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="group bg-white rounded-xl border border-slate-200/90 shadow-xs hover:border-slate-300 hover:shadow-sm transition-all duration-200 p-4.5 flex flex-col justify-between">
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200 mb-1.5">
-                  TOTAL ASET
+                  {t("admin.items.kpi_total_tag", "TOTAL ASET")}
                 </span>
-                <p className="text-xs font-medium text-slate-500">Total Jenis & Unit</p>
+                <p className="text-xs font-medium text-slate-500">
+                  {t("admin.items.kpi_total_title", "Total Jenis & Unit")}
+                </p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
                 <Package className="w-4 h-4" />
@@ -399,9 +471,14 @@ export default function BarangPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">
-                {loading ? "..." : items.length} <span className="text-xs text-slate-500 font-normal">jenis ({totalStockCount} unit)</span>
+                {loading ? "..." : items.length}{" "}
+                <span className="text-xs text-slate-500 font-normal">
+                  {t("admin.items.types", "jenis")} ({totalStockCount} {t("admin.items.units", "unit")})
+                </span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Seluruh unit fisik tercatat di sistem</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {t("admin.items.kpi_total_desc", "Seluruh unit fisik tercatat di sistem")}
+              </p>
             </div>
           </div>
 
@@ -409,9 +486,11 @@ export default function BarangPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1.5">
-                  AVAILABLE
+                  {t("admin.items.kpi_available_tag", "AVAILABLE")}
                 </span>
-                <p className="text-xs font-medium text-slate-500">Stok Siap Pinjam</p>
+                <p className="text-xs font-medium text-slate-500">
+                  {t("admin.items.kpi_available_title", "Stok Siap Pinjam")}
+                </p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
@@ -419,9 +498,14 @@ export default function BarangPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
-                {loading ? "..." : totalAvailableCount} <span className="text-xs text-emerald-700/60 font-normal">unit tersedia</span>
+                {loading ? "..." : totalAvailableCount}{" "}
+                <span className="text-xs text-emerald-700/60 font-normal">
+                  {t("admin.items.units_available", "unit tersedia")}
+                </span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Dapat langsung dipinjam civitas kampus</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {t("admin.items.kpi_available_desc", "Dapat langsung dipinjam civitas kampus")}
+              </p>
             </div>
           </div>
 
@@ -429,9 +513,11 @@ export default function BarangPage() {
             <div className="flex items-start justify-between">
               <div>
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 mb-1.5">
-                  ATTENTION
+                  {t("admin.items.kpi_attention_tag", "ATTENTION")}
                 </span>
-                <p className="text-xs font-medium text-slate-500">Perlu Penanganan</p>
+                <p className="text-xs font-medium text-slate-500">
+                  {t("admin.items.kpi_attention_title", "Perlu Penanganan")}
+                </p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4" />
@@ -439,9 +525,14 @@ export default function BarangPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-rose-600 tabular-nums tracking-tight">
-                {loading ? "..." : damagedItemCount} <span className="text-xs text-rose-700/60 font-normal">item terkendala</span>
+                {loading ? "..." : damagedItemCount}{" "}
+                <span className="text-xs text-rose-700/60 font-normal">
+                  {t("admin.items.items_problematic", "item terkendala")}
+                </span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Kondisi rusak ringan atau dalam perbaikan</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {t("admin.items.kpi_attention_desc", "Kondisi rusak ringan atau dalam perbaikan")}
+              </p>
             </div>
           </div>
         </div>
@@ -449,24 +540,44 @@ export default function BarangPage() {
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-5 py-3.5 border-b border-slate-200/80 bg-slate-50/50">
             <div>
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Daftar Inventaris Barang</h2>
-              <p className="text-[11px] text-slate-500 mt-0.5">Menampilkan {filteredItems.length} barang terdaftar</p>
+              <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                {t("admin.items.list_title", "Daftar Inventaris Barang")}
+              </h2>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                {t("admin.items.showing", "Menampilkan")} {filteredItems.length} {t("admin.items.registered_items", "barang terdaftar")}
+                {selectedCategoryObj && (
+                  <span className="font-semibold text-[#0785BC]"> · {t("admin.items.category_label", "Kategori")}: {selectedCategoryObj.name}</span>
+                )}
+              </p>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-500 font-medium">Filter Kategori:</span>
+                <span className="text-xs text-slate-500 font-medium">
+                  {t("admin.items.filter_label", "Filter Kategori:")}
+                </span>
                 <select
-                  value={categoryFilter}
+                  value={selectCategoryValue}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
+                  className="text-xs font-semibold border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all cursor-pointer"
                 >
-                  <option value="all">Semua Kategori</option>
+                  <option value="all">{t("admin.items.all_categories", "Semua Kategori")}</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>
                   ))}
                 </select>
+                {categoryFilter !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilter("all")}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0785BC] hover:text-[#0672a0] bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors cursor-pointer"
+                    title={t("admin.items.reset_filter", "Reset")}
+                  >
+                    <X className="w-3 h-3" />
+                    <span>{t("admin.items.reset_filter", "Reset")}</span>
+                  </button>
+                )}
               </div>
 
               {/* View Mode Toggle (List / Grid) */}
@@ -479,7 +590,7 @@ export default function BarangPage() {
                       ? "bg-white text-[#0785BC] shadow-xs font-semibold"
                       : "text-slate-500 hover:text-slate-700"
                   }`}
-                  title="Tampilan Tabel (List)"
+                  title={t("admin.items.view_list", "Tampilan Tabel (List)")}
                 >
                   <List className="w-3.5 h-3.5" />
                 </button>
@@ -491,7 +602,7 @@ export default function BarangPage() {
                       ? "bg-white text-[#0785BC] shadow-xs font-semibold"
                       : "text-slate-500 hover:text-slate-700"
                   }`}
-                  title="Tampilan Grid (Kartu)"
+                  title={t("admin.items.view_grid", "Tampilan Grid (Kartu)")}
                 >
                   <LayoutGrid className="w-3.5 h-3.5" />
                 </button>
@@ -504,13 +615,13 @@ export default function BarangPage() {
               <table className="w-full text-xs">
                 <thead className="bg-slate-50/80 border-b border-slate-200/80 font-mono text-[10px] text-slate-500 uppercase tracking-wider">
                   <tr>
-                    <th className="px-4 py-2.5 text-left">Kode</th>
-                    <th className="px-4 py-2.5 text-left">Nama Barang</th>
-                    <th className="px-4 py-2.5 text-left">Kategori</th>
-                    <th className="px-4 py-2.5 text-left">Stok / Tersedia</th>
-                    <th className="px-4 py-2.5 text-left">Kondisi</th>
-                    <th className="px-4 py-2.5 text-left">Status</th>
-                    <th className="px-4 py-2.5 text-right">Aksi</th>
+                    <th className="px-4 py-2.5 text-left">{t("admin.items.th_code", "Kode")}</th>
+                    <th className="px-4 py-2.5 text-left">{t("admin.items.th_name", "Nama Barang")}</th>
+                    <th className="px-4 py-2.5 text-left">{t("admin.items.th_category", "Kategori")}</th>
+                    <th className="px-4 py-2.5 text-left">{t("admin.items.th_stock", "Stok / Tersedia")}</th>
+                    <th className="px-4 py-2.5 text-left">{t("admin.items.th_condition", "Kondisi")}</th>
+                    <th className="px-4 py-2.5 text-left">{t("admin.items.th_status", "Status")}</th>
+                    <th className="px-4 py-2.5 text-right">{t("admin.items.th_action", "Aksi")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -527,7 +638,7 @@ export default function BarangPage() {
                   ) : filteredItems.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-slate-400 text-xs">
-                        Belum ada data barang. Klik tombol &quot;Tambah Barang&quot; untuk membuat baru.
+                        {t("admin.items.empty_data", "Belum ada data barang. Klik tombol \"Tambah Barang\" untuk membuat baru.")}
                       </td>
                     </tr>
                   ) : (
@@ -564,7 +675,7 @@ export default function BarangPage() {
                                 : "bg-rose-50 text-rose-700"
                             }`}
                           >
-                            {item.condition}
+                            {formatCondition(item.condition)}
                           </span>
                         </td>
                         <td className="px-4 py-3.5">
@@ -579,7 +690,7 @@ export default function BarangPage() {
                                 : "bg-slate-100 text-slate-600 border border-slate-200"
                             }`}
                           >
-                            {(item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : item.status}
+                            {formatStatus((item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : (item.status || "Tersedia"))}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 text-right">
@@ -590,8 +701,8 @@ export default function BarangPage() {
                                 e.stopPropagation();
                                 handleRowClick(item);
                               }}
-                              title="Lihat Detail Barang"
-                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                              title={t("admin.items.view_detail", "Lihat Detail Barang")}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -601,8 +712,8 @@ export default function BarangPage() {
                                 e.stopPropagation();
                                 handleOpenEdit(item);
                               }}
-                              title="Edit Barang"
-                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
+                              title={t("admin.items.edit_item", "Edit Barang")}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -612,8 +723,8 @@ export default function BarangPage() {
                                 e.stopPropagation();
                                 handleDelete(item.id);
                               }}
-                              title="Hapus Barang"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title={t("admin.items.del_item", "Hapus Barang")}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -661,7 +772,9 @@ export default function BarangPage() {
                         ) : (
                           <div className="flex flex-col items-center justify-center text-slate-400">
                             <ImageIcon className="w-8 h-8 stroke-[1.5]" />
-                            <span className="text-[10px] mt-1 font-medium text-slate-400">Tanpa Foto</span>
+                            <span className="text-[10px] mt-1 font-medium text-slate-400">
+                              {t("admin.items.no_photo", "Tanpa Foto")}
+                            </span>
                           </div>
                         )}
 
@@ -676,7 +789,7 @@ export default function BarangPage() {
                                 : "bg-rose-600 text-white"
                             }`}
                           >
-                            {item.condition}
+                            {formatCondition(item.condition)}
                           </span>
                         </div>
 
@@ -692,7 +805,7 @@ export default function BarangPage() {
                                 : "bg-slate-700 text-white"
                             }`}
                           >
-                            {(item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : item.status}
+                            {formatStatus((item.available_stock ?? item.stock) === 0 ? "Stok Kosong" : (item.status || "Tersedia"))}
                           </span>
                         </div>
                       </div>
@@ -703,7 +816,7 @@ export default function BarangPage() {
                           <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-1">
                             <span className="font-semibold text-slate-600">{item.code}</span>
                             <span className="truncate max-w-[120px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
-                              {item.category || "Umum"}
+                              {item.category || t("admin.items.general_category", "Umum")}
                             </span>
                           </div>
                           <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-[#0785BC] transition-colors mt-0.5">
@@ -719,7 +832,9 @@ export default function BarangPage() {
                         {/* Card Footer */}
                         <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between">
                           <div>
-                            <span className="text-[10px] text-slate-400 block font-medium">Stok Tersedia</span>
+                            <span className="text-[10px] text-slate-400 block font-medium">
+                              {t("admin.items.avail_stock", "Stok Tersedia")}
+                            </span>
                             <span className="text-xs font-bold text-slate-800">
                               {item.available_stock ?? item.stock} <span className="text-slate-400 font-normal">/ {item.stock}</span>
                             </span>
@@ -731,8 +846,8 @@ export default function BarangPage() {
                                 e.stopPropagation();
                                 handleRowClick(item);
                               }}
-                              title="Lihat Detail Barang"
-                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors"
+                              title={t("admin.items.view_detail", "Lihat Detail Barang")}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Eye className="w-4 h-4" />
                             </button>
@@ -742,8 +857,8 @@ export default function BarangPage() {
                                 e.stopPropagation();
                                 handleOpenEdit(item);
                               }}
-                              title="Edit Barang"
-                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors"
+                              title={t("admin.items.edit_item", "Edit Barang")}
+                              className="p-1.5 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
@@ -753,8 +868,8 @@ export default function BarangPage() {
                                 e.stopPropagation();
                                 handleDelete(item.id);
                               }}
-                              title="Hapus Barang"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title={t("admin.items.del_item", "Hapus Barang")}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -782,15 +897,17 @@ export default function BarangPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
-                    {editingId ? "Edit Barang Inventaris" : "Tambah Barang Inventaris Baru"}
+                    {editingId ? t("admin.items.edit_title", "Edit Barang Inventaris") : t("admin.items.create_title", "Tambah Barang Inventaris Baru")}
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">Kelola spesifikasi aset satuan, stok, dan kondisi fisik</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {t("admin.items.modal_sub", "Kelola spesifikasi aset satuan, stok, dan kondisi fisik")}
+                  </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -800,16 +917,18 @@ export default function BarangPage() {
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 text-xs">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 
-                {/* ΓöÇΓöÇ SISI KIRI: Foto, Status & Kondisi (5 kolom) ΓöÇΓöÇ */}
+                {/* ── SISI KIRI: Foto, Status & Kondisi (5 kolom) ── */}
                 <div className="md:col-span-5 space-y-4">
                   <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/40 space-y-4">
                     <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider text-[#0785BC]">
-                      1. Visual & Status Aset
+                      {t("admin.items.section_visual", "1. Visual & Status Aset")}
                     </h3>
 
                     {/* Upload Foto Barang */}
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-2">Foto Barang</label>
+                      <label className="block font-semibold text-slate-700 mb-2">
+                        {t("admin.items.field_photo", "Foto Barang")}
+                      </label>
                       <div className="flex items-center gap-3.5">
                         {imagePreview ? (
                           <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 shadow-2xs shrink-0 group">
@@ -821,7 +940,7 @@ export default function BarangPage() {
                             <button
                               type="button"
                               onClick={() => setImagePreview("")}
-                              className="absolute top-1.5 right-1.5 p-1 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors shadow-xs"
+                              className="absolute top-1.5 right-1.5 p-1 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors shadow-xs cursor-pointer"
                               title="Hapus foto"
                             >
                               <X className="w-3 h-3" />
@@ -830,7 +949,9 @@ export default function BarangPage() {
                         ) : (
                           <label className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-200 hover:border-[#0785BC] flex flex-col items-center justify-center text-slate-400 hover:text-[#0785BC] cursor-pointer transition-all bg-white hover:bg-blue-50/20 shrink-0">
                             <Upload className="w-5 h-5 mb-1" />
-                            <span className="text-[10px] font-bold">Upload Foto</span>
+                            <span className="text-[10px] font-bold">
+                              {t("admin.items.upload_photo", "Upload Foto")}
+                            </span>
                             <input
                               type="file"
                               accept="image/*"
@@ -841,8 +962,7 @@ export default function BarangPage() {
                         )}
                         <div className="text-[11px] text-slate-400 leading-relaxed">
                           <p className="font-medium text-slate-600">Unggah foto fisik barang</p>
-                          <p>Format: JPG, PNG, WEBP</p>
-                          <p>Maksimal ukuran: 5MB</p>
+                          <p>Format: JPG, PNG, WEBP (Maks 5MB)</p>
                         </div>
                       </div>
                     </div>
@@ -851,11 +971,11 @@ export default function BarangPage() {
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
                         <label className="block font-semibold text-slate-700">
-                          Status Ketersediaan *
+                          {t("admin.items.stat_label", "Status Operasional")} *
                         </label>
                         {formData.available_stock === 0 && (
                           <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                            Stok Habis
+                            {t("status.out_of_stock", "Stok Kosong")}
                           </span>
                         )}
                       </div>
@@ -871,7 +991,7 @@ export default function BarangPage() {
                           }
                           setFormData({ ...formData, status: newStatus, available_stock: newAvail });
                         }}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all cursor-pointer"
                       >
                         <option value="Tersedia">Tersedia (Siap Dipinjam)</option>
                         <option value="Stok Kosong">Stok Kosong / Habis (Tidak Bisa Dipinjam)</option>
@@ -883,12 +1003,12 @@ export default function BarangPage() {
                     {/* Kondisi Fisik */}
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1.5">
-                        Kondisi Fisik Barang *
+                        {t("admin.items.cond_label", "Kondisi Fisik")} *
                       </label>
                       <select
                         value={formData.condition}
                         onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all"
+                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all cursor-pointer"
                       >
                         <option value="Baik">Baik (Berfungsi Normal)</option>
                         <option value="Rusak Ringan">Rusak Ringan (Bisa Digunakan)</option>
@@ -898,17 +1018,17 @@ export default function BarangPage() {
                   </div>
                 </div>
 
-                {/* ΓöÇΓöÇ SISI KANAN: Data Spesifikasi & Stok (7 kolom) ΓöÇΓöÇ */}
+                {/* ── SISI KANAN: Data Spesifikasi & Stok (7 kolom) ── */}
                 <div className="md:col-span-7 space-y-4">
                   <div className="p-4.5 rounded-2xl border border-slate-200 bg-slate-50/50 space-y-4">
                     <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider text-[#0785BC]">
-                      2. Identitas & Spesifikasi Barang
+                      {t("admin.items.section_spec", "2. Data Spesifikasi & Stok Barang")}
                     </h3>
 
                     {/* Nama Barang */}
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">
-                        Nama Barang *
+                        {t("admin.items.field_name", "Nama Lengkap Barang")} *
                       </label>
                       <input
                         type="text"
@@ -924,7 +1044,7 @@ export default function BarangPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div>
                         <label className="block font-semibold text-slate-700 mb-1">
-                          Kode Inventaris *
+                          {t("admin.items.field_code", "Kode Inventaris")} *
                         </label>
                         <input
                           type="text"
@@ -938,19 +1058,19 @@ export default function BarangPage() {
 
                       <div>
                         <label className="block font-semibold text-slate-700 mb-1">
-                          Kategori Barang *
+                          {t("admin.items.field_cat", "Kategori Barang")} *
                         </label>
                         <select
                           required
                           value={formData.category_id}
                           onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                          className={`w-full px-3.5 py-2.5 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium transition-all ${
+                          className={`w-full px-3.5 py-2.5 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium transition-all cursor-pointer ${
                             !formData.category_id
                               ? "border-amber-300 text-slate-500 bg-amber-50/20"
                               : "border-slate-200 text-slate-800"
                           }`}
                         >
-                          <option value="">-- Pilih Kategori Barang --</option>
+                          <option value="">{t("admin.items.cat_select", "-- Pilih Kategori Barang --")}</option>
                           {categories.map((c) => (
                             <option key={c.id} value={c.id} className="text-slate-800">
                               {c.name}
@@ -969,7 +1089,7 @@ export default function BarangPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div>
                         <label className="block font-semibold text-slate-700 mb-1">
-                          Total Stok Gudang *
+                          {t("admin.items.field_total_stock", "Total Kuantitas Fisik")} *
                         </label>
                         <div className="flex items-center gap-2">
                           <input
@@ -995,14 +1115,16 @@ export default function BarangPage() {
                             }}
                             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-bold text-slate-800 transition-all"
                           />
-                          <span className="text-xs font-medium text-slate-400">unit</span>
+                          <span className="text-xs font-medium text-slate-400">
+                            {t("admin.items.units", "unit")}
+                          </span>
                         </div>
                       </div>
 
                       <div>
                         <div className="flex items-center justify-between mb-1">
                           <label className="block font-semibold text-slate-700">
-                            Stok Tersedia (Siap Pinjam) *
+                            {t("admin.items.field_avail_stock", "Stok Tersedia (Ready)")} *
                           </label>
                           <button
                             type="button"
@@ -1013,7 +1135,7 @@ export default function BarangPage() {
                                 status: formData.stock > 0 ? "Tersedia" : "Stok Kosong",
                               });
                             }}
-                            className="text-[10px] font-bold text-[#0785BC] hover:underline"
+                            className="text-[10px] font-bold text-[#0785BC] hover:underline cursor-pointer"
                           >
                             Set = Total Stok
                           </button>
@@ -1036,14 +1158,16 @@ export default function BarangPage() {
                             }}
                             className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-bold text-emerald-700 transition-all"
                           />
-                          <span className="text-xs font-medium text-slate-400">unit</span>
+                          <span className="text-xs font-medium text-slate-400">
+                            {t("admin.items.units", "unit")}
+                          </span>
                         </div>
                       </div>
                     </div>
 
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">
-                        Lokasi Penyimpanan
+                        {t("admin.items.loc_label", "Lokasi Ruang / Lab")}
                       </label>
                       <input
                         type="text"
@@ -1057,7 +1181,7 @@ export default function BarangPage() {
                     {/* Deskripsi */}
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1">
-                        Deskripsi & Spesifikasi Tambahan
+                        {t("admin.items.field_desc", "Deskripsi & Spesifikasi Tambahan")}
                       </label>
                       <textarea
                         value={formData.description}
@@ -1076,17 +1200,17 @@ export default function BarangPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 font-bold rounded-xl transition-colors"
+                  className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 font-bold rounded-xl transition-colors cursor-pointer"
                 >
-                  Batal
+                  {t("common.cancel", "Batal")}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0785BC] text-white font-bold rounded-xl hover:bg-[#0672a0] disabled:opacity-60 transition-all shadow-sm active:scale-95"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0785BC] text-white font-bold rounded-xl hover:bg-[#0672a0] disabled:opacity-60 transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {editingId ? "Simpan Perubahan Barang" : "Tambah Barang"}
+                  {editingId ? t("admin.items.save_edit", "Simpan Perubahan Barang") : t("admin.items.save_create", "Tambah Barang")}
                 </button>
               </div>
             </form>
@@ -1106,17 +1230,21 @@ export default function BarangPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 text-base">Detail Barang Per Item</h3>
+                    <h3 className="font-bold text-slate-900 text-base">
+                      {t("admin.items.detail_title", "Detail Barang Per Item")}
+                    </h3>
                     <span className="font-mono text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-200/70 text-slate-700">
                       {selectedItem.code}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">Spesifikasi aset, stok, dan riwayat peminjaman</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {t("admin.items.detail_sub", "Spesifikasi aset, stok, dan riwayat peminjaman")}
+                  </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowDetail(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1140,8 +1268,12 @@ export default function BarangPage() {
                     <div className="w-14 h-14 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs flex items-center justify-center text-[#0785BC] mb-2 group-hover:scale-110 transition-transform">
                       <ImageIcon className="w-7 h-7 text-slate-400" />
                     </div>
-                    <p className="text-xs font-bold text-slate-600">Tidak Ada Foto Barang</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Foto aset dapat diunggah melalui formulir edit barang</p>
+                    <p className="text-xs font-bold text-slate-600">
+                      {t("admin.items.no_photo_hero", "Tidak Ada Foto Barang")}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {t("admin.items.no_photo_sub", "Foto aset dapat diunggah melalui formulir edit barang")}
+                    </p>
                   </div>
                 )}
 
@@ -1159,13 +1291,15 @@ export default function BarangPage() {
                         : "bg-rose-500/90 text-white"
                     }`}
                   >
-                    {selectedItem.condition}
+                    {formatCondition(selectedItem.condition)}
                   </span>
                 </div>
 
                 <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
                   <div className="text-white drop-shadow-md">
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200 block">Nama Barang</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-200 block">
+                      {t("admin.items.th_name", "Nama Barang")}
+                    </span>
                     <h2 className="text-lg sm:text-xl font-black text-white leading-tight">{selectedItem.name}</h2>
                   </div>
                   <span
@@ -1175,7 +1309,7 @@ export default function BarangPage() {
                         : "bg-slate-700 text-white"
                     }`}
                   >
-                    {selectedItem.status || "Tersedia"}
+                    {formatStatus(selectedItem.status || "Tersedia")}
                   </span>
                 </div>
               </div>
@@ -1185,37 +1319,47 @@ export default function BarangPage() {
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-slate-400 mb-1">
                     <Boxes className="w-4 h-4 text-slate-500" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Total Stok</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">
+                      {t("admin.items.total_stock", "Total Stok")}
+                    </span>
                   </div>
-                  <p className="text-base font-extrabold text-slate-800">{selectedItem.stock} <span className="text-xs font-normal text-slate-500">unit</span></p>
+                  <p className="text-base font-extrabold text-slate-800">
+                    {selectedItem.stock} <span className="text-xs font-normal text-slate-500">{t("admin.items.units", "unit")}</span>
+                  </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-emerald-600 mb-1">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Tersedia</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">
+                      {t("admin.items.available", "Tersedia")}
+                    </span>
                   </div>
                   <p className="text-base font-extrabold text-emerald-700">
-                    {selectedItem.available_stock ?? selectedItem.stock} <span className="text-xs font-normal text-emerald-600">unit</span>
+                    {selectedItem.available_stock ?? selectedItem.stock} <span className="text-xs font-normal text-emerald-600">{t("admin.items.units", "unit")}</span>
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-blue-50/60 border border-blue-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-blue-600 mb-1">
                     <Clock className="w-4 h-4" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Dipinjam</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">
+                      {t("admin.items.borrowed", "Dipinjam")}
+                    </span>
                   </div>
                   <p className="text-base font-extrabold text-blue-700">
                     {richDetail?.statistics?.total_borrowings !== undefined
-                      ? `${richDetail.statistics.total_borrowings} kali`
-                      : `${Math.max(0, selectedItem.stock - (selectedItem.available_stock ?? selectedItem.stock))} unit`}
+                      ? `${richDetail.statistics.total_borrowings} ${t("admin.items.borrow_times", "kali")}`
+                      : `${Math.max(0, selectedItem.stock - (selectedItem.available_stock ?? selectedItem.stock))} ${t("admin.items.units", "unit")}`}
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col justify-between">
                   <div className="flex items-center gap-2 text-slate-400 mb-1">
                     <Tag className="w-4 h-4 text-[#0785BC]" />
-                    <span className="text-[11px] font-semibold uppercase tracking-wider">Status</span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">
+                      {t("admin.items.th_status", "Status")}
+                    </span>
                   </div>
                   <div className="mt-0.5">
                     <span
@@ -1227,7 +1371,7 @@ export default function BarangPage() {
                           : "bg-slate-200 text-slate-700 border border-slate-300"
                       }`}
                     >
-                      {selectedItem.status || "Tersedia"}
+                      {formatStatus(selectedItem.status || "Tersedia")}
                     </span>
                   </div>
                 </div>
@@ -1238,26 +1382,26 @@ export default function BarangPage() {
                 <button
                   type="button"
                   onClick={() => setActiveDetailTab("info")}
-                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                     activeDetailTab === "info"
                       ? "border-[#0785BC] text-[#0785BC]"
                       : "border-transparent text-slate-400 hover:text-slate-600"
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  Informasi Lengkap
+                  {t("admin.items.tab_info", "Informasi Lengkap")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveDetailTab("history")}
-                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                     activeDetailTab === "history"
                       ? "border-[#0785BC] text-[#0785BC]"
                       : "border-transparent text-slate-400 hover:text-slate-600"
                   }`}
                 >
                   <User className="w-3.5 h-3.5" />
-                  Riwayat User
+                  {t("admin.items.tab_history", "Riwayat User")}
                   {richDetail?.recent_borrowings && richDetail.recent_borrowings.length > 0 && (
                     <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
                       {richDetail.recent_borrowings.length}
@@ -1267,14 +1411,14 @@ export default function BarangPage() {
                 <button
                   type="button"
                   onClick={() => setActiveDetailTab("packages")}
-                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+                  className={`pb-2.5 px-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer ${
                     activeDetailTab === "packages"
                       ? "border-[#0785BC] text-[#0785BC]"
                       : "border-transparent text-slate-400 hover:text-slate-600"
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  Paket Terkait
+                  {t("admin.items.tab_packages", "Paket Terkait")}
                   {richDetail?.in_packages && richDetail.in_packages.length > 0 && (
                     <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-blue-100 text-blue-700 font-bold">
                       {richDetail.in_packages.length}
@@ -1288,38 +1432,52 @@ export default function BarangPage() {
                 <div className="space-y-4 animate-fade-in">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50/40">
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">Kode Inventaris</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {t("admin.items.field_code", "Kode Inventaris")}
+                      </p>
                       <p className="text-xs font-mono font-bold text-slate-800 mt-0.5">{selectedItem.code}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">Kategori Barang</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {t("admin.items.field_cat", "Kategori Barang")}
+                      </p>
                       <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedItem.category || "-"}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">Kondisi Fisik</p>
-                      <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedItem.condition}</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {t("admin.items.cond_label", "Kondisi Fisik")}
+                      </p>
+                      <p className="text-xs font-bold text-slate-800 mt-0.5">{formatCondition(selectedItem.condition)}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">Status Operasional</p>
-                      <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedItem.status || "Tersedia"}</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {t("admin.items.stat_label", "Status Operasional")}
+                      </p>
+                      <p className="text-xs font-bold text-slate-800 mt-0.5">{formatStatus(selectedItem.status || "Tersedia")}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">Total Unit Terdaftar</p>
-                      <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedItem.stock} unit</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {t("admin.items.field_total_stock", "Total Unit Terdaftar")}
+                      </p>
+                      <p className="text-xs font-bold text-slate-800 mt-0.5">{selectedItem.stock} {t("admin.items.units", "unit")}</p>
                     </div>
                     <div>
-                      <p className="text-[11px] font-semibold text-slate-400">Rasio Ketersediaan</p>
+                      <p className="text-[11px] font-semibold text-slate-400">
+                        {t("admin.items.field_avail_stock", "Rasio Ketersediaan")}
+                      </p>
                       <p className="text-xs font-bold text-emerald-600 mt-0.5">
-                        {selectedItem.available_stock ?? selectedItem.stock} dari {selectedItem.stock} unit siap pinjam
+                        {selectedItem.available_stock ?? selectedItem.stock} / {selectedItem.stock} {t("admin.items.units_available", "unit siap pinjam")}
                       </p>
                     </div>
                   </div>
 
                   {/* Deskripsi */}
                   <div className="p-4 rounded-2xl border border-slate-100 bg-slate-50/40">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Deskripsi & Catatan Aset</p>
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                      {t("admin.items.field_desc", "Deskripsi & Catatan Aset")}
+                    </p>
                     <p className="text-xs text-slate-600 leading-relaxed">
-                      {selectedItem.description || "Tidak ada deskripsi rinci untuk barang ini."}
+                      {selectedItem.description || t("admin.items.no_desc", "Tidak ada deskripsi rinci untuk barang ini.")}
                     </p>
                   </div>
                 </div>
@@ -1329,7 +1487,9 @@ export default function BarangPage() {
               {activeDetailTab === "history" && (
                 <div className="space-y-3 animate-fade-in">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-slate-700">Riwayat Peminjaman oleh Mahasiswa / User</p>
+                    <p className="text-xs font-bold text-slate-700">
+                      {t("admin.items.recent_borrowings", "Aktivitas Peminjaman Terkini")}
+                    </p>
                     {detailLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0785BC]" />}
                   </div>
 
@@ -1352,15 +1512,15 @@ export default function BarangPage() {
                                 <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200">
                                   {rb.borrowings?.borrow_code || "-"}
                                 </span>
-                                <span>ΓÇó {rb.borrowings?.borrow_date ? new Date(rb.borrowings.borrow_date).toLocaleDateString("id-ID") : "-"}</span>
+                                <span>• {rb.borrowings?.borrow_date ? new Date(rb.borrowings.borrow_date).toLocaleDateString(lang === "en" ? "en-US" : "id-ID") : "-"}</span>
                               </div>
                             </div>
                           </div>
                           <div className="text-right">
                             <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                              {rb.borrowings?.status || "Dipinjam"}
+                              {formatStatus(rb.borrowings?.status || "Dipinjam")}
                             </span>
-                            <p className="text-[11px] font-bold text-slate-700 mt-1">{rb.quantity} unit</p>
+                            <p className="text-[11px] font-bold text-slate-700 mt-1">{rb.quantity} {t("admin.items.units", "unit")}</p>
                           </div>
                         </div>
                       ))}
@@ -1368,8 +1528,9 @@ export default function BarangPage() {
                   ) : (
                     <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
                       <User className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-600">Belum Ada Riwayat Peminjaman</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Barang ini belum pernah diajukan pinjam oleh mahasiswa atau staf.</p>
+                      <p className="text-xs font-bold text-slate-600">
+                        {t("admin.items.no_borrow_history", "Belum ada riwayat peminjaman untuk barang ini.")}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1378,7 +1539,9 @@ export default function BarangPage() {
               {/* Tab 3: Paket Bundling */}
               {activeDetailTab === "packages" && (
                 <div className="space-y-3 animate-fade-in">
-                  <p className="text-xs font-bold text-slate-700">Paket Bundling yang Memuat Barang Ini</p>
+                  <p className="text-xs font-bold text-slate-700">
+                    {t("admin.items.in_packages", "Daftar Paket yang Memuat Barang Ini")}
+                  </p>
 
                   {richDetail?.in_packages && richDetail.in_packages.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1389,7 +1552,7 @@ export default function BarangPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-xs text-slate-800 truncate">{pkg.package_name}</p>
-                            <p className="text-[11px] text-slate-500 mt-0.5">Termasuk: <span className="font-bold text-[#0785BC]">{pkg.quantity_in_package} unit</span></p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">Termasuk: <span className="font-bold text-[#0785BC]">{pkg.quantity_in_package} {t("admin.items.units", "unit")}</span></p>
                             <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white border border-slate-200 text-slate-600">
                               Status: {pkg.package_status || "Aktif"}
                             </span>
@@ -1400,8 +1563,9 @@ export default function BarangPage() {
                   ) : (
                     <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-100">
                       <Layers className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      <p className="text-xs font-bold text-slate-600">Tidak Tergabung dalam Paket</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Barang ini belum dimasukkan ke dalam bundel paket manapun.</p>
+                      <p className="text-xs font-bold text-slate-600">
+                        {t("admin.items.no_packages", "Barang ini belum dimasukkan ke dalam paket inventaris mana pun.")}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1413,9 +1577,9 @@ export default function BarangPage() {
               <button
                 type="button"
                 onClick={() => setShowDetail(false)}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 text-xs font-bold rounded-xl transition-colors"
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
-                Tutup
+                {t("common.close", "Tutup")}
               </button>
               <button
                 type="button"
@@ -1423,10 +1587,10 @@ export default function BarangPage() {
                   setShowDetail(false);
                   handleOpenEdit(selectedItem);
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0785BC] text-white text-xs font-bold rounded-xl hover:bg-[#0672a0] transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0785BC] text-white text-xs font-bold rounded-xl hover:bg-[#0672a0] transition-colors shadow-2xs cursor-pointer"
               >
                 <Edit className="w-3.5 h-3.5" />
-                Edit Barang
+                {t("admin.items.btn_edit", "Edit Barang")}
               </button>
             </div>
           </div>

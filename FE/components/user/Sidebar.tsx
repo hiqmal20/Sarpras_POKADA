@@ -264,7 +264,7 @@ export default function UserSidebar({
                       } ${
                         isActive
                           ? "bg-[#0785BC] text-white shadow-xs"
-                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                          : "bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
                     >
                       <Icon

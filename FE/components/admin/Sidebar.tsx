@@ -59,9 +59,9 @@ export default function Sidebar({
     {
       title: t("admin.nav.inventory", "Inventaris & Aset"),
       items: [
-        { href: "/admin/barang", label: t("admin.nav.items", "Barang Per Item"), icon: Box },
-        { href: "/admin/paket", label: t("admin.nav.packages", "Paket Barang"), icon: Package },
         { href: "/admin/kategori_barang", label: t("admin.nav.categories", "Kategori Barang"), icon: Tag },
+        { href: "/admin/paket", label: t("admin.nav.packages", "Paket Barang"), icon: Package },
+        { href: "/admin/barang", label: t("admin.nav.items", "Barang Per Item"), icon: Box },
       ],
     },
     {
@@ -243,12 +243,12 @@ export default function Sidebar({
                       } ${
                         isActive
                           ? "bg-[#0785BC] text-white shadow-xs"
-                          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                          : "bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                       }`}
                     >
                       <Icon
                         className={`w-4 h-4 shrink-0 transition-colors ${
-                          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600"
+                          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200"
                         }`}
                       />
 

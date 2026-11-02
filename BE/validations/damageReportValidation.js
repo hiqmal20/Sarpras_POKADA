@@ -51,6 +51,8 @@ const updateDamageReportSchema = Joi.object({
       'any.only': 'Status harus: Menunggu Review, Sedang Diperbaiki, Selesai, atau Ditolak'
     }),
   admin_note: Joi.string().allow('', null),
+  image_url: Joi.string().allow('', null).optional(),
+  photo_url: Joi.string().allow('', null).optional(),
 
   // Denda bisa diubah kapan saja oleh admin
   fine_amount: Joi.number().min(0).messages({

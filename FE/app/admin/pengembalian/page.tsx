@@ -24,6 +24,7 @@ import { getSocket } from "@/lib/socket";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface ReturnItemDetail {
   id: string;
@@ -132,6 +133,7 @@ function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
 const PAGE_SIZE = 10;
 
 export default function PengembalianPage() {
+  const { t, lang } = useLanguage();
   const [returns, setReturns] = useState<ReturnItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -417,7 +419,7 @@ export default function PengembalianPage() {
     <AdminLayout
       showSearch={true}
       searchValue={search}
-      searchPlaceholder="Cari data pengembalian..."
+      searchPlaceholder={t("admin.borrow.search_ph", "Cari data pengembalian...")}
       onSearchChange={setSearch}
     >
       <div className="space-y-6">
@@ -425,13 +427,15 @@ export default function PengembalianPage() {
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manajemen Pengembalian</h1>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                {t("admin.return.title", "Manajemen Pengembalian")}
+              </h1>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
                 PENGEMBALIAN ASET
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Pantau jadwal jatuh tempo, proses konfirmasi pengembalian barang, dan telusuri riwayat riil.
+              {t("admin.return.sub", "Pantau jadwal jatuh tempo, proses konfirmasi pengembalian barang, dan telusuri riwayat riil.")}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -441,7 +445,7 @@ export default function PengembalianPage() {
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 rounded-lg hover:bg-slate-50 active:scale-95 transition-all shadow-2xs"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
-              Segarkan
+              {t("admin.dash.refresh", "Segarkan")}
             </button>
             <button
               onClick={() => setShowExportModal(true)}
@@ -527,11 +531,11 @@ export default function PengembalianPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left">
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Barang & Kode</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Peminjam</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Jatuh Tempo / Kembali</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.dash.th_item_code", "Barang & Kode")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.dash.th_borrower", "Peminjam")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.borrow.th_return_date", "Jatuh Tempo / Kembali")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.items.th_status", "Status")}</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">{t("admin.items.th_action", "Aksi")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">

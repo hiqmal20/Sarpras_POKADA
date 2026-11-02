@@ -24,11 +24,16 @@ import {
   ArrowUpRight,
   Download,
   FileSpreadsheet,
+  Image as ImageIcon,
+  UploadCloud,
+  Trash2,
+  ZoomIn,
 } from "lucide-react";
 import api, { getCurrentUser } from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 type ReportStatus = "pending" | "in_progress" | "resolved";
 
@@ -43,6 +48,7 @@ interface DamageReport {
   reporter_foto?: string | null;
   title: string;
   description: string;
+  image_url?: string | null;
   reported_date: string;
   raw_created_at?: string | null;
   status: ReportStatus;
@@ -182,6 +188,7 @@ function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
 const PAGE_SIZE = 10;
 
 export default function RekapLaporanPage() {
+  const { t, lang } = useLanguage();
   const [reports, setReports]             = useState<DamageReport[]>([]);
   const [items, setItems]                 = useState<ItemOption[]>([]);
   const [packagesList, setPackagesList]   = useState<PackageOption[]>([]);
@@ -219,9 +226,35 @@ export default function RekapLaporanPage() {
     report_type: "Kerusakan",
     title: "",
     description: "",
+    image_url: "",
     fine_amount: "",
     fine_reason: "",
   });
+
+  const [previewImage, setPreviewImage]           = useState<string | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.warning("Hanya file gambar yang diperbolehkan (JPG, PNG, WEBP).", "Format Tidak Valid");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.warning("Ukuran gambar melebihi batas maksimal 3MB.", "Ukuran Terlalu Besar");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData((prev) => ({ ...prev, image_url: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  };
 
   // Modal Mode: "by_transaction" (per transaksi peminjaman) atau "manual" (katalog langsung)
   const [modalMode, setModalMode]                 = useState<"by_transaction" | "manual">("by_transaction");
@@ -277,6 +310,7 @@ export default function RekapLaporanPage() {
       report_type: "Kerusakan",
       title: "",
       description: "",
+      image_url: "",
       fine_amount: "",
       fine_reason: "",
     });
@@ -402,6 +436,7 @@ export default function RekapLaporanPage() {
             reporter_foto: userObj.foto || null,
             title: raw.title || "Laporan Kerusakan",
             description: raw.description || raw.damage_description || "-",
+            image_url: raw.image_url || raw.photo_url || null,
             reported_date: raw.created_at
               ? new Date(raw.created_at).toLocaleDateString("id-ID", {
                   day: "2-digit",
@@ -487,6 +522,7 @@ export default function RekapLaporanPage() {
         report_type: formData.report_type,
         title: formData.title.trim(),
         description: formData.description.trim(),
+        image_url: formData.image_url || undefined,
         fine_amount: formData.fine_amount ? Number(formData.fine_amount) : 0,
         fine_reason: formData.fine_reason || "",
       };
@@ -505,6 +541,7 @@ export default function RekapLaporanPage() {
           report_type: "Kerusakan",
           title: "",
           description: "",
+          image_url: "",
           fine_amount: "",
           fine_reason: "",
         });
@@ -739,7 +776,7 @@ export default function RekapLaporanPage() {
     <AdminLayout
       showSearch={true}
       searchValue={search}
-      searchPlaceholder="Cari laporan, kode, nama barang..."
+      searchPlaceholder={t("admin.damage.search_ph", "Cari laporan, kode, nama barang...")}
       onSearchChange={setSearch}
     >
       <div className="space-y-6">
@@ -748,38 +785,38 @@ export default function RekapLaporanPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold tracking-tight text-slate-900">
-                Laporan Kerusakan & Insiden Aset
+                {t("admin.damage.title", "Laporan Kerusakan & Insiden Aset")}
               </h1>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
                 INCIDENT DESK
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Rekapitulasi komprehensif penanganan aset bermasalah, klaim denda, dan status perbaikan sarpras.
+              {t("admin.damage.sub", "Rekapitulasi komprehensif penanganan aset bermasalah, klaim denda, dan status perbaikan sarpras.")}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => fetchData()}
-              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all border border-slate-200"
-              title="Perbarui data"
+              className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-all border border-slate-200 cursor-pointer"
+              title={t("admin.dash.refresh", "Perbarui data")}
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin text-[#0785BC]" : ""}`} />
             </button>
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 rounded-lg transition-all shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 rounded-lg transition-all shadow-2xs cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
-              Ekspor Laporan
+              {t("admin.items.export_btn", "Ekspor Laporan")}
             </button>
             <button
               onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              Tambah Laporan
+              {t("admin.damage.create_btn", "Tambah Laporan")}
             </button>
           </div>
         </div>
@@ -1006,13 +1043,13 @@ export default function RekapLaporanPage() {
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50/75 border-b border-slate-100">
                 <tr className="text-slate-500 text-xs font-semibold uppercase">
-                  <th className="px-4 py-3 text-left">Kode & Barang</th>
-                  <th className="px-4 py-3 text-left">Pelapor</th>
-                  <th className="px-4 py-3 text-left">Masalah</th>
-                  <th className="px-4 py-3 text-left">Tanggal Lapor</th>
-                  <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-left">Denda</th>
-                  <th className="px-4 py-3 text-right">Aksi</th>
+                  <th className="px-4 py-3 text-left">{t("admin.damage.th_item", "Kode & Barang")}</th>
+                  <th className="px-4 py-3 text-left">{t("admin.damage.th_reporter", "Pelapor")}</th>
+                  <th className="px-4 py-3 text-left">{t("admin.damage.th_chronology", "Masalah")}</th>
+                  <th className="px-4 py-3 text-left">{t("admin.damage.th_date", "Tanggal Lapor")}</th>
+                  <th className="px-4 py-3 text-left">{t("admin.items.th_status", "Status")}</th>
+                  <th className="px-4 py-3 text-left">{t("admin.damage.th_fine", "Denda")}</th>
+                  <th className="px-4 py-3 text-right">{t("admin.items.th_action", "Aksi")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -1051,9 +1088,23 @@ export default function RekapLaporanPage() {
                         {/* Kode & Barang */}
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-2.5">
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200/60">
-                              <Package className="w-4 h-4 text-slate-500" />
-                            </div>
+                            {row.image_url ? (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewImage(row.image_url || null)}
+                                className="w-8 h-8 rounded-lg overflow-hidden shrink-0 border border-slate-200 relative group cursor-pointer hover:ring-2 hover:ring-[#0785BC]/50 transition-all bg-slate-100"
+                                title="Klik untuk memperbesar foto kerusakan"
+                              >
+                                <img src={row.image_url} alt="Foto Kerusakan" className="w-full h-full object-cover" />
+                                <span className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
+                                  <Eye className="w-3 h-3" />
+                                </span>
+                              </button>
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200/60">
+                                <Package className="w-4 h-4 text-slate-500" />
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <p className="font-semibold text-slate-900 text-xs truncate max-w-[160px]">
                                 {row.item_name}
@@ -1093,6 +1144,16 @@ export default function RekapLaporanPage() {
                           <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
                             {row.description}
                           </p>
+                          {row.image_url && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewImage(row.image_url || null)}
+                              className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-[#0785BC] bg-blue-50 hover:bg-blue-100 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                            >
+                              <ImageIcon className="w-3 h-3" />
+                              <span>Lihat Foto Kerusakan</span>
+                            </button>
+                          )}
                         </td>
 
                         {/* Tanggal */}
@@ -1259,6 +1320,26 @@ export default function RekapLaporanPage() {
                   {actionReport.description}
                 </p>
               </div>
+              {actionReport.image_url && (
+                <div className="pt-2 border-t border-slate-200/60">
+                  <span className="text-slate-400 block mb-1 font-semibold text-[11px]">Foto Bukti Kerusakan:</span>
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 group max-h-48 flex items-center justify-center">
+                    <img
+                      src={actionReport.image_url}
+                      alt="Foto Kerusakan"
+                      className="max-h-48 w-full object-contain cursor-pointer transition-transform group-hover:scale-[1.02]"
+                      onClick={() => setPreviewImage(actionReport.image_url || null)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPreviewImage(actionReport.image_url || null)}
+                      className="absolute bottom-2 right-2 px-2.5 py-1 bg-slate-900/75 hover:bg-slate-900 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 backdrop-blur-xs transition-colors cursor-pointer"
+                    >
+                      <ZoomIn className="w-3 h-3" /> Perbesar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <form onSubmit={handleSubmitAction} className="space-y-4 text-xs">
@@ -1439,6 +1520,29 @@ export default function RekapLaporanPage() {
                   <span className="text-slate-600">{historyReport.reported_date}</span>
                 </div>
               </div>
+
+              {historyReport.image_url && (
+                <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                  <span className="text-slate-400 font-semibold block text-[10px] uppercase mb-1.5">
+                    Foto Bukti Kerusakan:
+                  </span>
+                  <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-900/5 group max-h-48 flex items-center justify-center">
+                    <img
+                      src={historyReport.image_url}
+                      alt="Foto Kerusakan"
+                      className="max-h-48 w-full object-contain cursor-pointer transition-transform group-hover:scale-[1.02]"
+                      onClick={() => setPreviewImage(historyReport.image_url || null)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPreviewImage(historyReport.image_url || null)}
+                      className="absolute bottom-2 right-2 px-2.5 py-1 bg-slate-900/75 hover:bg-slate-900 text-white rounded-lg text-[10px] font-bold flex items-center gap-1 backdrop-blur-xs transition-colors cursor-pointer"
+                    >
+                      <ZoomIn className="w-3 h-3" /> Perbesar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="p-3 bg-emerald-50/70 border border-emerald-200/70 rounded-2xl flex items-center justify-between">
                 <span className="text-emerald-800 font-medium">Status Aset:</span>
@@ -2254,6 +2358,57 @@ export default function RekapLaporanPage() {
                 />
               </div>
 
+              {/* Foto Bukti Kerusakan (Maks 3MB) */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-bold text-slate-700">Foto Bukti Kerusakan (Opsional)</label>
+                  <span className="text-[10px] text-slate-400 font-medium">Maks. 3 MB</span>
+                </div>
+
+                {!formData.image_url ? (
+                  <label className="group flex flex-col items-center justify-center p-3.5 border-2 border-dashed border-slate-200 rounded-xl bg-slate-50 hover:bg-blue-50/50 hover:border-[#0785BC]/60 transition-all cursor-pointer">
+                    <div className="w-8 h-8 rounded-lg bg-white shadow-xs border border-slate-200 flex items-center justify-center text-[#0785BC] group-hover:scale-105 transition-transform">
+                      <UploadCloud className="w-4 h-4" />
+                    </div>
+                    <p className="mt-1.5 text-xs font-semibold text-slate-700">Pilih atau letakkan foto barang rusak</p>
+                    <p className="text-[10px] text-slate-400">JPG, PNG, atau WEBP (Maksimal 3MB)</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                ) : (
+                  <div className="relative rounded-xl border border-slate-200 bg-slate-50 p-2 flex items-center gap-3">
+                    <img
+                      src={formData.image_url}
+                      alt="Foto Kerusakan"
+                      className="w-14 h-14 rounded-lg object-cover border border-slate-200 cursor-pointer hover:opacity-90"
+                      onClick={() => setPreviewImage(formData.image_url)}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-slate-800 truncate">Foto kerusakan terlampir</p>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImage(formData.image_url)}
+                        className="text-[11px] text-[#0785BC] hover:underline font-semibold inline-flex items-center gap-1 mt-0.5 cursor-pointer"
+                      >
+                        <Eye className="w-3 h-3" /> Lihat pratinjau
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, image_url: "" })}
+                      className="p-1.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      title="Hapus foto"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Denda Awal (Opsional) */}
               <div className="grid grid-cols-2 gap-2 pt-1">
                 <div>
@@ -2329,6 +2484,35 @@ export default function RekapLaporanPage() {
           "Catatan Petugas": r.admin_note || "-",
         })}
       />
+
+      {/* ── Modal Lightbox Pratinjau Foto Kerusakan ── */}
+      {previewImage && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-[120] p-4 animate-fade-in"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-w-3xl w-full max-h-[90vh] flex flex-col items-center justify-center animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPreviewImage(null)}
+                className="p-2 bg-slate-900/80 hover:bg-slate-900 text-white rounded-full transition-colors cursor-pointer shadow-lg"
+                aria-label="Tutup pratinjau"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <img
+              src={previewImage}
+              alt="Pratinjau Foto Kerusakan"
+              className="max-h-[82vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl border border-white/20 bg-slate-900/50"
+            />
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 }

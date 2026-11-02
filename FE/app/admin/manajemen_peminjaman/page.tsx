@@ -25,6 +25,7 @@ import { getSocket } from "@/lib/socket";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 type StatusFilter = "semua" | "pending" | "active" | "overdue" | "completed";
 
@@ -146,6 +147,7 @@ const mockData: Borrowing[] = [];
 const PAGE_SIZE = 10;
 
 export default function ManajemenPeminjamanPage() {
+  const { t, lang } = useLanguage();
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
   const [realStats, setRealStats] = useState({
     pending: 0,
@@ -403,11 +405,11 @@ export default function ManajemenPeminjamanPage() {
   ];
 
   const filterTabs: { key: StatusFilter; label: string }[] = [
-    { key: "semua", label: "Semua" },
-    { key: "pending", label: "Perlu Divalidasi" },
-    { key: "active", label: "Sedang Dipinjam" },
-    { key: "overdue", label: "Melewati Batas Waktu" },
-    { key: "completed", label: "Selesai" },
+    { key: "semua", label: t("export.all_time", "Semua") },
+    { key: "pending", label: t("modal.st_need_validate", "Perlu Divalidasi") },
+    { key: "active", label: t("modal.st_borrowed", "Sedang Dipinjam") },
+    { key: "overdue", label: t("modal.st_late", "Melewati Batas Waktu") },
+    { key: "completed", label: t("modal.st_done", "Selesai") },
   ];
 
   const filtered = borrowings.filter(
@@ -506,7 +508,7 @@ export default function ManajemenPeminjamanPage() {
     <AdminLayout
       showSearch={true}
       searchValue={search}
-      searchPlaceholder="Cari peminjaman..."
+      searchPlaceholder={t("admin.borrow.search_ph", "Cari peminjaman...")}
       onSearchChange={setSearch}
     >
       <div className="space-y-6">
@@ -514,19 +516,23 @@ export default function ManajemenPeminjamanPage() {
           <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manajemen Peminjaman</h1>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                  {t("admin.borrow.title", "Manajemen Peminjaman")}
+                </h1>
                 <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
-                  {borrowings.length} TRANSAKSI
+                  {borrowings.length} {lang === "en" ? "TRANSACTIONS" : "TRANSAKSI"}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">Kelola dan pantau seluruh sirkulasi dan otorisasi peminjaman barang sarpras.</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {t("admin.borrow.sub", "Kelola dan pantau seluruh sirkulasi dan otorisasi peminjaman barang sarpras.")}
+              </p>
             </div>
             <button
               onClick={handleHeaderAction}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs self-start sm:self-auto"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs self-start sm:self-auto cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              {activeFilter === "pending" ? "Validasi Semua Pending" : "Filter Menunggu Validasi"}
+              {activeFilter === "pending" ? (lang === "en" ? "Validate All Pending" : "Validasi Semua Pending") : (lang === "en" ? "Filter Awaiting Validation" : "Filter Menunggu Validasi")}
             </button>
           </div>
 
@@ -616,12 +622,12 @@ export default function ManajemenPeminjamanPage() {
               <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left">
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Barang</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Peminjam</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Tanggal Pinjam</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Estimasi Kembali</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.items.th_name", "Barang")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.dash.th_borrower", "Peminjam")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("dash.borrow_date", "Tanggal Pinjam")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.borrow.th_est_return", "Estimasi Kembali")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.items.th_status", "Status")}</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">{t("admin.items.th_action", "Aksi")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">

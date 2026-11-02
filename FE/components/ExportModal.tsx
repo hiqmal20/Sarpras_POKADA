@@ -24,6 +24,7 @@ import {
   downloadStructuredTemplate,
 } from "@/lib/exportUtils";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -65,6 +66,7 @@ export default function ExportModal({
   importTemplateContent = "",
   onExecuteImport,
 }: ExportModalProps) {
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"export" | "import">("export");
   const [selectedRange, setSelectedRange] = useState<DateRangeFilter>("all");
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("xlsx");
@@ -228,7 +230,7 @@ export default function ExportModal({
               }`}
             >
               <Download className="w-3.5 h-3.5" />
-              Ekspor Data
+              {t("export.tab_export", "Ekspor Data")}
             </button>
             <button
               type="button"
@@ -240,7 +242,7 @@ export default function ExportModal({
               }`}
             >
               <Upload className="w-3.5 h-3.5" />
-              Impor Berkas
+              {t("export.tab_import", "Impor Berkas")}
             </button>
           </div>
         )}
@@ -252,7 +254,7 @@ export default function ExportModal({
             <div>
               <label className="block font-bold text-slate-800 mb-2 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#0785BC]" />
-                Pilih Kategori Waktu (Filter Rentang Tanggal)
+                {t("export.date_range", "Pilih Kategori Waktu (Filter Rentang Tanggal)")}
               </label>
               <div className="space-y-1.5">
                 {DATE_RANGE_OPTIONS.map((opt) => (
@@ -347,7 +349,7 @@ export default function ExportModal({
             <div>
               <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                Format Berkas
+                {t("export.select_format", "Pilih Format Berkas")}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
@@ -410,18 +412,18 @@ export default function ExportModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-slate-600 hover:bg-slate-100 font-semibold rounded-xl transition-colors text-xs"
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 font-semibold rounded-xl transition-colors text-xs cursor-pointer"
               >
-                Batal
+                {t("common.cancel", "Batal")}
               </button>
               <button
                 type="button"
                 disabled={exporting || (!isMasterArchive && matchedCount === 0)}
                 onClick={handleExecuteExport}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#0785BC] to-[#0672a0] hover:from-[#0672a0] hover:to-[#055c82] text-white font-bold rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50 text-xs"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#0785BC] to-[#0672a0] hover:from-[#0672a0] hover:to-[#055c82] text-white font-bold rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50 text-xs cursor-pointer"
               >
                 {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                Unduh Data ({selectedFormat.toUpperCase()})
+                {t("export.download_btn", "Unduh Data")} ({selectedFormat.toUpperCase()})
               </button>
             </div>
           </div>

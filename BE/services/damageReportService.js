@@ -385,7 +385,8 @@ exports.updateReport = async (id, {
   fine_amount,
   fine_reason,
   fine_status,
-  item_condition
+  item_condition,
+  image_url
 }) => {
   const now = new Date().toISOString();
 
@@ -404,6 +405,7 @@ exports.updateReport = async (id, {
 
   if (status !== undefined) updatePayload.status = status;
   if (admin_note !== undefined) updatePayload.admin_note = admin_note;
+  if (image_url !== undefined) updatePayload.image_url = image_url;
   if (fine_amount !== undefined) {
     updatePayload.fine_amount = Number(fine_amount);
     // Jika denda diubah, auto-set fine_status jika belum ada

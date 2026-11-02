@@ -23,6 +23,7 @@ import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import ExportModal from "@/components/ExportModal";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface User {
   id: string;
@@ -107,6 +108,7 @@ function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
 const PAGE_SIZE = 10;
 
 export default function ManajemenUserPage() {
+  const { t, lang } = useLanguage();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -393,7 +395,7 @@ export default function ManajemenUserPage() {
     <AdminLayout
       showSearch={true}
       searchValue={search}
-      searchPlaceholder="Cari pengguna berdasarkan nama, email, nomor induk..."
+      searchPlaceholder={t("admin.users.search_ph", "Cari pengguna berdasarkan nama, email, nomor induk...")}
       onSearchChange={setSearch}
     >
       <div className="space-y-6">
@@ -401,27 +403,31 @@ export default function ManajemenUserPage() {
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">Manajemen Pengguna</h1>
+              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+                {t("admin.users.title", "Manajemen Pengguna")}
+              </h1>
               <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
                 USER DIRECTORY
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Kelola data pengguna, peran akses, dan status akun platform.</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {t("admin.users.sub", "Kelola data pengguna, peran akses, dan status akun platform.")}
+            </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setShowExportModal(true)}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200/90 hover:bg-slate-50 active:scale-95 rounded-lg transition-all shadow-2xs cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" />
-              Ekspor Data
+              {t("admin.pkg.export_btn", "Ekspor Data")}
             </button>
             <button
               onClick={handleOpenAdd}
-              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs"
+              className="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-lg transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              Tambah Pengguna
+              {t("admin.users.add_btn", "Tambah Pengguna")}
             </button>
           </div>
         </div>
@@ -493,16 +499,16 @@ export default function ManajemenUserPage() {
         <div className={`bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
             <div>
-              <h2 className="text-base font-bold text-slate-900">Daftar Pengguna</h2>
-              <p className="text-xs text-slate-400">Total {filtered.length} pengguna sesuai filter</p>
+              <h2 className="text-base font-bold text-slate-900">{t("admin.users.list_title", "Daftar Pengguna")}</h2>
+              <p className="text-xs text-slate-400">Total {filtered.length} {t("admin.users.title", "pengguna")}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
+                className="text-xs font-semibold border border-slate-200 rounded-xl px-3 py-2 text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all cursor-pointer"
               >
-                <option value="All Roles">Semua Peran</option>
+                <option value="All Roles">{t("admin.users.all_roles", "Semua Peran")}</option>
                 <option value="Admin">Admin</option>
                 <option value="Mahasiswa">Mahasiswa</option>
                 <option value="Dosen">Dosen</option>
@@ -515,11 +521,11 @@ export default function ManajemenUserPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-left bg-slate-50/50">
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Pengguna</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Nomor Induk</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Peran</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">Aksi</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.users.th_user", "Pengguna")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.users.th_id_num", "Nomor Induk")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.users.th_role", "Peran")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.users.th_status", "Status")}</th>
+                  <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">{t("admin.items.th_action", "Aksi")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
