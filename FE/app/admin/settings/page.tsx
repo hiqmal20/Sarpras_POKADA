@@ -113,6 +113,12 @@ export default function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file || !currentUser?.id) return;
 
+    if (file.size > 3 * 1024 * 1024) {
+      setProfileMsg({ type: "error", text: "Ukuran foto profil melebihi batas maksimal 3MB." });
+      e.target.value = "";
+      return;
+    }
+
     setUploadingPhoto(true);
     try {
       const res = await api.users.uploadPhoto(currentUser.id, file);
@@ -424,7 +430,7 @@ export default function SettingsPage() {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-slate-800 mb-1">Foto Profil Avatar</p>
-                      <p className="text-[11px] text-slate-400 mb-2.5">JPG, PNG, atau WEBP. Maksimal 5MB.</p>
+                      <p className="text-[11px] text-slate-400 mb-2.5">JPG, PNG, atau WEBP. Maksimal 3MB.</p>
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl cursor-pointer transition-all shadow-xs">
                         <Camera className="w-3.5 h-3.5" />
                         <span>{uploadingPhoto ? "Mengunggah..." : "Ubah Foto"}</span>

@@ -412,6 +412,11 @@ export default function PaketPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        alert("Ukuran foto paket melebihi batas maksimal 3MB.");
+        e.target.value = "";
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -1287,7 +1292,7 @@ export default function PaketPage() {
                         <div className="text-[11px] text-slate-400 leading-relaxed">
                           <p className="font-medium text-slate-600">Unggah foto bundel paket</p>
                           <p>Format: JPG, PNG, WEBP</p>
-                          <p>Maks. ukuran 5MB</p>
+                          <p>Maks. ukuran 3MB</p>
                         </div>
                       </div>
                     </div>

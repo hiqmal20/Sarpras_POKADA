@@ -277,6 +277,11 @@ function BarangContent() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 3 * 1024 * 1024) {
+        alert("Ukuran foto barang melebihi batas maksimal 3MB.");
+        e.target.value = "";
+        return;
+      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -962,7 +967,7 @@ function BarangContent() {
                         )}
                         <div className="text-[11px] text-slate-400 leading-relaxed">
                           <p className="font-medium text-slate-600">Unggah foto fisik barang</p>
-                          <p>Format: JPG, PNG, WEBP (Maks 5MB)</p>
+                          <p>Format: JPG, PNG, WEBP (Maksimal 3MB)</p>
                         </div>
                       </div>
                     </div>

@@ -75,6 +75,12 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !currentUser?.id) return;
 
+    if (file.size > 3 * 1024 * 1024) {
+      toast.warning("Ukuran foto profil melebihi batas maksimal 3MB.", "Ukuran Terlalu Besar");
+      e.target.value = "";
+      return;
+    }
+
     setUploadingPhoto(true);
     try {
       const res = await api.users.uploadPhoto(currentUser.id, file);

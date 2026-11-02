@@ -34,7 +34,7 @@ const uploadCSV = multer({
 const uploadImage = multer({
   storage,
   fileFilter: imageFileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 } // max 5MB untuk gambar
+  limits: { fileSize: 3 * 1024 * 1024 } // max 3MB untuk gambar
 });
 
 module.exports = uploadCSV;
