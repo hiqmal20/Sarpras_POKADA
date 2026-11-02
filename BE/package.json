@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --check app.js && node --check config/supabaseClient.js",
+    "check": "node --check app.js && node --check config/supabaseClient.js"
   },
   "repository": {
     "type": "git",

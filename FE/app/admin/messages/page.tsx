@@ -19,15 +19,15 @@ import {
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
-import { getSocket, joinChatRoom, leaveChatRoom } from "@/lib/socket";
+import { getSocket, joinChatRoom } from "@/lib/socket";
 import { toast } from "@/components/Toast";
 import {
   formatChatDateBadge,
   isDifferentDay,
   formatLastSeen,
   parseMessageContent,
-  formatReplyMessage,
   getCleanMessagePreview,
+  resolveReplyInfo,
   ReplyInfo,
 } from "@/lib/chatHelper";
 
@@ -40,6 +40,9 @@ interface Message {
   timestamp: string;
   rawDate?: string;
   isRead?: boolean;
+  reply_to_message_id?: string | null;
+  reply_to?: any;
+  replyTo?: ReplyInfo | null;
 }
 
 interface Conversation {
@@ -70,16 +73,74 @@ export default function MessagesPage() {
   const presenceHydratedRef = useRef(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
-  const [openMessageMenu, setOpenMessageMenu] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyInfo | null>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
   const selectedConvRef = useRef<Conversation | null>(null);
-  selectedConvRef.current = selectedConversation;
-
   const joiningChatRef = useRef<string | null>(null);
   const chatListRef = useRef<{ id: string; lastMessage: string; timestamp: string }[]>([]);
-  chatListRef.current = conversations;
+
+  const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    selectedConvRef.current = selectedConversation;
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    chatListRef.current = conversations;
+  }, [conversations]);
+
+  const handleTouchStart = (msg: Message) => {
+    touchTimeoutRef.current = setTimeout(() => {
+      handleStartReply(msg);
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate(40);
+        } catch {
+          // ignore
+        }
+      }
+    }, 450);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchTimeoutRef.current) {
+      clearTimeout(touchTimeoutRef.current);
+      touchTimeoutRef.current = null;
+    }
+  };
+
+  const handleScrollToMessage = (targetId: string) => {
+    if (!targetId) return;
+    const target = document.getElementById(`msg-${targetId}`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      setHighlightedMessageId(targetId);
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+      highlightTimeoutRef.current = setTimeout(() => {
+        setHighlightedMessageId(null);
+      }, 1800);
+    } else {
+      const exists = messages.some((m) => m.id === targetId);
+      if (exists) {
+        setTimeout(() => {
+          const el = document.getElementById(`msg-${targetId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+            setHighlightedMessageId(targetId);
+            if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+            highlightTimeoutRef.current = setTimeout(() => {
+              setHighlightedMessageId(null);
+            }, 1800);
+          }
+        }, 80);
+      } else {
+        toast.info("Pesan asli tidak ditemukan atau telah dihapus.");
+      }
+    }
+  };
 
   const playChatSound = () => {
     try {
@@ -149,6 +210,22 @@ export default function MessagesPage() {
     const user = getCurrentUser();
     if (user) setCurrentUser(user);
   }, []);
+
+  const handleSelectConversation = (conv: Conversation) => {
+    setSelectedConversation(conv);
+    setReplyingTo(null);
+    setConversations((prev) =>
+      prev.map((c) => (c.id === conv.id ? { ...c, unread: false } : c))
+    );
+    joinChatRoom(conv.id);
+    const socket = getSocket();
+    api.chats.markAsRead(conv.id);
+    if (socket?.connected) {
+      socket.emit("mark_as_read", conv.id);
+    }
+    setTimeout(() => scrollToBottom("auto"), 100);
+    window.dispatchEvent(new CustomEvent("messages-read", { detail: { chatId: conv.id } }));
+  };
 
   // Fetch conversations
   const fetchChats = async (keepSelection = true) => {
@@ -247,12 +324,15 @@ export default function MessagesPage() {
             const isMe =
               (user?.id && (m.sender_id === user.id || sender.id === user.id)) ||
               ["admin", "petugas"].includes(senderRole);
+            const parsed = parseMessageContent(m.message);
+            const replyInfo = resolveReplyInfo(m, user?.id);
+
             return {
               id: String(m.id),
               senderId: String(sender.id || m.sender_id || ""),
               senderName: sender.name || (isMe ? "Admin Support" : "User"),
               senderRole: isMe ? "admin" : "user",
-              text: m.message,
+              text: parsed.text,
               rawDate: m.created_at || new Date().toISOString(),
               timestamp: m.created_at
                 ? new Date(m.created_at).toLocaleTimeString("id-ID", {
@@ -261,6 +341,9 @@ export default function MessagesPage() {
                   })
                 : "",
               isRead: Boolean(m.is_read),
+              reply_to_message_id: m.reply_to_message_id || null,
+              reply_to: m.reply_to || null,
+              replyTo: replyInfo,
             };
           });
 
@@ -332,12 +415,15 @@ export default function MessagesPage() {
     const isCurrentChat = Boolean(incomingChatId && currentChatId && incomingChatId === currentChatId);
 
     if (isCurrentChat) {
+      const cleanText = getCleanMessagePreview(msg.message || "");
+      const replyInfo = resolveReplyInfo(msg, user?.id);
+
       const formattedMsg: Message = {
         id: String(msg.id || `msg-${Date.now()}`),
         senderId,
         senderName: sender.name || (isMe ? "Admin Support" : "User"),
         senderRole: isMe ? "admin" : "user",
-        text: msg.message || "",
+        text: cleanText,
         rawDate: msg.created_at || new Date().toISOString(),
         timestamp: msg.created_at
           ? new Date(msg.created_at).toLocaleTimeString("id-ID", {
@@ -346,18 +432,21 @@ export default function MessagesPage() {
             })
           : "Baru saja",
         isRead: Boolean(msg.is_read),
+        reply_to_message_id: msg.reply_to_message_id || null,
+        reply_to: msg.reply_to || null,
+        replyTo: replyInfo,
       };
 
       setMessages((prev) => {
         if (prev.some((m) => String(m.id) === formattedMsg.id)) {
           return prev.filter(
-            (m) => !(m.id.startsWith("temp-") && m.text === formattedMsg.text)
+            (m) => !(m.id.startsWith("temp-") && (m.text === formattedMsg.text || m.id === msg.tempId))
           );
         }
         const tempIndex = prev.findIndex(
           (m) =>
             m.id.startsWith("temp-") &&
-            m.text === formattedMsg.text
+            (m.text === formattedMsg.text || m.id === msg.tempId)
         );
         if (tempIndex >= 0) {
           const next = [...prev];
@@ -697,22 +786,6 @@ export default function MessagesPage() {
     joiningChatRef.current = null;
   }, [selectedConversation?.id]);
 
-  const handleSelectConversation = (conv: Conversation) => {
-    setSelectedConversation(conv);
-    setReplyingTo(null);
-    setConversations((prev) =>
-      prev.map((c) => (c.id === conv.id ? { ...c, unread: false } : c))
-    );
-    joinChatRoom(conv.id);
-    const socket = getSocket();
-    api.chats.markAsRead(conv.id);
-    if (socket?.connected) {
-      socket.emit("mark_as_read", conv.id);
-    }
-    setTimeout(() => scrollToBottom("auto"), 100);
-    window.dispatchEvent(new CustomEvent("messages-read", { detail: { chatId: conv.id } }));
-  };
-
   const handleClearHistory = async () => {
     if (!selectedConversation) return;
     if (!confirm(`Bersihkan semua riwayat pesan dengan ${selectedConversation.userName}?`)) return;
@@ -765,20 +838,16 @@ export default function MessagesPage() {
   const handleSaveEditMessage = async (msg: Message) => {
     if (!selectedConversation || !editingText.trim()) return;
     const newText = editingText.trim();
-    const parsed = parseMessageContent(msg.text);
-    const finalEditedText = parsed.replyTo
-      ? formatReplyMessage(parsed.replyTo, newText)
-      : newText;
     try {
-      const res = await api.chats.updateMessage(selectedConversation.id, msg.id, finalEditedText);
+      const res = await api.chats.updateMessage(selectedConversation.id, msg.id, newText);
       if (res.status === "success") {
-        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, text: finalEditedText } : m)));
+        setMessages((prev) => prev.map((m) => (m.id === msg.id ? { ...m, text: newText } : m)));
         const socket = getSocket();
         if (socket?.connected) {
           socket.emit("edit_message", {
             chatId: selectedConversation.id,
             messageId: msg.id,
-            message: finalEditedText,
+            message: newText,
           });
         }
       }
@@ -791,11 +860,14 @@ export default function MessagesPage() {
   };
 
   const handleStartReply = (msg: Message) => {
-    const parsed = parseMessageContent(msg.text);
+    const cleanSnippet = getCleanMessagePreview(msg.text);
+    const user = currentUser || getCurrentUser();
+    const isMe = msg.senderRole === "admin" || (user?.id && msg.senderId === user.id);
     setReplyingTo({
       id: msg.id,
-      senderName: msg.senderRole === "admin" ? "Anda" : msg.senderName,
-      text: parsed.text,
+      senderName: isMe ? "Anda" : msg.senderName,
+      text: cleanSnippet.length > 120 ? cleanSnippet.slice(0, 117) + "..." : cleanSnippet,
+      senderId: msg.senderId
     });
     setEditingMessageId(null);
     setTimeout(() => messageInputRef.current?.focus(), 50);
@@ -838,9 +910,7 @@ export default function MessagesPage() {
     if (!newMessage.trim() || !selectedConversation) return;
 
     const messageText = newMessage.trim();
-    const finalMessage = replyingTo
-      ? formatReplyMessage(replyingTo, messageText)
-      : messageText;
+    const currentReply = replyingTo;
     setReplyingTo(null);
     setNewMessage("");
     setSending(true);
@@ -857,10 +927,12 @@ export default function MessagesPage() {
       senderId: currentUser?.id || "admin",
       senderName: currentUser?.name || "Admin Support",
       senderRole: "admin",
-      text: finalMessage,
+      text: messageText,
       rawDate: nowIso,
       timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
       isRead: false,
+      reply_to_message_id: currentReply?.id || null,
+      replyTo: currentReply,
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -877,15 +949,18 @@ export default function MessagesPage() {
       if (socket && socket.connected) {
         socket.emit("send_message", {
           chatId: selectedConversation.id,
-          message: finalMessage,
+          message: messageText,
+          reply_to_message_id: currentReply?.id || null,
           tempId,
         });
       } else {
         const res = await api.chats.sendMessage(selectedConversation.id, {
-          message: finalMessage,
+          message: messageText,
+          reply_to_message_id: currentReply?.id || null,
         });
         if (res?.status === "success" && res?.data) {
           const realId = String(res.data.id);
+          const resolvedReply = resolveReplyInfo(res.data, currentUser?.id) || currentReply;
           setMessages((prev) => {
             const alreadyExists = prev.some((m) => m.id === realId);
             if (alreadyExists) {
@@ -904,6 +979,8 @@ export default function MessagesPage() {
                         })
                       : m.timestamp,
                     isRead: Boolean(res.data.is_read),
+                    replyTo: resolvedReply,
+                    reply_to_message_id: res.data.reply_to_message_id || currentReply?.id || null,
                   }
                 : m
             );
@@ -1160,7 +1237,14 @@ export default function MessagesPage() {
                       )}
                       <div
                         id={`msg-${msg.id}`}
-                        className={`flex group/bubble items-end gap-1.5 transition-all ${
+                        onTouchStart={() => handleTouchStart(msg)}
+                        onTouchEnd={handleTouchEnd}
+                        onTouchMove={handleTouchEnd}
+                        className={`flex group/bubble items-end gap-1.5 transition-all duration-300 rounded-2xl ${
+                          highlightedMessageId === msg.id
+                            ? "ring-2 ring-amber-300 ring-offset-1 ring-offset-[#f8faff]"
+                            : ""
+                        } ${
                           msg.senderRole === "admin" ? "justify-end" : "justify-start"
                         }`}
                       >
@@ -1168,7 +1252,7 @@ export default function MessagesPage() {
                           <button
                             type="button"
                             onClick={() => handleStartReply(msg)}
-                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1"
+                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1 max-sm:opacity-70"
                             title="Balas pesan ini"
                           >
                             <Reply className="w-3.5 h-3.5" />
@@ -1182,32 +1266,27 @@ export default function MessagesPage() {
                           }`}
                         >
                           {/* Quoted Message Preview inside Bubble */}
-                          {parsed.replyTo && (
+                          {msg.replyTo && (
                             <div
-                              onClick={() => {
-                                const target = document.getElementById(`msg-${parsed.replyTo?.id}`);
-                                if (target) {
-                                  target.scrollIntoView({ behavior: "smooth", block: "center" });
-                                  target.classList.add("ring-2", "ring-sky-400", "rounded-2xl");
-                                  setTimeout(() => target.classList.remove("ring-2", "ring-sky-400", "rounded-2xl"), 1500);
-                                }
-                              }}
-                              className={`mb-1.5 px-2.5 py-1.5 rounded-lg border-l-[3px] text-left cursor-pointer transition-opacity hover:opacity-90 select-none ${
+                              onClick={() => handleScrollToMessage(msg.replyTo!.id)}
+                              className={`mb-1.5 px-2 py-1 rounded-md border-l-[3px] text-left cursor-pointer transition-all hover:opacity-90 select-none max-w-[19rem] ${
                                 msg.senderRole === "admin"
-                                  ? "border-white bg-black/20 text-white"
-                                  : "border-[#0785BC] bg-slate-100/90 text-slate-800"
+                                  ? "border-sky-200 bg-black/25 text-white"
+                                  : "border-[#0785BC] bg-slate-100/95 text-slate-800"
                               }`}
                             >
                               <div className={`text-[10px] font-bold flex items-center gap-1 ${
-                                msg.senderRole === "admin" ? "text-white" : "text-[#0785BC]"
+                                msg.senderRole === "admin" ? "text-sky-200" : "text-[#0785BC]"
                               }`}>
                                 <Reply className="w-2.5 h-2.5" />
-                                <span>{parsed.replyTo.senderName}</span>
+                                <span>{msg.replyTo.senderName}</span>
                               </div>
                               <p className={`text-[11px] truncate mt-0.5 ${
+                                msg.replyTo.isDeleted ? "italic opacity-80" : ""
+                              } ${
                                 msg.senderRole === "admin" ? "text-white/80" : "text-slate-600"
                               }`}>
-                                {parsed.replyTo.text}
+                                {msg.replyTo.text}
                               </p>
                             </div>
                           )}
@@ -1316,7 +1395,7 @@ export default function MessagesPage() {
                           <button
                             type="button"
                             onClick={() => handleStartReply(msg)}
-                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1"
+                            className="opacity-0 group-hover/bubble:opacity-100 p-1 text-slate-400 hover:text-[#0785BC] hover:bg-slate-100 rounded-full transition-all shrink-0 mb-1 max-sm:opacity-70"
                             title="Balas pesan ini"
                           >
                             <Reply className="w-3.5 h-3.5" />

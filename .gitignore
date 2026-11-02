@@ -38,3 +38,11 @@ Thumbs.db
 
 # Keep only the environment template; never commit real environment files
 !BE/.env.example
+!FE/.env.example
+!DEPLOYMENT_GUIDE.md
+!README.md
+!PRD.md
+
+# Helper scripts
+*.py
+

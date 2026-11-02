@@ -87,7 +87,7 @@ exports.findAllPackages = async ({ status, search }) => {
       .from('packages_items')
       .select(`
         id, quantity, package_id, item_id,
-        items (id, name, code, image_url, available_stock, stock, condition, status, category_id, categories (id, name))
+        items (id, name, code:item_code, image_url, available_stock, stock, condition, status, category_id, categories (id, name))
       `)
       .in('package_id', packageIds);
 
@@ -156,7 +156,7 @@ exports.findPackageById = async (id) => {
     .from('packages_items')
     .select(`
       id, quantity, package_id, item_id,
-      items (id, name, code, image_url, available_stock, stock, condition, status, category_id, categories (id, name))
+      items (id, name, code:item_code, image_url, available_stock, stock, condition, status, category_id, categories (id, name))
     `)
     .eq('package_id', id);
 
@@ -241,7 +241,7 @@ const resolvePackageItems = async (items, defaultDescription = '') => {
       const { data: existingItem } = await supabase
         .from('items')
         .select('id')
-        .eq('code', codeUpper)
+        .eq('item_code', codeUpper)
         .maybeSingle();
 
       if (existingItem) {
@@ -251,7 +251,7 @@ const resolvePackageItems = async (items, defaultDescription = '') => {
           .from('items')
           .insert([{
             name: item.name || `Barang Paket (${codeUpper})`,
-            code: codeUpper,
+            item_code: codeUpper,
             stock: qty * 10,
             available_stock: qty * 10,
             condition: 'Baik',
@@ -411,7 +411,7 @@ exports.importPackagesFromCSV = async (csvBuffer) => {
 
   const { data: dbItems, error: itemsError } = await supabase
     .from('items')
-    .select('id, code, name');
+    .select('id, code:item_code, name');
   if (itemsError) throw itemsError;
 
   const itemMapByCode = {};
@@ -486,8 +486,17 @@ exports.importPackagesFromCSV = async (csvBuffer) => {
  */
 exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 }) => {
   const numQty = Number(quantity);
-  if (!numQty || numQty <= 0) {
-    throw new AppError('Jumlah perubahan stok paket harus lebih dari 0', 400);
+  if (!numQty || numQty <= 0 || !Number.isInteger(numQty)) {
+    throw new AppError('Jumlah perubahan stok paket harus berupa bilangan bulat lebih dari 0', 400);
+  }
+
+  const normalizedAction = action === 'subtract' || action === 'decrease' || action === 'reduce'
+    ? 'reduce'
+    : action === 'add' || action === 'increase'
+      ? 'add'
+      : null;
+  if (!normalizedAction) {
+    throw new AppError('Aksi penyesuaian stok paket tidak valid', 400);
   }
 
   const { data: pkgItems, error: itemsError } = await supabase
@@ -502,7 +511,7 @@ exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 })
   const now = new Date().toISOString();
 
   // Validasi jika pengurangan: pastikan stok barang mencukupi
-  if (action === 'reduce') {
+  if (normalizedAction === 'reduce') {
     for (const pi of pkgItems) {
       const { data: item } = await supabase
         .from('items')
@@ -532,7 +541,7 @@ exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 })
       const curAvail = Number(item.available_stock !== undefined && item.available_stock !== null ? item.available_stock : curStock);
 
       let newStock, newAvail;
-      if (action === 'add') {
+      if (normalizedAction === 'add') {
         newStock = curStock + delta;
         newAvail = curAvail + delta;
       } else {
@@ -542,7 +551,7 @@ exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 })
 
       const newStatus = newAvail > 0 ? 'Tersedia' : 'Stok Kosong';
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('items')
         .update({
           stock: newStock,
@@ -551,6 +560,20 @@ exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 })
           update_at: now
         })
         .eq('id', pi.item_id);
+
+      // Jangan mengembalikan sukses jika Supabase menolak perubahan stok.
+      if (updateError) {
+        throw new AppError(`Gagal memperbarui stok komponen paket: ${updateError.message}`, 500);
+      }
+
+      const { data: updatedItem, error: verifyError } = await supabase
+        .from('items')
+        .select('stock, available_stock')
+        .eq('id', pi.item_id)
+        .single();
+      if (verifyError || !updatedItem || Number(updatedItem.stock) !== newStock || Number(updatedItem.available_stock) !== newAvail) {
+        throw new AppError('Perubahan stok komponen tidak tersimpan. Silakan coba lagi.', 500);
+      }
     }
   }
 

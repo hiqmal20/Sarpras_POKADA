@@ -45,7 +45,7 @@ exports.findAllReturns = async ({ user_id, search, page = 1, limit = 20 }) => {
   if (borrowingIds.length > 0) {
     const { data: bItems } = await supabase
       .from('borrowings_items')
-      .select('*, items:items!borrowings_items_item_id_fkey(id, name, code, image_url)')
+      .select('*, items:items!borrowings_items_item_id_fkey(id, name, code:item_code, image_url)')
       .in('borrowing_id', borrowingIds);
 
     if (bItems) {

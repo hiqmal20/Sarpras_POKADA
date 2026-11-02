@@ -1,9 +1,24 @@
+export function normalizeApiUrl(rawUrl?: string): string {
+  const fallback = "http://localhost:5000/api";
+  const raw = (rawUrl || "").trim();
+  if (!raw) return fallback;
+
+  // Hapus trailing slashes
+  const clean = raw.replace(/\/+$/, "");
+
+  // Pastikan selalu berakhiran /api jika belum ada
+  if (!clean.endsWith("/api")) {
+    return `${clean}/api`;
+  }
+  return clean;
+}
+
 export const getApiBaseUrl = (): string => {
   if (typeof window === "undefined" && process.env.BACKEND_URL) {
-    return new URL("/api", process.env.BACKEND_URL).toString().replace(/\/$/, "");
+    return normalizeApiUrl(process.env.BACKEND_URL);
   }
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+    return normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
   }
   if (typeof window !== "undefined") {
     return "/api";
@@ -34,9 +49,12 @@ export const setAuthToken = (token: string): void => {
     if (token) {
       localStorage.setItem("token", token);
       localStorage.setItem("access_token", token);
+      const isSecure = window.location.protocol === "https:";
+      document.cookie = `access_token=${encodeURIComponent(token)}; path=/; max-age=86400; SameSite=Lax${isSecure ? "; Secure" : ""}`;
     } else {
       localStorage.removeItem("token");
       localStorage.removeItem("access_token");
+      document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
     }
   }
 };
@@ -51,9 +69,12 @@ export const setRefreshToken = (refreshToken: string): void => {
     if (refreshToken) {
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("refresh_token", refreshToken);
+      const isSecure = window.location.protocol === "https:";
+      document.cookie = `refresh_token=${encodeURIComponent(refreshToken)}; path=/; max-age=${30 * 86400}; SameSite=Lax${isSecure ? "; Secure" : ""}`;
     } else {
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("refresh_token");
+      document.cookie = "refresh_token=; path=/; max-age=0; SameSite=Lax";
     }
   }
 };
@@ -65,6 +86,8 @@ export const removeAuthToken = (): void => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("refresh_token");
+    document.cookie = "access_token=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "refresh_token=; path=/; max-age=0; SameSite=Lax";
   }
 };
 
@@ -201,9 +224,15 @@ async function apiFetch<T>(
 
     return data;
   } catch (error: any) {
+    const isFailedToFetch =
+      error?.message?.includes("Failed to fetch") ||
+      error?.name === "TypeError";
+
     return {
       status: "error",
-      message: error?.message || "Gagal menghubungi server",
+      message: isFailedToFetch
+        ? "Gagal menghubungi server (Failed to fetch). Pastikan backend di Render sudah aktif (Render gratis butuh ~30-50 detik saat bangun dari mode sleep) dan domain Vercel sudah diizinkan di CORS backend."
+        : error?.message || "Gagal menghubungi server",
     };
   }
 }
@@ -283,8 +312,12 @@ export const api = {
       try {
         const formData = new FormData();
         formData.append("photo", file);
+        const token = getAuthToken();
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
         const res = await fetch(`${getApiBaseUrl()}/users/${id}/photo`, {
           method: "POST",
+          headers,
           credentials: "include",
           body: formData,
         });
@@ -297,8 +330,12 @@ export const api = {
     importCSV: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
+      const token = getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${getApiBaseUrl()}/users/import`, {
         method: "POST",
+        headers,
         credentials: "include",
         body: formData,
       });
@@ -356,8 +393,12 @@ export const api = {
     importCSV: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
+      const token = getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(`${getApiBaseUrl()}/packages/import`, {
         method: "POST",
+        headers,
         credentials: "include",
         body: formData,
       });
@@ -468,7 +509,7 @@ export const api = {
       }),
     getMessages: (chatId: string) =>
       apiFetch<any[]>(`/chats/${chatId}/messages`, { method: "GET" }),
-    sendMessage: (chatId: string, payload: { message: string; attachment_url?: string }) =>
+    sendMessage: (chatId: string, payload: { message: string; attachment_url?: string; reply_to_message_id?: string | null }) =>
       apiFetch<any>(`/chats/${chatId}/messages`, {
         method: "POST",
         body: JSON.stringify(payload),

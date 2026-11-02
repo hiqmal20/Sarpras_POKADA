@@ -173,6 +173,9 @@ exports.loginUser = async ({ email, nomor_induk, password }) => {
   ]);
   const lookupError = lookupResults.find((result) => result.error)?.error;
   if (lookupError) {
+    if (lookupError.message && lookupError.message.includes('exceed_egress_quota')) {
+      throw new AppError('Layanan Supabase dibatasi karena melebihi kuota egress (exceed_egress_quota). Silakan periksa Supabase Dashboard Anda.', 503);
+    }
     throw new AppError('Gagal memeriksa data akun. Silakan coba lagi.', 500);
   }
 

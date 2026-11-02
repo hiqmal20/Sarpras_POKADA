@@ -41,7 +41,7 @@ exports.createItem = async (req, res, next) => {
       action: 'CREATE_ITEM',
       entityType: 'items',
       entityId: data?.id,
-      details: { name: data?.name, code: data?.code, stock: data?.stock },
+      details: { name: data?.name, code: data?.code ?? data?.item_code, stock: data?.stock },
       req
     });
     return sendSuccess(res, 'Barang berhasil ditambahkan', data, 201);

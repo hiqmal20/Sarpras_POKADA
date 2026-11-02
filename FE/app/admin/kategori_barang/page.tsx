@@ -335,7 +335,7 @@ function DeleteConfirmModal({
           <h3 className="text-base font-bold text-slate-900">Hapus Kategori?</h3>
           <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
             Anda akan menghapus kategori{" "}
-            <span className="font-semibold text-slate-800">"{category.name}"</span>.
+            <span className="font-semibold text-slate-800">&quot;{category.name}&quot;</span>.
             {category.item_count && category.item_count > 0 ? (
               <span className="block mt-1 text-rose-600 font-medium">
                 Peringatan: Kategori ini masih memiliki {category.item_count} unit barang terkait!
@@ -432,7 +432,7 @@ export default function KategoriBarangPage() {
 
   // Filtered & Sorted Categories
   const filtered = useMemo(() => {
-    let list = categories.filter((c) =>
+    const list = categories.filter((c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.description.toLowerCase().includes(search.toLowerCase())
     );

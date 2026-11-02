@@ -58,7 +58,7 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
       .from('borrowings_items')
       .select(`
         *,
-        items:items!borrowings_items_item_id_fkey (id, name, code, image_url, condition, status)
+        items:items!borrowings_items_item_id_fkey (id, name, code:item_code, image_url, condition, status)
       `)
       .in('borrowing_id', borrowingIds);
 
@@ -102,7 +102,7 @@ exports.findBorrowingById = async (id) => {
     .from('borrowings_items')
     .select(`
       *,
-      items:items!borrowings_items_item_id_fkey (id, name, code, image_url, condition, status)
+      items:items!borrowings_items_item_id_fkey (id, name, code:item_code, image_url, condition, status)
     `)
     .eq('borrowing_id', id);
 

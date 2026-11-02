@@ -211,7 +211,8 @@ module.exports = (io, app) => {
 
     // Event: Kirim pesan
     socket.on('send_message', async (data) => {
-      const { chatId, message, attachment_url, tempId } = data;
+      const { chatId, message, attachment_url, reply_to_message_id, replyToId, tempId } = data;
+      const targetReplyId = (reply_to_message_id || replyToId || '').trim() || null;
 
       try {
         if (!chatId || !message || !message.trim()) {
@@ -252,26 +253,91 @@ module.exports = (io, app) => {
           chat.admin_id = user.id;
         }
 
+        let replyToData = null;
+        if (targetReplyId) {
+          const { data: refMsg, error: refErr } = await supabase
+            .from('chat_messages')
+            .select(`
+              id,
+              chat_id,
+              message,
+              sender_id,
+              created_at,
+              sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
+            `)
+            .eq('id', targetReplyId)
+            .single();
+
+          if (refErr || !refMsg) {
+            return socket.emit('error', { message: 'Pesan yang dibalas tidak ditemukan' });
+          }
+
+          if (refMsg.chat_id !== chatId) {
+            return socket.emit('error', { message: 'Pesan yang dibalas tidak berasal dari percakapan ini' });
+          }
+
+          const cleanRefText = String(refMsg.message || '').replace(/^\[reply:(\{.*?\})\]\n?/, '');
+          replyToData = {
+            id: refMsg.id,
+            message: cleanRefText,
+            snippet: cleanRefText,
+            sender_id: refMsg.sender_id,
+            sender: refMsg.sender,
+            sender_name: refMsg.sender?.name || 'Pengguna',
+            created_at: refMsg.created_at
+          };
+        }
+
         const now = new Date().toISOString();
+        const insertPayload = {
+          chat_id: chatId,
+          sender_id: user.id,
+          message: message.trim(),
+          attachment_url: attachment_url || null,
+          is_read: false,
+          created_at: now
+        };
+
+        if (targetReplyId) {
+          insertPayload.reply_to_message_id = targetReplyId;
+        }
 
         // 1. Simpan pesan langsung ke DB
-        const { data: newMsg, error: msgError } = await supabase
+        let newMsg = null;
+        let msgError = null;
+
+        const res = await supabase
           .from('chat_messages')
-          .insert([{
-            chat_id: chatId,
-            sender_id: user.id,
-            message: message.trim(),
-            attachment_url: attachment_url || null,
-            is_read: false,
-            created_at: now
-          }])
+          .insert([insertPayload])
           .select(`
             *,
             sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
           `)
           .single();
 
+        newMsg = res.data;
+        msgError = res.error;
+
+        // Fallback jika migrasi kolom reply_to_message_id belum diaplikasikan
+        if (msgError && msgError.message && msgError.message.includes('reply_to_message_id')) {
+          delete insertPayload.reply_to_message_id;
+          const retryRes = await supabase
+            .from('chat_messages')
+            .insert([insertPayload])
+            .select(`
+              *,
+              sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
+            `)
+            .single();
+          newMsg = retryRes.data;
+          msgError = retryRes.error;
+        }
+
         if (msgError) throw msgError;
+
+        // Pasang metadata reply ke object newMsg
+        newMsg.reply_to = replyToData;
+        newMsg.reply_to_message_id = targetReplyId;
 
         // 2. Broadcast INSTAN ke room chat dan room admin/user terkait
         io.to(chatId).emit('new_message', newMsg);

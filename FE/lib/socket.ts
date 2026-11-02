@@ -1,15 +1,15 @@
 import { io, Socket } from "socket.io-client";
-import { API_BASE_URL, getApiBaseUrl } from "./api";
+import { API_BASE_URL, getApiBaseUrl, getAuthToken, setAuthToken, setRefreshToken, getRefreshToken } from "./api";
 
 let socketInstance: Socket | null = null;
 const joinedChatRooms = new Set<string>();
 
 export const getSocketUrl = (): string => {
   if (process.env.NEXT_PUBLIC_SOCKET_URL) {
-    return process.env.NEXT_PUBLIC_SOCKET_URL;
+    return process.env.NEXT_PUBLIC_SOCKET_URL.trim().replace(/\/+$/, "");
   }
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "");
+    return process.env.NEXT_PUBLIC_API_URL.trim().replace(/\/api\/?$/, "").replace(/\/+$/, "");
   }
   if (typeof window !== "undefined" && window.location.hostname) {
     if (window.location.port === "3000") {
@@ -51,6 +51,10 @@ export const getSocket = (): Socket | null => {
   if (!socketInstance) {
     const socketUrl = getSocketUrl();
     socketInstance = io(socketUrl, {
+      auth: (cb) => {
+        const token = getAuthToken();
+        cb({ token });
+      },
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -68,10 +72,25 @@ export const getSocket = (): Socket | null => {
     socketInstance.on("connect_error", (err) => {
       if (err.message?.includes("Authentication error")) {
         console.warn("⚠️ WebSocket authentication warning:", err.message);
+        const storedRefreshToken = getRefreshToken();
         fetch(`${getApiBaseUrl()}/auth/refresh`, {
           method: "POST",
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
-        }).then(() => socketInstance?.connect()).catch(() => {});
+          body: JSON.stringify({ refreshToken: storedRefreshToken || undefined }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data?.data?.token) {
+              setAuthToken(data.data.token);
+              if (data.data.refreshToken) setRefreshToken(data.data.refreshToken);
+              if (socketInstance) {
+                socketInstance.auth = { token: data.data.token };
+                socketInstance.connect();
+              }
+            }
+          })
+          .catch(() => {});
       } else {
         console.warn("⚠️ WebSocket connection error:", err.message);
       }

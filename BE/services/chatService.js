@@ -2,6 +2,12 @@ const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 const { ROLES } = require('../constants/roles');
 
+const cleanMessagePreview = (text) => {
+  if (!text) return '';
+  const match = String(text).match(/^\[reply:(\{.*?\})\]\n?([\s\S]*)$/);
+  return match ? match[2] : text;
+};
+
 const verifyChatAccess = async (chatId, userId, userRole) => {
   const { data: chat, error } = await supabase
     .from('chats')
@@ -76,7 +82,7 @@ exports.findAllChats = async ({ user_id, admin_id, status }, currentUserId) => {
 
     return {
       ...c,
-      last_message: latestMsg ? latestMsg.message : (c.subject || ''),
+      last_message: latestMsg ? cleanMessagePreview(latestMsg.message) : (c.subject || ''),
       last_message_at: latestMsg ? latestMsg.created_at : c.updated_at,
       unread_count: unreadCount
     };
@@ -86,7 +92,7 @@ exports.findAllChats = async ({ user_id, admin_id, status }, currentUserId) => {
 exports.findChatMessages = async (chatId, userId, userRole) => {
   await verifyChatAccess(chatId, userId, userRole);
 
-  const { data, error } = await supabase
+  const { data: messages, error } = await supabase
     .from('chat_messages')
     .select(`
       *,
@@ -96,7 +102,68 @@ exports.findChatMessages = async (chatId, userId, userRole) => {
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return data;
+  if (!messages || messages.length === 0) return [];
+
+  // Single-pass hydration: kumpulkan reply_to_message_id untuk batch hydrate tanpa N+1 query
+  const replyIds = [...new Set(messages.map((m) => m.reply_to_message_id).filter(Boolean))];
+  const repliedMap = new Map();
+
+  // 1. Simpan pesan yang sudah ada dalam query chatId ke map
+  messages.forEach((m) => {
+    const preview = cleanMessagePreview(m.message);
+    repliedMap.set(m.id, {
+      id: m.id,
+      message: preview,
+      snippet: preview,
+      sender_id: m.sender_id,
+      sender: m.sender,
+      sender_name: m.sender?.name || 'Pengguna',
+      created_at: m.created_at
+    });
+  });
+
+  // 2. Jika ada replyId yang berada di luar range hasil fetch, ambil sekaligus (batch)
+  const missingReplyIds = replyIds.filter((id) => !repliedMap.has(id));
+  if (missingReplyIds.length > 0) {
+    const { data: missingMsgs } = await supabase
+      .from('chat_messages')
+      .select(`
+        id,
+        message,
+        sender_id,
+        created_at,
+        sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
+      `)
+      .in('id', missingReplyIds);
+
+    (missingMsgs || []).forEach((m) => {
+      const preview = cleanMessagePreview(m.message);
+      repliedMap.set(m.id, {
+        id: m.id,
+        message: preview,
+        snippet: preview,
+        sender_id: m.sender_id,
+        sender: m.sender,
+        sender_name: m.sender?.name || 'Pengguna',
+        created_at: m.created_at
+      });
+    });
+  }
+
+  return messages.map((m) => {
+    let replyTo = null;
+    if (m.reply_to_message_id) {
+      replyTo = repliedMap.get(m.reply_to_message_id) || {
+        id: m.reply_to_message_id,
+        message: 'Pesan telah dihapus',
+        is_deleted: true
+      };
+    }
+    return {
+      ...m,
+      reply_to: replyTo
+    };
+  });
 };
 
 exports.createNewChat = async ({ user_id, admin_id, subject, initial_message, attachment_url }) => {
@@ -143,28 +210,88 @@ exports.createNewChat = async ({ user_id, admin_id, subject, initial_message, at
   return chat;
 };
 
-exports.postMessage = async (chatId, { sender_id, message, attachment_url }, userId, userRole) => {
+exports.postMessage = async (chatId, { sender_id, message, attachment_url, reply_to_message_id }, userId, userRole) => {
   const chat = await verifyChatAccess(chatId, userId, userRole);
 
   if (!message || !message.trim()) throw new AppError('Isi pesan wajib diisi', 400);
 
-  const now = new Date().toISOString();
+  const cleanReplyId = reply_to_message_id ? String(reply_to_message_id).trim() : null;
+  let replyToData = null;
 
-  const { data: newMsg, error: msgError } = await supabase
+  if (cleanReplyId) {
+    const { data: refMsg, error: refErr } = await supabase
+      .from('chat_messages')
+      .select(`
+        id,
+        chat_id,
+        message,
+        sender_id,
+        created_at,
+        sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
+      `)
+      .eq('id', cleanReplyId)
+      .single();
+
+    if (refErr || !refMsg) {
+      throw new AppError('Pesan yang dibalas tidak ditemukan', 404);
+    }
+
+    if (refMsg.chat_id !== chatId) {
+      throw new AppError('Pesan yang dibalas tidak berasal dari percakapan ini', 400);
+    }
+
+    replyToData = {
+      id: refMsg.id,
+      message: cleanMessagePreview(refMsg.message),
+      sender_id: refMsg.sender_id,
+      sender: refMsg.sender,
+      created_at: refMsg.created_at
+    };
+  }
+
+  const now = new Date().toISOString();
+  const insertPayload = {
+    chat_id: chatId,
+    sender_id: userId,
+    message: message.trim(),
+    attachment_url: attachment_url || null,
+    is_read: false,
+    created_at: now
+  };
+
+  if (cleanReplyId) {
+    insertPayload.reply_to_message_id = cleanReplyId;
+  }
+
+  let newMsg = null;
+  let msgError = null;
+
+  const res = await supabase
     .from('chat_messages')
-    .insert([{
-      chat_id: chatId,
-      sender_id: userId,
-      message: message.trim(),
-      attachment_url: attachment_url || null,
-      is_read: false,
-      created_at: now
-    }])
+    .insert([insertPayload])
     .select(`
       *,
       sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
     `)
     .single();
+
+  newMsg = res.data;
+  msgError = res.error;
+
+  // Fallback graceful: jika database Supabase belum menjalankan migrasi kolom reply_to_message_id
+  if (msgError && msgError.message && msgError.message.includes('reply_to_message_id')) {
+    delete insertPayload.reply_to_message_id;
+    const retryRes = await supabase
+      .from('chat_messages')
+      .insert([insertPayload])
+      .select(`
+        *,
+        sender:users!chat_messages_sender_id_fkey (id, name, foto, role)
+      `)
+      .single();
+    newMsg = retryRes.data;
+    msgError = retryRes.error;
+  }
 
   if (msgError) throw msgError;
 
@@ -175,7 +302,12 @@ exports.postMessage = async (chatId, { sender_id, message, attachment_url }, use
     .then(() => {})
     .catch((err) => console.error('Error updating chat timestamp:', err));
 
-  return { ...newMsg, chat };
+  return {
+    ...newMsg,
+    reply_to: replyToData,
+    reply_to_message_id: cleanReplyId,
+    chat
+  };
 };
 
 exports.markChatAsRead = async (chatId, userId, userRole) => {
