@@ -387,7 +387,7 @@ export default function LandingPage() {
                 href="/auth/register"
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-full transition-all shadow-sm hover:shadow-md"
               >
-                Daftar Mahasiswa / Staff <ArrowRight className="w-3.5 h-3.5" />
+                Daftar <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
@@ -442,7 +442,7 @@ export default function LandingPage() {
                 href="/auth/register"
                 className="w-full text-center py-2.5 text-xs font-bold text-white bg-[#0785BC] rounded-xl"
               >
-                Daftar Mahasiswa / Staff
+                Daftar
               </Link>
             </div>
           </div>

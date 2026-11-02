@@ -23,7 +23,7 @@ const registerSchema = Joi.object({
     'string.max': 'Password maksimal 128 karakter',
     'string.pattern.name': 'Password harus mengandung huruf kecil, huruf besar, dan angka'
   }),
-  role: Joi.string().valid(...PUBLIC_ROLES).default('Mahasiswa'),
+  role: Joi.string().valid(...PUBLIC_ROLES).default('Mahasiswa').optional().allow('', null),
   no_hp: Joi.string().allow('', null),
   foto: Joi.string().uri().allow('', null)
 });

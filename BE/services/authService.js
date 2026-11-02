@@ -18,7 +18,8 @@ exports.registerUser = async ({ nomor_induk, email, password, name, role = 'Maha
   const cleanNomorInduk = (nomor_induk || '').trim();
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanName = (name || '').trim();
-  const safeRole = ['Admin', 'Petugas'].includes(role) ? 'Mahasiswa' : (role || 'Mahasiswa');
+  // Registrasi publik otomatis hanya sebagai Mahasiswa. Dosen & Staff diinput manual oleh Admin.
+  const safeRole = 'Mahasiswa';
 
   // 1. Cek apakah nomor_induk atau email sudah terdaftar di public.users
   const { data: existingUser } = await supabase

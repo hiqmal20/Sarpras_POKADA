@@ -9,7 +9,6 @@ import {
   Lock,
   IdCard,
   Phone,
-  ChevronDown,
   ArrowLeft,
 } from "lucide-react";
 import { api, setAuthToken, setRefreshToken, setCurrentUser } from "@/lib/api";
@@ -30,7 +29,7 @@ export default function RegisterPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement>
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -349,37 +348,6 @@ export default function RegisterPage() {
                     placeholder="Masukkan Nomor Induk"
                     className={inputClass}
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className={`${labelClass} mb-1.5`}>
-                  Role / Jabatan
-                </label>
-
-                <div className="relative">
-                  <ChevronDown
-                    size={15}
-                    className="
-                      pointer-events-none
-                      absolute
-                      right-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-slate-400
-                    "
-                  />
-
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className={`${inputClass} appearance-none cursor-pointer pl-3`}
-                  >
-                    <option value="Mahasiswa">Mahasiswa</option>
-                    <option value="Dosen">Dosen</option>
-                    <option value="Staff">Staff</option>
-                  </select>
                 </div>
               </div>
 
