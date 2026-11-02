@@ -417,7 +417,7 @@ export default function LandingPage() {
               onClick={() => handleScrollTo("alur-kerja")}
               className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 rounded-xl hover:bg-slate-50"
             >
-              Alur Kerja n8n
+              Alur Kerja
             </button>
             <button
               onClick={() => handleScrollTo("katalog")}

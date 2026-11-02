@@ -20,7 +20,10 @@ const redirectToUserDashboard = (request: NextRequest) => {
 };
 
 async function getVerifiedUser(request: NextRequest) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const apiUrl =
+    process.env.INTERNAL_API_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    (request.nextUrl.origin ? `${request.nextUrl.origin}/api` : "http://localhost:5000/api");
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);

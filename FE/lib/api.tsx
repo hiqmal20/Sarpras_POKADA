@@ -1,5 +1,17 @@
-export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+export const getApiBaseUrl = (): string => {
+  if (typeof window === "undefined" && process.env.BACKEND_URL) {
+    return new URL("/api", process.env.BACKEND_URL).toString().replace(/\/$/, "");
+  }
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+  }
+  if (typeof window !== "undefined") {
+    return "/api";
+  }
+  return "http://localhost:5000/api";
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiResponse<T = any> {
   status: "success" | "fail" | "error";
@@ -104,7 +116,7 @@ async function performTokenRefresh(): Promise<boolean> {
   refreshPromise = (async () => {
     try {
       const storedRefreshToken = getRefreshToken();
-      const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const res = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -136,7 +148,7 @@ async function apiFetch<T>(
   options: RequestInit = {},
   isRetry = false
 ): Promise<ApiResponse<T>> {
-  const url = `${API_BASE_URL}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
+  const url = `${getApiBaseUrl()}${endpoint.startsWith("/") ? endpoint : `/${endpoint}`}`;
 
   const token = getAuthToken();
   const headers: Record<string, string> = {
@@ -271,7 +283,7 @@ export const api = {
       try {
         const formData = new FormData();
         formData.append("photo", file);
-        const res = await fetch(`${API_BASE_URL}/users/${id}/photo`, {
+        const res = await fetch(`${getApiBaseUrl()}/users/${id}/photo`, {
           method: "POST",
           credentials: "include",
           body: formData,
@@ -285,7 +297,7 @@ export const api = {
     importCSV: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`${API_BASE_URL}/users/import`, {
+      const res = await fetch(`${getApiBaseUrl()}/users/import`, {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -344,7 +356,7 @@ export const api = {
     importCSV: async (file: File) => {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch(`${API_BASE_URL}/packages/import`, {
+      const res = await fetch(`${getApiBaseUrl()}/packages/import`, {
         method: "POST",
         credentials: "include",
         body: formData,

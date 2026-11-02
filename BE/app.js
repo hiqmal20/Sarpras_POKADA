@@ -29,7 +29,10 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 const isOriginAllowed = (origin) => {
   if (!origin) return true;
   if (allowedOrigins.includes('*')) return true;
-  return allowedOrigins.includes(origin);
+  if (allowedOrigins.includes(origin)) return true;
+  if (process.env.VERCEL && origin.endsWith('.vercel.app')) return true;
+  if (process.env.VERCEL_URL && origin === `https://${process.env.VERCEL_URL}`) return true;
+  return false;
 };
 
 // Setup Socket.IO dengan CORS
@@ -59,8 +62,8 @@ app.set('io', io);
 // Trust proxy for secure cookies and reverse proxies (Heroku, Render, Cloudflare, Nginx)
 app.set('trust proxy', 1);
 
-// Enforce HTTPS in production
-if (process.env.NODE_ENV === 'production') {
+// Enforce HTTPS in production (skip on Vercel where edge handles HTTPS)
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   app.use((req, res, next) => {
     const proto = req.headers['x-forwarded-proto'];
     if (proto && proto !== 'https') {
@@ -136,10 +139,14 @@ process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
 });
 
-server.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🌐 HTTP API: http://localhost:${PORT}`);
-  console.log(`⚡ WebSocket: ws://localhost:${PORT}`);
-  // Aktifkan cron job pendeteksi peminjaman terlambat
-  startOverdueChecker();
-});
+if (require.main === module || !process.env.VERCEL) {
+  server.listen(PORT, () => {
+    console.log(`✅ Server running on port ${PORT}`);
+    console.log(`🌐 HTTP API: http://localhost:${PORT}`);
+    console.log(`⚡ WebSocket: ws://localhost:${PORT}`);
+    // Aktifkan cron job pendeteksi peminjaman terlambat
+    startOverdueChecker();
+  });
+}
+
+module.exports = app;

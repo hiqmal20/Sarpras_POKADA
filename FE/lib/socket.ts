@@ -1,5 +1,5 @@
 import { io, Socket } from "socket.io-client";
-import { API_BASE_URL } from "./api";
+import { API_BASE_URL, getApiBaseUrl } from "./api";
 
 let socketInstance: Socket | null = null;
 const joinedChatRooms = new Set<string>();
@@ -12,8 +12,11 @@ export const getSocketUrl = (): string => {
     return process.env.NEXT_PUBLIC_API_URL.replace(/\/api\/?$/, "");
   }
   if (typeof window !== "undefined" && window.location.hostname) {
-    const protocol = window.location.protocol === "https:" ? "https:" : "http:";
-    return `${protocol}//${window.location.hostname}:5000`;
+    if (window.location.port === "3000") {
+      const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+      return `${protocol}//${window.location.hostname}:5000`;
+    }
+    return window.location.origin;
   }
   return "http://localhost:5000";
 };
@@ -65,7 +68,7 @@ export const getSocket = (): Socket | null => {
     socketInstance.on("connect_error", (err) => {
       if (err.message?.includes("Authentication error")) {
         console.warn("⚠️ WebSocket authentication warning:", err.message);
-        fetch(`${API_BASE_URL}/auth/refresh`, {
+        fetch(`${getApiBaseUrl()}/auth/refresh`, {
           method: "POST",
           credentials: "include",
         }).then(() => socketInstance?.connect()).catch(() => {});
