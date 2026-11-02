@@ -276,9 +276,9 @@ input, button, select, textarea {
 .dark [class*="bg-rose-50"],
 .dark [class*="bg-red-50"],
 .dark [class*="bg-pink-50"] { background-color: rgba(244, 63, 94, 0.12) !important; }
-.dark [class*="bg-violet-50"],
-.dark [class*="bg-indigo-50"],
-.dark [class*="bg-purple-50"] { background-color: rgba(139, 92, 246, 0.13) !important; }
+.dark [class*="bg-sky-50"],
+.dark [class*="bg-blue-50"],
+.dark [class*="bg-sky-50"] { background-color: rgba(139, 92, 246, 0.13) !important; }
 /* -100 solid badges → slightly stronger tint */
 .dark [class*="bg-blue-100"],
 .dark [class*="bg-sky-100"] { background-color: rgba(7, 133, 188, 0.2) !important; }
@@ -288,9 +288,9 @@ input, button, select, textarea {
 .dark [class*="bg-yellow-100"] { background-color: rgba(245, 158, 11, 0.19) !important; }
 .dark [class*="bg-rose-100"],
 .dark [class*="bg-red-100"] { background-color: rgba(244, 63, 94, 0.18) !important; }
-.dark [class*="bg-indigo-100"],
-.dark [class*="bg-violet-100"],
-.dark [class*="bg-purple-100"] { background-color: rgba(139, 92, 246, 0.19) !important; }
+.dark [class*="bg-blue-100"],
+.dark [class*="bg-sky-100"],
+.dark [class*="bg-sky-100"] { background-color: rgba(139, 92, 246, 0.19) !important; }
 /* brand tint */
 .dark [class*="bg-[#0785BC]/10"],
 .dark [class*="bg-[#0785BC]/5"] { background-color: rgba(34, 167, 221, 0.14) !important; }
@@ -346,9 +346,9 @@ input, button, select, textarea {
 .dark [class*="text-blue-"],
 .dark [class*="text-sky-"],
 .dark [class*="text-cyan-"],
-.dark [class*="text-indigo-"],
-.dark [class*="text-violet-"],
-.dark [class*="text-purple-"] { color: #a5c4ff !important; }
+.dark [class*="text-blue-"],
+.dark [class*="text-sky-"],
+.dark [class*="text-sky-"] { color: #a5c4ff !important; }
 .dark [class*="text-[#0785BC]"] { color: #38bdf8 !important; }
 /* ---- borders → dark (substring catches /70 opacity + hover: variants) ---- */
 .dark [class*="border-slate-"],
@@ -367,9 +367,9 @@ input, button, select, textarea {
 .dark [class*="border-rose-"],
 .dark [class*="border-red-"],
 .dark [class*="border-pink-"],
-.dark [class*="border-violet-"],
-.dark [class*="border-indigo-"],
-.dark [class*="border-purple-"] { border-color: rgba(255, 255, 255, 0.1) !important; }
+.dark [class*="border-sky-"],
+.dark [class*="border-blue-"],
+.dark [class*="border-sky-"] { border-color: rgba(255, 255, 255, 0.1) !important; }
 .dark [class*="divide-slate-"] > :not([hidden]) ~ :not([hidden]),
 .dark [class*="divide-gray-"] > :not([hidden]) ~ :not([hidden]) { border-color: #1e293b !important; }
 .dark [class*="ring-slate-"] { --tw-ring-color: #1e293b !important; }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -129,7 +129,7 @@ function useMount() {
   return m;
 }
 
-// ── Modern Status Badge ──
+// â”€â”€ Modern Status Badge â”€â”€
 function StatusBadge({ status }: { status: ReportStatus }) {
   if (status === "pending") {
     return (
@@ -155,7 +155,7 @@ function StatusBadge({ status }: { status: ReportStatus }) {
   );
 }
 
-// ── Avatar initials ──
+// â”€â”€ Avatar initials â”€â”€
 function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
   const safeName = (name || "").trim();
   const initials = safeName
@@ -780,7 +780,7 @@ export default function RekapLaporanPage() {
       onSearchChange={setSearch}
     >
       <div className="space-y-6">
-        {/* ── Page Header ── */}
+        {/* â”€â”€ Page Header â”€â”€ */}
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
             <div className="flex items-center gap-2">
@@ -821,7 +821,7 @@ export default function RekapLaporanPage() {
           </div>
         </div>
 
-        {/* ── 3 Stat Cards (n8n Node Style) ── */}
+        {/* â”€â”€ 3 Stat Cards (n8n Node Style) â”€â”€ */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Card 1: Menunggu Tindak Lanjut */}
           <div
@@ -923,7 +923,7 @@ export default function RekapLaporanPage() {
           </div>
         </div>
 
-        {/* ── Filter Bar & Quick Stats ── */}
+        {/* â”€â”€ Filter Bar & Quick Stats â”€â”€ */}
         <div className={`bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3.5 ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
           {/* Status & Fine Filters */}
           <div className="flex flex-wrap items-center gap-2.5">
@@ -1037,7 +1037,7 @@ export default function RekapLaporanPage() {
           )}
         </div>
 
-        {/* ── Tabel Rekap Laporan ── */}
+        {/* â”€â”€ Tabel Rekap Laporan â”€â”€ */}
         <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${mounted ? "animate-fade-up delay-300" : "opacity-0"}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
@@ -1244,7 +1244,7 @@ export default function RekapLaporanPage() {
           {/* Pagination */}
           <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
             <p className="text-xs text-slate-500">
-              Menampilkan {total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}–{Math.min(page * PAGE_SIZE, total)} dari {total} data
+              Menampilkan {total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}â€“{Math.min(page * PAGE_SIZE, total)} dari {total} data
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -1279,7 +1279,7 @@ export default function RekapLaporanPage() {
         </div>
       </div>
 
-      {/* ── Modal Tindak Lanjut & Atur Denda (Modern Card Layout) ── */}
+      {/* â”€â”€ Modal Tindak Lanjut & Atur Denda (Modern Card Layout) â”€â”€ */}
       {actionReport && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto my-auto animate-scale-in">
@@ -1482,7 +1482,7 @@ export default function RekapLaporanPage() {
         </div>
       )}
 
-      {/* ── Modal Riwayat / Detail (Read-Only Case File) ── */}
+      {/* â”€â”€ Modal Riwayat / Detail (Read-Only Case File) â”€â”€ */}
       {historyReport && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto animate-scale-in">
@@ -1611,7 +1611,7 @@ export default function RekapLaporanPage() {
         </div>
       )}
 
-      {/* ── Modal Buat Laporan Baru (Lengkap Terelasi User & Item) ── */}
+      {/* â”€â”€ Modal Buat Laporan Baru (Lengkap Terelasi User & Item) â”€â”€ */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto my-auto animate-scale-in">
@@ -1654,17 +1654,17 @@ export default function RekapLaporanPage() {
                       : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
-                  <Package className="w-3.5 h-3.5 text-purple-600" />
+                  <Package className="w-3.5 h-3.5 text-sky-600" />
                   <span>Katalog Langsung (Non-Peminjaman)</span>
                 </button>
               </div>
 
               {modalMode === "by_transaction" ? (
-                /* ── FLOW 1: BERDASARKAN TRANSAKSI PEMINJAMAN ── */
+                /* â”€â”€ FLOW 1: BERDASARKAN TRANSAKSI PEMINJAMAN â”€â”€ */
                 <div className="space-y-3">
                   {selectedBorrowing && (formData.item_id || formData.package_id) ? (
                     /* Card Transaksi & Barang Terpilih */
-                    <div className="p-3.5 bg-gradient-to-r from-blue-50/90 to-indigo-50/90 border border-blue-200 rounded-2xl shadow-2xs space-y-2.5">
+                    <div className="p-3.5 bg-gradient-to-r from-blue-50/90 to-blue-50/90 border border-blue-200 rounded-2xl shadow-2xs space-y-2.5">
                       <div className="flex items-center justify-between border-b border-blue-200/60 pb-2">
                         <div className="flex items-center gap-2">
                           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#0785BC] text-white">
@@ -1889,7 +1889,7 @@ export default function RekapLaporanPage() {
                                                 </span>
                                               </div>
                                               <p className="text-[10px] text-slate-400 mt-0.5">
-                                                Jumlah: {bi.quantity || 1} unit • Kondisi awal: {bi.condition_before || "Baik"}
+                                                Jumlah: {bi.quantity || 1} unit â€¢ Kondisi awal: {bi.condition_before || "Baik"}
                                               </p>
                                             </div>
 
@@ -1925,7 +1925,7 @@ export default function RekapLaporanPage() {
                   )}
                 </div>
               ) : (
-                /* ── FLOW 2: MANUAL / KATALOG LANGSUNG (TANPA TRANSAKSI) ── */
+                /* â”€â”€ FLOW 2: MANUAL / KATALOG LANGSUNG (TANPA TRANSAKSI) â”€â”€ */
                 <div className="space-y-3.5">
                   {/* Pilih Barang / Paket (Filter Per Item / Paket & Auto-Detect Search) */}
                   <div ref={itemDropdownRef} className="relative">
@@ -1962,7 +1962,7 @@ export default function RekapLaporanPage() {
                             onClick={() => setItemTypeTab("package")}
                             className={`px-2 py-0.5 rounded-md font-semibold transition-all ${
                               itemTypeTab === "package"
-                                ? "bg-purple-600 text-white shadow-2xs font-bold"
+                                ? "bg-sky-600 text-white shadow-2xs font-bold"
                                 : "text-slate-500 hover:text-slate-800"
                             }`}
                           >
@@ -1977,7 +1977,7 @@ export default function RekapLaporanPage() {
                       <div
                         className={`flex items-center justify-between p-2.5 rounded-xl border ${
                           formData.damage_type === "per_package"
-                            ? "bg-purple-50/70 border-purple-200"
+                            ? "bg-sky-50/70 border-sky-200"
                             : "bg-blue-50/70 border-blue-200"
                         }`}
                       >
@@ -1985,7 +1985,7 @@ export default function RekapLaporanPage() {
                           <div
                             className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                               formData.damage_type === "per_package"
-                                ? "bg-purple-600 text-white"
+                                ? "bg-sky-600 text-white"
                                 : "bg-[#0785BC] text-white"
                             }`}
                           >
@@ -2005,7 +2005,7 @@ export default function RekapLaporanPage() {
                               <span
                                 className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wide ${
                                   formData.damage_type === "per_package"
-                                    ? "bg-purple-100 text-purple-700"
+                                    ? "bg-sky-100 text-sky-700"
                                     : "bg-sky-100 text-[#0785BC]"
                                 }`}
                               >
@@ -2086,12 +2086,12 @@ export default function RekapLaporanPage() {
                                 {/* Packages group */}
                                 {filteredPackages.length > 0 && (
                                   <div>
-                                    <div className="px-3 py-1.5 bg-purple-50/70 text-purple-700 text-[10px] font-bold uppercase tracking-wider flex items-center justify-between">
+                                    <div className="px-3 py-1.5 bg-sky-50/70 text-sky-700 text-[10px] font-bold uppercase tracking-wider flex items-center justify-between">
                                       <span className="flex items-center gap-1.5">
                                         <Boxes className="w-3 h-3" />
                                         Paket Barang ({filteredPackages.length})
                                       </span>
-                                      <span className="text-[9px] font-normal text-purple-600">Otomatis terdeteksi Paket</span>
+                                      <span className="text-[9px] font-normal text-sky-600">Otomatis terdeteksi Paket</span>
                                     </div>
                                     {filteredPackages.map((pkg) => (
                                       <button
@@ -2108,28 +2108,28 @@ export default function RekapLaporanPage() {
                                           setItemSearch("");
                                           setItemDropdownOpen(false);
                                         }}
-                                        className="w-full flex items-center justify-between p-2.5 hover:bg-purple-50/40 text-left transition-colors group"
+                                        className="w-full flex items-center justify-between p-2.5 hover:bg-sky-50/40 text-left transition-colors group"
                                       >
                                         <div className="flex items-center gap-2.5 min-w-0">
-                                          <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+                                          <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
                                             <Boxes className="w-3.5 h-3.5" />
                                           </div>
                                           <div className="min-w-0">
                                             <div className="flex items-center gap-2">
-                                              <span className="font-semibold text-slate-800 text-xs truncate group-hover:text-purple-700">
+                                              <span className="font-semibold text-slate-800 text-xs truncate group-hover:text-sky-700">
                                                 {pkg.name}
                                               </span>
-                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-100 text-purple-700">
+                                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-100 text-sky-700">
                                                 PAKET
                                               </span>
                                             </div>
                                             <p className="text-[11px] text-slate-400 truncate">
                                               Berisi {pkg.item_count || 0} item komponen
-                                              {pkg.description ? ` • ${pkg.description}` : ""}
+                                              {pkg.description ? ` â€¢ ${pkg.description}` : ""}
                                             </p>
                                           </div>
                                         </div>
-                                        <span className="text-[11px] text-purple-600 font-semibold opacity-0 group-hover:opacity-100 shrink-0 ml-2">
+                                        <span className="text-[11px] text-sky-600 font-semibold opacity-0 group-hover:opacity-100 shrink-0 ml-2">
                                           Pilih Paket
                                         </span>
                                       </button>
@@ -2179,7 +2179,7 @@ export default function RekapLaporanPage() {
                                             </div>
                                             <p className="text-[11px] text-slate-400 truncate">
                                               {item.category ? `Kategori: ${item.category}` : "Barang SARPRAS"}
-                                              {item.condition ? ` • Kondisi: ${item.condition}` : ""}
+                                              {item.condition ? ` â€¢ Kondisi: ${item.condition}` : ""}
                                             </p>
                                           </div>
                                         </div>
@@ -2457,7 +2457,7 @@ export default function RekapLaporanPage() {
         </div>
       )}
 
-      {/* ── Modal Export Kerusakan & Denda dengan Filter Tanggal ── */}
+      {/* â”€â”€ Modal Export Kerusakan & Denda dengan Filter Tanggal â”€â”€ */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}

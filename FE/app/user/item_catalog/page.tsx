@@ -52,10 +52,10 @@ interface Catalog {
 
 const COVERS = [
   "from-[#0785BC] via-[#0992cf] to-[#0aa5e0]",
-  "from-violet-600 via-purple-600 to-indigo-500",
+  "from-sky-600 via-sky-600 to-blue-500",
   "from-emerald-600 via-teal-600 to-cyan-500",
   "from-amber-500 via-orange-500 to-rose-500",
-  "from-rose-500 via-pink-600 to-purple-500",
+  "from-rose-500 via-pink-600 to-sky-500",
   "from-cyan-600 via-sky-600 to-blue-500",
 ];
 
@@ -324,10 +324,10 @@ function UserCatalogContent() {
             {/* ══════════════════════════════════════════════════════════
                 HERO BANNER: Modern Gradient + Interactive Metrics
                ══════════════════════════════════════════════════════════ */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0672a0] via-[#0785BC] to-[#0aa5e0] dark:from-[#0d2238] dark:via-[#091f35] dark:to-[#071728] p-6 sm:p-8 md:p-10 text-white shadow-lg shadow-[#0785BC]/15 border border-[#0785BC]/20">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#176b9d] via-[#2589bd] via-85% to-[#e8f5fc] dark:from-[#102338] dark:via-[#173c5c] dark:to-[#245d86] p-6 sm:p-8 md:p-10 text-white shadow-lg shadow-[#2589bd]/20 border border-[#69b2d8] dark:border-[#376b91]">
               {/* Background ambient lighting glows */}
-              <div className="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-white/10 dark:bg-sky-500/10 blur-3xl pointer-events-none" />
-              <div className="absolute -left-10 -bottom-10 w-64 h-64 rounded-full bg-[#0aa5e0]/20 blur-2xl pointer-events-none" />
+              <div className="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-white/15 dark:bg-sky-300/10 blur-3xl pointer-events-none" />
+              <div className="absolute -left-10 -bottom-10 w-64 h-64 rounded-full bg-[#bde4f7]/25 dark:bg-[#4b91c5]/20 blur-2xl pointer-events-none" />
 
               <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-10">
                 {/* Left Text Header */}
@@ -352,8 +352,8 @@ function UserCatalogContent() {
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-1.5 text-white">
                       <LayoutGrid className="w-4 h-4" />
                     </div>
-                    <span className="text-xl sm:text-2xl font-black leading-none">{catalogs.length}</span>
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-sky-100/80 mt-1">
+                    <span className="text-xl sm:text-2xl font-black leading-none text-white">{catalogs.length}</span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-white/80 mt-1">
                       Kategori
                     </span>
                   </div>
@@ -362,8 +362,8 @@ function UserCatalogContent() {
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-1.5 text-white">
                       <Package className="w-4 h-4" />
                     </div>
-                    <span className="text-xl sm:text-2xl font-black leading-none">{items.length}</span>
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-sky-100/80 mt-1">
+                    <span className="text-xl sm:text-2xl font-black leading-none text-white">{items.length}</span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-white/80 mt-1">
                       Barang
                     </span>
                   </div>
@@ -372,8 +372,8 @@ function UserCatalogContent() {
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-1.5 text-white">
                       <Layers className="w-4 h-4" />
                     </div>
-                    <span className="text-xl sm:text-2xl font-black leading-none">{packages.length}</span>
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-sky-100/80 mt-1">
+                    <span className="text-xl sm:text-2xl font-black leading-none text-white">{packages.length}</span>
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-white/80 mt-1">
                       Paket
                     </span>
                   </div>
@@ -552,7 +552,7 @@ function UserCatalogContent() {
                             {cat.itemCount} Barang
                           </span>
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/55 backdrop-blur-md text-white text-[11px] font-semibold border border-white/10 shadow-xs">
-                            <Layers className="w-3.5 h-3.5 text-violet-300" />
+                            <Layers className="w-3.5 h-3.5 text-sky-300" />
                             {cat.packageCount} Paket
                           </span>
                         </div>
@@ -584,7 +584,7 @@ function UserCatalogContent() {
                           </div>
 
                           <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-violet-100 dark:bg-violet-950/60 text-violet-600 flex items-center justify-center shrink-0">
+                            <div className="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-600 flex items-center justify-center shrink-0">
                               <Layers className="w-3.5 h-3.5" />
                             </div>
                             <div className="min-w-0">
@@ -666,7 +666,7 @@ function UserCatalogContent() {
                   <Package className="w-3.5 h-3.5" />
                   {detailItems.length} Barang
                 </span>
-                <span className="px-3 py-1.5 rounded-xl bg-violet-50 dark:bg-violet-950/60 border border-violet-200/80 dark:border-violet-800 text-violet-700 dark:text-violet-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                <span className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                   <Layers className="w-3.5 h-3.5" />
                   {detailPackages.length} Paket
                 </span>
@@ -695,7 +695,7 @@ function UserCatalogContent() {
                 onClick={() => setDetailTab("paket")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   detailTab === "paket"
-                    ? "bg-white dark:bg-[#111c30] text-violet-600 dark:text-violet-400 shadow-sm"
+                    ? "bg-white dark:bg-[#111c30] text-sky-600 dark:text-sky-400 shadow-sm"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -818,7 +818,7 @@ function UserCatalogContent() {
                       className={`group bg-white dark:bg-[#111c30] rounded-3xl border overflow-hidden transition-all duration-300 flex flex-col ${
                         empty
                           ? "border-rose-200/80 dark:border-rose-900/50 shadow-xs"
-                          : "border-slate-200/80 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05)] hover:shadow-[0_12px_28px_-8px_rgba(124,58,237,0.2)] hover:-translate-y-1 hover:border-violet-500/30"
+                          : "border-slate-200/80 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05)] hover:shadow-[0_12px_28px_-8px_rgba(124,58,237,0.2)] hover:-translate-y-1 hover:border-sky-500/30"
                       }`}
                     >
                       <div className="relative h-[160px] bg-slate-100 dark:bg-slate-900 overflow-hidden flex items-center justify-center shrink-0">
@@ -834,7 +834,7 @@ function UserCatalogContent() {
                           <Layers className="w-10 h-10 text-slate-300 stroke-[1.2]" />
                         )}
                         {empty && <div className="absolute inset-0 bg-slate-950/30" />}
-                        <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-violet-600 dark:text-violet-400 shadow-xs border border-white/40 dark:border-slate-700">
+                        <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-sky-600 dark:text-sky-400 shadow-xs border border-white/40 dark:border-slate-700">
                           Paket Bundling
                         </span>
                         {empty ? (
@@ -849,10 +849,10 @@ function UserCatalogContent() {
                       </div>
 
                       <div className="p-4 sm:p-5 flex flex-1 flex-col">
-                        <p className="text-[10px] uppercase font-bold tracking-[0.08em] text-violet-600">
+                        <p className="text-[10px] uppercase font-bold tracking-[0.08em] text-sky-600">
                           {selectedCatalog.name}
                         </p>
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 leading-snug line-clamp-1 group-hover:text-violet-600 transition-colors">
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 leading-snug line-clamp-1 group-hover:text-sky-600 transition-colors">
                           {pkg.name}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">
@@ -862,7 +862,7 @@ function UserCatalogContent() {
                         </p>
 
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-violet-600 dark:text-violet-400">
+                          <span className="text-[11px] font-bold text-sky-600 dark:text-sky-400">
                             {(pkg.packages_items || []).length} Item Termasuk
                           </span>
                         </div>
@@ -874,7 +874,7 @@ function UserCatalogContent() {
                         ) : (
                           <Link
                             href={`/user/item_catalog/package/${pkg.id}`}
-                            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-violet-600 to-[#0785BC] hover:from-violet-700 hover:to-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-violet-500/25 transition-all active:scale-98 cursor-pointer"
+                            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-[#0785BC] hover:from-sky-700 hover:to-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-sky-500/25 transition-all active:scale-98 cursor-pointer"
                           >
                             <span>Ajukan Pinjam Paket</span>
                             <ChevronRight className="w-3.5 h-3.5" />

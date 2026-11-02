@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -17,7 +17,7 @@ import { UserLayout } from "@/components/user";
 import { normalizeItem } from "@/lib/item";
 import { useLanguage } from "@/lib/i18n";
 
-// ── Types ──
+// â”€â”€ Types â”€â”€
 type TabKey = "semua" | "paket";
 
 interface Item {
@@ -41,7 +41,7 @@ interface PackageItem {
   packages_items?: Array<{ quantity?: number; items?: { name?: string; image_url?: string; available_stock?: number; stock?: number } }>;
 }
 
-// ── Status stock badge ──
+// â”€â”€ Status stock badge â”€â”€
 function isItemEmpty(item: Item) {
   return item.status === "busy" || Number(item.stock ?? 0) <= 0;
 }
@@ -78,7 +78,7 @@ function StockBadge({ item }: { item: Item }) {
   );
 }
 
-// ── Item Card ──
+// â”€â”€ Item Card â”€â”€
 function ItemCard({ item }: { item: Item }) {
   const { t } = useLanguage();
   const tr = (k: string, fb: string) => {
@@ -155,7 +155,7 @@ function ItemCard({ item }: { item: Item }) {
   );
 }
 
-// ── Package Card ──
+// â”€â”€ Package Card â”€â”€
 function PackageCard({ pkg }: { pkg: PackageItem }) {
   const { t } = useLanguage();
   const tr = (k: string, fb: string) => {
@@ -205,7 +205,7 @@ function PackageCard({ pkg }: { pkg: PackageItem }) {
         )}
       </div>
       <div className="p-4 flex flex-1 flex-col">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-violet-600">{tr("borrow.package_label", "Paket Barang")}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-sky-600">{tr("borrow.package_label", "Paket Barang")}</p>
         <h3 className="text-[13px] font-bold text-slate-900 mt-1 leading-[1.45] group-hover:text-[#0785BC] transition-colors line-clamp-2 min-h-[2.6rem]">
           {pkg.name}
         </h3>
@@ -225,7 +225,7 @@ function PackageCard({ pkg }: { pkg: PackageItem }) {
   );
 }
 
-// ── Skeleton ──
+// â”€â”€ Skeleton â”€â”€
 function CardSkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">

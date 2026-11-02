@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -60,7 +60,7 @@ function StatusBadge({ status }: { status: string }) {
   }
   if (s.includes("setuju") || s.includes("approved")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200">
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
         <Check className="w-3 h-3" />
         {tr("modal.st_approved", "Disetujui")}
       </span>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -56,7 +56,7 @@ interface PieSlice {
   color: string;
 }
 
-// ── Interactive Pie / Donut Chart ──
+// â”€â”€ Interactive Pie / Donut Chart â”€â”€
 function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
   const { t } = useLanguage();
   const tr = (key: string, fallback: string) => {
@@ -182,7 +182,7 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
   );
 }
 
-// ── Status Pill ──
+// â”€â”€ Status Pill â”€â”€
 function StatusPill({ status }: { status: string }) {
   const { t } = useLanguage();
   const tr = (key: string, fallback: string) => {
@@ -208,8 +208,8 @@ function StatusPill({ status }: { status: string }) {
   }
   if (norm.includes("setuju") || norm.includes("approved")) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
-        <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+        <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
         {tr("dash.st_approved", "Disetujui")}
       </span>
     );
@@ -364,7 +364,7 @@ export default function UserDashboardPage() {
       label: tr("dash.active", "Sedang Dipinjam"),
       value: activeCount,
       icon: BookOpen,
-      iconBg: "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300",
+      iconBg: "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300",
       border: "border-slate-100",
     },
     {
@@ -383,7 +383,7 @@ export default function UserDashboardPage() {
   return (
     <UserLayout showSearch={true}>
       <div className="space-y-5 sm:space-y-6 max-w-7xl mx-auto pb-16 md:pb-10">
-        {/* ── Hero Greeting ala ChatGPT/n8n ── */}
+        {/* â”€â”€ Hero Greeting ala ChatGPT/n8n â”€â”€ */}
         <div className="relative overflow-hidden rounded-3xl border border-[#0785BC]/15 dark:border-sky-900 bg-gradient-to-br from-white via-[#eef7fc] to-[#e3f1f9] dark:from-[#111c30] dark:via-[#0f2740] dark:to-[#0b1a30] p-5 sm:p-8">
           <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-[#0785BC]/10 dark:bg-sky-500/10 blur-2xl pointer-events-none" />
           <div className="absolute right-10 bottom-0 w-40 h-40 rounded-full bg-[#0785BC]/5 dark:bg-sky-500/5 blur-xl pointer-events-none" />
@@ -419,7 +419,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* ── Stat Cards ── */}
+        {/* â”€â”€ Stat Cards â”€â”€ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {statCards.map((stat, idx) => {
             const Icon = stat.icon;
@@ -444,7 +444,7 @@ export default function UserDashboardPage() {
             })}
         </div>
 
-        {/* ── Main Section: Pie Chart & Recent Borrowings ── */}
+        {/* â”€â”€ Main Section: Pie Chart & Recent Borrowings â”€â”€ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Pie Chart Card (1 column on lg) */}
           <div className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs p-5 sm:p-6 flex flex-col justify-between">
@@ -541,7 +541,7 @@ export default function UserDashboardPage() {
                         </div>
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           {tr("dash.borrow_date", "Tgl Pinjam")}: {borrowDate}
-                          {b.purpose && ` • ${tr("dash.purpose", "Tujuan")}: ${b.purpose}`}
+                          {b.purpose && ` â€¢ ${tr("dash.purpose", "Tujuan")}: ${b.purpose}`}
                         </p>
                       </div>
 
@@ -562,7 +562,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* ── Bottom Row: Rekomendasi Barang & Aksi Cepat ── */}
+        {/* â”€â”€ Bottom Row: Rekomendasi Barang & Aksi Cepat â”€â”€ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Rekomendasi Barang Tersedia (2 cols) */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-xs p-6">
@@ -669,7 +669,7 @@ export default function UserDashboardPage() {
                     label: tr("dash.chat_admin", "Chat Admin Sarpras"),
                     desc: tr("dash.chat_admin_desc", "Konsultasi & bantuan peminjaman"),
                     icon: MessageSquare,
-                    color: "bg-purple-50 text-purple-600",
+                    color: "bg-sky-50 text-sky-600",
                   },
                   {
                     href: "/user/profile",

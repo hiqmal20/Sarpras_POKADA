@@ -1602,7 +1602,7 @@ export default function PaketPage() {
                                 <span
                                   className={`px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${
                                     item.source_type === "kode_paket"
-                                      ? "bg-purple-50 text-purple-700 border border-purple-200"
+                                      ? "bg-sky-50 text-sky-700 border border-sky-200"
                                       : "bg-blue-50 text-blue-700 border border-blue-200"
                                   }`}
                                 >
@@ -1891,7 +1891,7 @@ export default function PaketPage() {
                               <div className="flex items-center gap-1.5">
                                 <p className="font-bold text-slate-800 truncate">{pi.items?.name || "Barang Sarpras"}</p>
                                 {pi.items?.code?.toUpperCase().startsWith("PKT-") ? (
-                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200 shrink-0">
+                                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-sky-50 text-sky-700 border border-sky-200 shrink-0">
                                     Khusus Paket
                                   </span>
                                 ) : (

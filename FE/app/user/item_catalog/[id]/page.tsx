@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -32,7 +32,7 @@ import { normalizeItem, isItemEmptyStock } from "@/lib/item";
 import { useLanguage } from "@/lib/i18n";
 import { getSocket } from "@/lib/socket";
 
-// ── Types ──
+// â”€â”€ Types â”€â”€
 interface ItemDetail {
   id: string;
   name: string;
@@ -73,7 +73,8 @@ export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const mounted = useMount();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const ui = (id: string, en: string, fallback: string) => lang === "en" ? en : t(id) === id ? fallback : t(id);
   const tr = (k: string, fb: string) => {
     const v = t(k);
     return v === k ? fb : v;
@@ -82,6 +83,7 @@ export default function ItemDetailPage() {
   const [item, setItem] = useState<ItemDetail | null>(null);
   const [availableItems, setAvailableItems] = useState<ItemDetail[]>([]);
   const [selectedItems, setSelectedItems] = useState<ItemDetail[]>([]);
+  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -182,6 +184,11 @@ export default function ItemDetailPage() {
       setError(tr("catdetail.err_date", "Tanggal selesai tidak boleh sebelum tanggal mulai."));
       return;
     }
+    const availableStock = Number(item?.available_stock ?? item?.stock ?? 0);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > availableStock) {
+      setError(`Jumlah harus berupa bilangan bulat antara 1 dan ${availableStock}.`);
+      return;
+    }
     if (item && isItemEmptyStock(item)) {
       setError("Barang ini sedang tidak dapat dipinjam karena stok kosong.");
       return;
@@ -193,7 +200,7 @@ export default function ItemDetailPage() {
       return_date: form.return_date,
       purpose: form.purpose,
       items: [
-        { item_id: id, quantity: 1 },
+        { item_id: id, quantity },
         ...selectedItems.map((entry) => ({ item_id: entry.id, quantity: 1 })),
       ],
     });
@@ -207,9 +214,9 @@ export default function ItemDetailPage() {
   }
 
   const emptyStock = item ? isItemEmptyStock(item) : false;
-  const currentStock = Number(item?.stock ?? item?.available_stock ?? 0);
+  const currentStock = Number(item?.available_stock ?? item?.stock ?? 0);
 
-  // ── Success state ──
+  // â”€â”€ Success state â”€â”€
   if (success) {
     return (
       <div
@@ -251,7 +258,7 @@ export default function ItemDetailPage() {
 
   return (
     <div className="min-h-screen bg-[#eef2f9] dark:bg-[#0b1220] text-slate-800 dark:text-slate-100 transition-colors">
-      {/* ── Modern Glass Topbar ── */}
+      {/* â”€â”€ Modern Glass Topbar â”€â”€ */}
       <header className="bg-white/85 dark:bg-[#0b1220]/85 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-4 sm:px-8 py-3.5 sticky top-0 z-30 shadow-xs">
         <div className="max-w-[1240px] mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -293,7 +300,7 @@ export default function ItemDetailPage() {
         </div>
       </header>
 
-      {/* ── Main Content ── */}
+      {/* â”€â”€ Main Content â”€â”€ */}
       <main
         className={`max-w-[1240px] mx-auto px-4 sm:px-8 py-6 sm:py-8 ${
           mounted ? "animate-fade-up" : "opacity-0"
@@ -307,7 +314,7 @@ export default function ItemDetailPage() {
                 <Sparkles className="w-3 h-3" />
                 {tr("catdetail.badge", "Peminjaman Sarpras")}
               </span>
-              <span className="text-xs text-slate-400 dark:text-slate-500">•</span>
+              <span className="text-xs text-slate-400 dark:text-slate-500">â€¢</span>
               <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                 {item?.category || "Fasilitas"}
               </span>
@@ -321,11 +328,11 @@ export default function ItemDetailPage() {
           </div>
         </div>
 
-        {/* ── 2-Column Responsive Grid ── */}
+        {/* â”€â”€ 2-Column Responsive Grid â”€â”€ */}
         <div className="grid grid-cols-1 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[410px_minmax(0,1fr)] gap-6 items-start">
-          {/* ══════════════════════════════════════════════════════════
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
               LEFT: Modern Item Detail Card ([Image 1] Upgrade)
-             ══════════════════════════════════════════════════════════ */}
+             â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           <div className="w-full bg-white dark:bg-[#111c30] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] dark:shadow-none overflow-hidden transition-all duration-300 hover:border-[#0785BC]/30">
             {/* Visual Media Showcase */}
             <div className="relative h-[250px] sm:h-[270px] bg-gradient-to-br from-slate-100 via-slate-50 to-sky-50/30 dark:from-[#0d1627] dark:via-[#111c30] dark:to-[#0f2238] flex items-center justify-center overflow-hidden group p-4 border-b border-slate-100 dark:border-slate-800/80">
@@ -380,7 +387,7 @@ export default function ItemDetailPage() {
               {!loading && !emptyStock && (
                 <div className="absolute bottom-3 left-3.5 right-3.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl p-2 px-3 border border-slate-200/60 dark:border-slate-700/80 flex items-center justify-between text-xs shadow-xs">
                   <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">
-                    Sisa Stok Siap Pakai
+                    {ui("catdetail.stock_remaining", "Available Stock", "Sisa Stok Siap Pakai")}
                   </span>
                   <span className="font-extrabold text-[#0785BC] dark:text-sky-400">
                     {currentStock} Unit
@@ -432,7 +439,7 @@ export default function ItemDetailPage() {
 
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
-                        <Package className="w-3.5 h-3.5 text-indigo-500" />
+                        <Package className="w-3.5 h-3.5 text-blue-500" />
                         <span>Tipe Peminjaman</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
@@ -477,9 +484,9 @@ export default function ItemDetailPage() {
             </div>
           </div>
 
-          {/* ══════════════════════════════════════════════════════════
+          {/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
               RIGHT: Modern Request Form ([Image 2] Upgrade)
-             ══════════════════════════════════════════════════════════ */}
+             â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */}
           <div className="w-full bg-white dark:bg-[#111c30] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] dark:shadow-none p-5 sm:p-8 animate-fade-up">
             {/* Form Header */}
             <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800 gap-3">
@@ -508,7 +515,7 @@ export default function ItemDetailPage() {
             </div>
 
             {/* Hero Item Summary Card */}
-            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-sky-50/90 via-blue-50/50 to-indigo-50/40 dark:from-sky-950/40 dark:via-blue-950/30 dark:to-indigo-950/20 border border-sky-100/80 dark:border-sky-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-sky-50/90 via-blue-50/50 to-blue-50/40 dark:from-sky-950/40 dark:via-blue-950/30 dark:to-blue-950/20 border border-sky-100/80 dark:border-sky-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-sky-100 dark:border-sky-900/80 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
                   {item?.image ? (
@@ -553,6 +560,13 @@ export default function ItemDetailPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+              {/* Quantity */}
+              <div>
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">Jumlah Barang</label>
+                <input type="number" min={1} max={currentStock} step={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full px-3.5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/60" />
+                <p className="text-[11px] text-slate-500 mt-1">Stok tersedia: {currentStock} unit</p>
+              </div>
+
               {/* Tanggal Mulai & Tanggal Selesai */}
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">

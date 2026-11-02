@@ -11,6 +11,7 @@ router.param('id', uuidParamHandler);
 router.use(requireAuth);
 
 router.get('/', borrowingController.getAllBorrowings);
+router.get('/check-active', requireAuth, borrowingController.checkActiveBorrowing);
 router.get('/:id', borrowingController.getBorrowingById);
 router.post('/', validateRequest(createBorrowingSchema), borrowingController.createBorrowing);
 router.patch('/:id/status', requireRole(ROLES.ADMIN, ROLES.PETUGAS), validateRequest(updateBorrowingStatusSchema), borrowingController.updateBorrowingStatus);

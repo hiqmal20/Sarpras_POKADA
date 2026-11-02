@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -18,7 +18,7 @@ function StatusBadge({ status }: { status: string }) {
   if (s.includes("pending") || s.includes("menunggu"))
     return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-sm">{tr("bdetail.st_pending", "Menunggu")}</span>;
   if (s.includes("setuju") || s.includes("approved"))
-    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">{tr("bdetail.st_approved", "Disetujui")}</span>;
+    return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">{tr("bdetail.st_approved", "Disetujui")}</span>;
   if (s.includes("dipinjam") || s.includes("aktif"))
     return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-[#0785BC] border border-blue-200 shadow-sm">{tr("bdetail.st_active", "Dipinjam")}</span>;
   if (s.includes("kembali") || s.includes("selesai") || s.includes("returned"))

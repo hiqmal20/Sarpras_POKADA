@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -219,7 +219,7 @@ export default function LandingPage() {
       desc: "Sistem cerdas memeriksa sisa stok aset fisik, riwayat peminjam, serta jadwal bentrok secara otomatis.",
       badge: "Instant Checking",
       icon: Cpu,
-      color: "from-indigo-500 to-sky-500",
+      color: "from-blue-500 to-sky-500",
       output: "Stok Terverifikasi Aman",
     },
     {
@@ -269,14 +269,14 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#fafcff] text-slate-900 selection:bg-[#0785BC]/20 font-sans antialiased overflow-x-hidden w-full max-w-full">
-      {/* ── Ambient Background Glow (ChatGPT / AI Aesthetic) ── */}
+      {/* â”€â”€ Ambient Background Glow (ChatGPT / AI Aesthetic) â”€â”€ */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden max-w-full">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[320px] sm:w-[600px] lg:w-[900px] h-[300px] sm:h-[500px] bg-gradient-to-b from-[#0785BC]/15 via-sky-300/10 to-transparent blur-3xl rounded-full opacity-70 animate-glow-pulse" />
         <div className="absolute top-[800px] left-0 w-[240px] sm:w-[500px] h-[240px] sm:h-[500px] bg-blue-100/30 blur-3xl rounded-full opacity-50" />
         <div className="absolute top-[1600px] right-0 w-[240px] sm:w-[500px] h-[240px] sm:h-[500px] bg-teal-100/30 blur-3xl rounded-full opacity-40" />
       </div>
 
-      {/* ── Top Floating Notification Bar (Live System Status) ── */}
+      {/* â”€â”€ Top Floating Notification Bar (Live System Status) â”€â”€ */}
       <div className="relative z-50 bg-[#0B132B] text-white py-2 px-3 sm:px-4 text-xs font-medium border-b border-slate-800 overflow-hidden">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 min-w-0">
           <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -303,7 +303,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── Main Navigation Bar ── */}
+      {/* â”€â”€ Main Navigation Bar â”€â”€ */}
       <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-slate-200/70 shadow-2xs transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-18">
@@ -449,7 +449,7 @@ export default function LandingPage() {
         )}
       </header>
 
-      {/* ── HERO SECTION (ChatGPT & n8n Inspired) ── */}
+      {/* â”€â”€ HERO SECTION (ChatGPT & n8n Inspired) â”€â”€ */}
       <section id="beranda" className="relative pt-8 sm:pt-12 pb-14 sm:pb-20 lg:pt-20 lg:pb-28 overflow-hidden w-full">
         {/* Subtle n8n Workflow Background Grid Canvas */}
         <div className="absolute inset-0 bg-workflow-grid opacity-60 pointer-events-none" />
@@ -510,7 +510,7 @@ export default function LandingPage() {
                     }}
                     className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
-                    🩺 Tensimeter
+                    ðŸ©º Tensimeter
                   </button>
                   <button
                     onClick={() => {
@@ -519,7 +519,7 @@ export default function LandingPage() {
                     }}
                     className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
-                    💻 Lab MIK
+                    ðŸ’» Lab MIK
                   </button>
                   <button
                     onClick={() => {
@@ -528,7 +528,7 @@ export default function LandingPage() {
                     }}
                     className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
-                    📽️ Proyektor
+                    ðŸ“½ï¸ Proyektor
                   </button>
                   <button
                     onClick={() => {
@@ -537,7 +537,7 @@ export default function LandingPage() {
                     }}
                     className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
                   >
-                    🏛️ Ruang Aula
+                    ðŸ›ï¸ Ruang Aula
                   </button>
                 </div>
               </div>
@@ -643,7 +643,7 @@ export default function LandingPage() {
                                     : "bg-slate-100 text-slate-500"
                                 }`}
                               >
-                                {isActive ? "● Berjalan" : "Siap"}
+                                {isActive ? "â— Berjalan" : "Siap"}
                               </span>
                             </div>
 
@@ -692,7 +692,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── ALUR KERJA AUTOMATION SECTION (n8n style) ── */}
+      {/* â”€â”€ ALUR KERJA AUTOMATION SECTION (n8n style) â”€â”€ */}
       <section id="alur-kerja" className="py-20 bg-white border-y border-slate-100 relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-14">
@@ -720,10 +720,10 @@ export default function LandingPage() {
             </div>
 
             <div className="bg-slate-50/70 p-6 rounded-3xl border border-slate-200/70 hover:border-[#0785BC]/50 hover:bg-white hover:shadow-xl transition-all duration-300 group">
-              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center font-bold text-lg mb-4 group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold text-lg mb-4 group-hover:scale-110 transition-transform">
                 <Calendar className="w-6 h-6" />
               </div>
-              <span className="text-[10px] font-mono font-bold text-indigo-600 uppercase tracking-wider">Langkah 02</span>
+              <span className="text-[10px] font-mono font-bold text-blue-600 uppercase tracking-wider">Langkah 02</span>
               <h3 className="text-base font-bold text-slate-900 mt-1 mb-2">Pengajuan Cepat & Approval</h3>
               <p className="text-xs text-slate-500 leading-relaxed">
                 Tentukan tanggal pinjam dan selesai. Petugas SARPRAS akan memvalidasi permohonan melalui sistem dan mengirim notifikasi status.
@@ -744,7 +744,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── KATALOG SARANA & PRASARANA KAMPUS ── */}
+      {/* â”€â”€ KATALOG SARANA & PRASARANA KAMPUS â”€â”€ */}
       <section id="katalog" className="py-20 bg-[#fafcff]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
@@ -854,7 +854,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── BENTAR KAMPUS POKADA CTA BANNER ── */}
+      {/* â”€â”€ BENTAR KAMPUS POKADA CTA BANNER â”€â”€ */}
       <section className="py-12 bg-white w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
           <div className="relative rounded-3xl bg-gradient-to-r from-[#0785BC] via-[#066d9b] to-[#0B132B] p-6 sm:p-12 text-white overflow-hidden shadow-2xl">
@@ -890,7 +890,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FAQ SECTION ── */}
+      {/* â”€â”€ FAQ SECTION â”€â”€ */}
       <section id="faq" className="py-20 bg-[#fafcff]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -936,7 +936,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FOOTER (ChatGPT & Claude Style: Clean, Sophisticated, Minimalist) ── */}
+      {/* â”€â”€ FOOTER (ChatGPT & Claude Style: Clean, Sophisticated, Minimalist) â”€â”€ */}
       <footer className="bg-[#0A0F1D] text-slate-400 pt-16 pb-12 border-t border-slate-800/80 w-full overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 lg:gap-8 pb-14 border-b border-slate-800">
@@ -965,7 +965,7 @@ export default function LandingPage() {
                 </p>
                 <p className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-[#0785BC] shrink-0" />
-                  <span>021-2780-1509 · WhatsApp: 0821 1376 7144</span>
+                  <span>021-2780-1509 Â· WhatsApp: 0821 1376 7144</span>
                 </p>
                 <p className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-[#0785BC] shrink-0" />
@@ -1149,7 +1149,7 @@ export default function LandingPage() {
             </div>
 
             <div className="text-slate-500 text-center sm:text-right">
-              <p>© 2026 Politeknik Karya Husada (POKADA). All rights reserved.</p>
+              <p>Â© 2026 Politeknik Karya Husada (POKADA). All rights reserved.</p>
             </div>
           </div>
         </div>

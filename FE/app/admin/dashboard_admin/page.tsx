@@ -325,7 +325,7 @@ export default function DashboardAdminPage() {
     { label: "Rusak", value: stats?.items.rusak || 0, color: "#EF4444" },
   ];
 
-  const categoryColors = ["#0785BC", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#3B82F6", "#14B8A6", "#F97316"];
+  const categoryColors = ["#0785BC", "#10B981", "#F59E0B", "#0785BC", "#EC4899", "#3B82F6", "#14B8A6", "#F97316"];
   const categoryPieData: PieSlice[] = (stats?.categoryDistribution || []).map((cat, i) => ({
     label: cat.name,
     value: cat.totalUnits ?? cat.count ?? 0,

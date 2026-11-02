@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -41,7 +41,7 @@ function useMount() {
   return m;
 }
 
-// ── Status badge ──
+// â”€â”€ Status badge â”€â”€
 function StatusBadge({ status }: { status: Rental["status"] }) {
   const { t } = useLanguage();
   const tr = (k: string, fb: string) => { const v = t(k); return v === k ? fb : v; };
@@ -54,8 +54,8 @@ function StatusBadge({ status }: { status: Rental["status"] }) {
     );
   if (status === "approved")
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-sm">
-        <CheckCircle2 className="w-3 h-3 text-indigo-600" />
+      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm">
+        <CheckCircle2 className="w-3 h-3 text-blue-600" />
         {tr("history.status_approved", "Disetujui")}
       </span>
     );
@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status: Rental["status"] }) {
   );
 }
 
-// ── Rental Card (gaya katalog: medium, presisi) ──
+// â”€â”€ Rental Card (gaya katalog: medium, presisi) â”€â”€
 function RentalCard({
   rental,
   mounted,
@@ -311,7 +311,7 @@ function RiwayatPeminjamanContent() {
   return (
     <UserLayout showSearch={false}>
       <div className="user-page-shell w-full min-w-0 space-y-6">
-        <div className={`user-page-hero relative overflow-hidden rounded-[1.35rem] px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#7c3aed] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
+        <div className={`user-page-hero relative overflow-hidden rounded-[1.35rem] px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#0785BC] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div className="absolute inset-0 bg-dot-grid-dark opacity-50" />
           <div className="absolute -right-14 -top-24 w-72 h-72 rounded-full bg-sky-400/30 blur-2xl" />
           <div className="absolute -left-16 -bottom-28 w-72 h-72 rounded-full bg-fuchsia-500/25 blur-2xl" />

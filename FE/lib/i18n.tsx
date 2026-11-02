@@ -21,6 +21,9 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "nav.logout": "Logout",
     "nav.profile_menu": "Profil Saya",
     "nav.settings": "Pengaturan",
+    "nav.open_profile": "Buka Profil Saya",
+    "nav.collapse": "Kecilkan Sidebar",
+    "nav.expand": "Perluas Sidebar",
     // Admin navigation
     "admin.nav.main": "Menu Utama",
     "admin.nav.dashboard": "Dashboard",
@@ -878,6 +881,9 @@ const STRINGS: Record<Lang, Record<string, string>> = {
     "nav.logout": "Logout",
     "nav.profile_menu": "My Profile",
     "nav.settings": "Settings",
+    "nav.open_profile": "Open My Profile",
+    "nav.collapse": "Collapse Sidebar",
+    "nav.expand": "Expand Sidebar",
     // Admin navigation
     "admin.nav.main": "Main Menu",
     "admin.nav.dashboard": "Dashboard",

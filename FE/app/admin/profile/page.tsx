@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -180,7 +180,7 @@ export default function ProfilePage() {
   const stats = [
     { label: t("admin_profile.stat_active", "Peminjaman Aktif"), value: "12", icon: Activity, color: "blue" },
     { label: t("admin_profile.stat_total", "Total Peminjaman"), value: "48", icon: Briefcase, color: "green" },
-    { label: t("admin_profile.stat_compliance", "Tingkat Kepatuhan"), value: "98%", icon: Award, color: "purple" },
+    { label: t("admin_profile.stat_compliance", "Tingkat Kepatuhan"), value: "98%", icon: Award, color: "sky" },
   ];
 
   const activityLog = [
@@ -370,8 +370,8 @@ export default function ProfilePage() {
 
                 {/* Department */}
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-                    <Briefcase className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center flex-shrink-0">
+                    <Briefcase className="w-5 h-5 text-sky-600" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-slate-500 mb-1">{t("admin_profile.dept_label", "Departemen")}</p>

@@ -144,7 +144,21 @@ const incrementStock = async (itemId, quantity) => {
   }
 };
 
+const adjustPackageStock = async (packageId, quantity, direction) => {
+  const qty = Number(quantity);
+  if (!packageId || !Number.isInteger(qty) || qty < 1) return null;
+  const rpcName = direction === 'decrement' ? 'decrement_package_stock' : 'increment_package_stock';
+  const { data, error } = await supabase.rpc(rpcName, { p_package_id: packageId, p_quantity: qty });
+  if (error) throw new AppError(error.message || 'Gagal memperbarui stok paket', 400);
+  return data;
+};
+
+const decrementPackageStock = (packageId, quantity) => adjustPackageStock(packageId, quantity, 'decrement');
+const incrementPackageStock = (packageId, quantity) => adjustPackageStock(packageId, quantity, 'increment');
+
 module.exports = {
   decrementStock,
-  incrementStock
+  incrementStock,
+  decrementPackageStock,
+  incrementPackageStock
 };

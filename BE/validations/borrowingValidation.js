@@ -11,6 +11,7 @@ const borrowingItemSchema = Joi.object({
 
 const createBorrowingSchema = Joi.object({
   user_id: Joi.string().uuid().optional(),
+  package_id: Joi.string().uuid().allow(null).optional(),
   purpose: Joi.string().trim().min(3).required().messages({
     'string.empty': 'Tujuan peminjaman wajib diisi'
   }),

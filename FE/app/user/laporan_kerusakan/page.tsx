@@ -20,7 +20,8 @@ import { UserLayout } from "@/components/user";
 import { useLanguage } from "@/lib/i18n";
 
 export default function UserDamageReportsPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const ui = (id: string, en: string, fallback: string) => lang === "en" ? en : t(id) === id ? fallback : t(id);
   const tr = (key: string, fallback: string) => {
     const value = t(key);
     return value === key ? fallback : value;
@@ -147,7 +148,7 @@ export default function UserDamageReportsPage() {
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300"><FileWarning className="h-5 w-5" /></div>
               <div>
-                <h2 className="text-base font-black text-slate-900 dark:text-white">Buat Laporan Baru</h2>
+                <h2 className="text-base font-black text-slate-900 dark:text-white">{ui("damage.new_title", "Create New Report", "Buat Laporan Baru")}</h2>
                 <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Lengkapi informasi berikut agar petugas dapat membantu dengan tepat.</p>
               </div>
             </div>
@@ -161,11 +162,11 @@ export default function UserDamageReportsPage() {
 
             <div className="grid gap-5 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">Peminjaman Terkait <span className="font-normal normal-case text-slate-400">(opsional)</span></label>
+                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">{ui("damage.related_borrowing", "Related Borrowing", "Peminjaman Terkait")} <span className="font-normal normal-case text-slate-400">(opsional)</span></label>
                 <div className="relative">
                   <Package className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0785BC]" />
                   <select value={borrowingId} onChange={(e) => handleBorrowingChange(e.target.value)} disabled={loading} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900">
-                    <option value="">{loading ? "Memuat peminjaman..." : "Pilih peminjaman"}</option>
+                    <option value="">{loading ? ui("damage.loading_borrowings", "Loading borrowings...", "Memuat peminjaman...") : ui("damage.select_borrowing", "Select borrowing", "Pilih peminjaman")}</option>
                     {borrowings.map((b) => <option key={b.id} value={b.id}>{b.borrow_code} · {b.purpose || "Peminjaman"}</option>)}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -177,7 +178,7 @@ export default function UserDamageReportsPage() {
                 <div className="relative">
                   <Package className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0785BC]" />
                   <select value={itemId} onChange={(e) => setItemId(e.target.value)} disabled={!selectedBorrowing} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900">
-                    <option value="">{selectedBorrowing ? "Pilih barang" : "Pilih peminjaman dahulu"}</option>
+                    <option value="">{selectedBorrowing ? ui("damage.select_item", "Select item", "Pilih barang") : ui("damage.select_borrowing_first", "Select a borrowing first", "Pilih peminjaman dahulu")}</option>
                     {selectedItems.map((row: any) => <option key={row.item_id || row.items?.id || row.item?.id} value={row.item_id || row.items?.id || row.item?.id}>{row.items?.name || row.item?.name || "Barang"}</option>)}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

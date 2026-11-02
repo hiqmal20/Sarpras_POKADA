@@ -6,7 +6,10 @@ const createReturnSchema = Joi.object({
   }),
   received_by: Joi.string().uuid().allow(null),
   return_date: Joi.date().iso().default(() => new Date().toISOString()),
-  condition: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat').default('Baik'),
+  condition: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat', 'Hilang').default('Baik'),
+  damage_description: Joi.string().allow('', null),
+  fine_amount: Joi.number().integer().min(0).default(0),
+  fine_reason: Joi.string().allow('', null),
   note: Joi.string().allow('', null),
   notes: Joi.string().allow('', null),
   items_condition: Joi.array().items(

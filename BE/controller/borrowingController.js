@@ -61,6 +61,32 @@ exports.createBorrowing = async (req, res, next) => {
   }
 };
 
+exports.checkActiveBorrowing = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const ACTIVE_STATUSES = ['Pending', 'Disetujui', 'Dipinjam', 'Terlambat'];
+
+    const supabase = require('../config/supabaseClient');
+    const { data: activeBorrowing } = await supabase
+      .from('borrowings')
+      .select('id, borrow_code, status, purpose, planned_return_date, created_at')
+      .eq('user_id', userId)
+      .in('status', ACTIVE_STATUSES)
+      .order('created_at', { ascending: false })
+      .maybeSingle();
+
+    return res.json({
+      status: 'success',
+      data: {
+        has_active_borrowing: !!activeBorrowing,
+        active_borrowing: activeBorrowing || null
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.updateBorrowingStatus = async (req, res, next) => {
   try {
     const payload = { ...req.body };

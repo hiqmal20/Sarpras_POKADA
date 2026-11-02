@@ -144,6 +144,9 @@ export default function PengembalianPage() {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmNote, setConfirmNote] = useState("");
   const [confirmCondition, setConfirmCondition] = useState("Baik");
+  const [damageDescription, setDamageDescription] = useState("");
+  const [fineAmount, setFineAmount] = useState("");
+  const [fineReason, setFineReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
@@ -403,9 +406,15 @@ export default function PengembalianPage() {
         borrowing_id: confirmingId,
         notes: confirmNote || "Dikonfirmasi admin",
         condition: confirmCondition,
+        damage_description: damageDescription || undefined,
+        fine_amount: fineAmount === "" ? 0 : Number(fineAmount),
+        fine_reason: fineReason || undefined,
       });
       setConfirmingId(null);
       setConfirmNote("");
+      setDamageDescription("");
+      setFineAmount("");
+      setFineReason("");
       toast.success("Pengembalian fisik berhasil diverifikasi dan stok telah dipulihkan!", "Barang Kembali");
       await fetchData();
     } catch (err: any) {
@@ -873,12 +882,19 @@ export default function PengembalianPage() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Kondisi Barang Saat Dikembalikan
                 </label>
                 <select
                   value={confirmCondition}
-                  onChange={(e) => setConfirmCondition(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmCondition(e.target.value);
+                    if (e.target.value === "Baik") {
+                      setDamageDescription("");
+                      setFineAmount("");
+                      setFineReason("");
+                    }
+                  }}
                   className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
                 >
                   <option value="Baik">Baik (Lengkap tanpa kerusakan)</option>
@@ -888,8 +904,41 @@ export default function PengembalianPage() {
                 </select>
               </div>
 
+              {confirmCondition !== "Baik" && (
+                <div className="space-y-4 rounded-xl border-[3px] border-slate-300 bg-white p-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Detail {confirmCondition === "Hilang" ? "Kehilangan" : "Kerusakan"}</label>
+                    <textarea rows={3} value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} placeholder="Jelaskan kondisi barang secara detail..." className="w-full text-sm border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Nominal Denda (Rp)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        min="0"
+                        value={fineAmount ? Number(fineAmount).toLocaleString("id-ID") : ""}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "");
+                          setFineAmount(digits);
+                        }}
+                        placeholder="0"
+                        className="w-full text-sm border border-slate-200 rounded-xl pl-10 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+                      />
+                    </div>
+                  </div>
+                  {Number(fineAmount || 0) > 0 && (
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">Alasan Penetapan Denda</label>
+                      <textarea rows={2} value={fineReason} onChange={(e) => setFineReason(e.target.value)} placeholder="Masukkan alasan denda..." className="w-full text-sm border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]" />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Catatan Pengembalian (Opsional)
                 </label>
                 <textarea

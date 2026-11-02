@@ -1,7 +1,7 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 const { sanitizeSearch } = require('../utils/sanitizeSearch');
-const { incrementStock } = require('../utils/stockManager');
+const { incrementStock, incrementPackageStock } = require('../utils/stockManager');
 
 exports.findAllReturns = async ({ user_id, search, page = 1, limit = 20 }) => {
   const offset = (page - 1) * limit;
@@ -101,7 +101,7 @@ exports.findReturnById = async (id) => {
   return returnData;
 };
 
-exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = new Date().toISOString(), condition = 'Baik', note = '', items_condition = [] }, options = {}) => {
+exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = new Date().toISOString(), condition = 'Baik', note = '', items_condition = [], damage_description = '', fine_amount = 0, fine_reason = '' }, options = {}) => {
   // 1. Cek peminjaman
   const { data: borrowing, error: bError } = await supabase
     .from('borrowings')
@@ -121,6 +121,16 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
     throw new AppError('Peminjaman ini sudah tercatat dikembalikan', 400);
   }
 
+  const { data: existingReturn, error: existingReturnError } = await supabase
+    .from('returns')
+    .select('id')
+    .eq('borrowing_id', borrowing_id)
+    .maybeSingle();
+  if (existingReturnError) throw existingReturnError;
+  if (existingReturn) {
+    throw new AppError('Pengembalian untuk peminjaman ini sudah diproses', 409);
+  }
+
   if (!['Disetujui', 'Dipinjam'].includes(borrowing.status)) {
     throw new AppError(`Pengembalian hanya bisa diproses untuk status Disetujui/Dipinjam (saat ini: ${borrowing.status})`, 400);
   }
@@ -137,7 +147,7 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
         received_by: received_by || null,
         return_date,
         condition,
-        note,
+        note: [note, damage_description, Number(fine_amount) > 0 ? `Denda: Rp ${Number(fine_amount).toLocaleString('id-ID')}. ${fine_reason}` : ''].filter(Boolean).join(' '),
         created_at: now
       }])
       .select()
@@ -158,6 +168,9 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
     if (borrowUpdateError) throw borrowUpdateError;
 
     // 4. Pulihkan stok & update kondisi barang
+    if (borrowing.package_id) {
+      await incrementPackageStock(borrowing.package_id, borrowing.package_quantity || 1);
+    }
     const { data: bItems } = await supabase
       .from('borrowings_items')
       .select('*')
@@ -177,8 +190,16 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
           if (condError) throw condError;
         }
 
-        // Kembalikan stok secara aman dari race condition
-        await incrementStock(bItem.item_id, bItem.quantity);
+        // Untuk paket, stok unit paket dipulihkan sekali di atas; komponen tidak dihitung ganda.
+        if (!borrowing.package_id) {
+          await incrementStock(bItem.item_id, bItem.quantity);
+        }
+        const returnedQty = Number(bItem.quantity_returned || 0) + Number(bItem.quantity || 0);
+        const { error: returnedQtyError } = await supabase
+          .from('borrowings_items')
+          .update({ quantity_returned: Math.min(returnedQty, Number(bItem.quantity || 0)) })
+          .eq('id', bItem.id);
+        if (returnedQtyError) throw returnedQtyError;
       }
     }
   } catch (err) {
@@ -189,6 +210,25 @@ exports.createReturnRecord = async ({ borrowing_id, received_by, return_date = n
       await supabase.from('borrowings').update({ status: borrowing.status, actual_return_date: borrowing.actual_return_date || null }).eq('id', borrowing_id);
     } catch (_) { /* best effort rollback */ }
     throw err instanceof AppError ? err : new AppError(`Gagal memproses pengembalian: ${err.message}`, 500);
+  }
+
+  // Simpan laporan kerusakan/kehilangan melalui modul yang sama agar riwayat terhubung.
+  if (condition !== 'Baik' && (damage_description || Number(fine_amount) > 0)) {
+    try {
+      const damageReportService = require('./damageReportService');
+      await damageReportService.createDamageReport({
+        user_id: borrowing.user_id,
+        borrowing_id,
+        title: condition === 'Hilang' ? 'Laporan kehilangan saat pengembalian' : 'Laporan kerusakan saat pengembalian',
+        description: damage_description || note || condition,
+        report_type: condition === 'Hilang' ? 'Kehilangan' : 'Kerusakan',
+        damage_type: borrowing.package_id ? 'per_package' : 'per_item',
+        fine_amount: Number(fine_amount) || 0,
+        fine_reason: fine_reason || ''
+      });
+    } catch (reportError) {
+      console.error('Gagal membuat laporan kondisi pengembalian:', reportError);
+    }
   }
 
   // 5. Notifikasi ke user peminjam

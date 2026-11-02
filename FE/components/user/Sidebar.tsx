@@ -83,7 +83,7 @@ export default function UserSidebar({
   onNavigate,
 }: UserSidebarProps) {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [unreadMsgCount, setUnreadMsgCount] = useState<number>(0);
@@ -158,10 +158,10 @@ export default function UserSidebar({
   const displayName = currentUser?.name || currentUser?.full_name || "User Sarpras";
   const userRole =
     currentUser?.role === "Admin"
-      ? "Administrator"
+      ? (lang === "en" ? "Administrator" : "Administrator")
       : currentUser?.role === "Petugas"
-        ? "Petugas"
-        : currentUser?.role || "Peminjam";
+        ? (lang === "en" ? "Staff" : "Petugas")
+        : currentUser?.role || (lang === "en" ? "Borrower" : "Peminjam");
   const initials =
     displayName
       .split(" ")
@@ -218,7 +218,7 @@ export default function UserSidebar({
           className={`p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${
             collapsed ? "hidden" : "block"
           }`}
-          title="Kecilkan Sidebar"
+          title={labelOf("nav.collapse", lang === "en" ? "Collapse Sidebar" : "Kecilkan Sidebar")}
         >
           <PanelLeftClose className="w-4 h-4" />
         </button>
@@ -229,7 +229,7 @@ export default function UserSidebar({
           <button
             onClick={handleToggle}
             className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            title="Perluas Sidebar"
+            title={labelOf("nav.expand", lang === "en" ? "Expand Sidebar" : "Perluas Sidebar")}
           >
             <PanelLeft className="w-4 h-4 text-[#0785BC] dark:text-sky-300" />
           </button>
@@ -300,7 +300,7 @@ export default function UserSidebar({
           className={`flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-800 hover:shadow-2xs transition-all ${
             collapsed ? "justify-center" : ""
           }`}
-          title={collapsed ? displayName : "Buka Profil Saya"}
+          title={collapsed ? displayName : labelOf("nav.open_profile", lang === "en" ? "Open My Profile" : "Buka Profil Saya")}
         >
           <div className="relative shrink-0">
             {currentUser?.foto ? (

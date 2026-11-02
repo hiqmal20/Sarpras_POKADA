@@ -446,6 +446,9 @@ export const api = {
       note?: string;
       notes?: string;
       condition?: string;
+      damage_description?: string;
+      fine_amount?: number;
+      fine_reason?: string;
     }) => {
       const normalized = {
         ...payload,

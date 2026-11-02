@@ -1,7 +1,7 @@
 const supabase = require('../config/supabaseClient');
 const AppError = require('../utils/appError');
 const { sanitizeSearch } = require('../utils/sanitizeSearch');
-const { decrementStock, incrementStock } = require('../utils/stockManager');
+const { decrementStock, incrementStock, decrementPackageStock } = require('../utils/stockManager');
 
 const normalizeQuantity = (value, itemId) => {
   const quantity = Number(value);
@@ -29,6 +29,7 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
       planned_return_date,
       actual_return_date,
       purpose,
+      package_id,
       status,
       admin_note,
       created_at,
@@ -119,7 +120,35 @@ exports.findBorrowingById = async (id) => {
   };
 };
 
-exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, return_date, planned_return_date }) => {
+exports.createBorrowingRequest = async ({ user_id, package_id, package_quantity = 1, purpose, items, borrow_date, return_date, planned_return_date }) => {
+  // Validasi: satu siswa hanya boleh punya satu peminjaman aktif
+  const ACTIVE_STATUSES = ['Pending', 'Disetujui', 'Dipinjam', 'Terlambat'];
+  const { data: activeBorrowing, error: activeCheckError } = await supabase
+    .from('borrowings')
+    .select('id, borrow_code, status')
+    .eq('user_id', user_id)
+    .in('status', ACTIVE_STATUSES)
+    .maybeSingle();
+
+  if (activeCheckError) throw activeCheckError;
+  if (activeBorrowing) {
+    throw new AppError(
+      `Anda masih memiliki peminjaman aktif (${activeBorrowing.borrow_code} - Status: ${activeBorrowing.status}). Selesaikan pengembalian terlebih dahulu sebelum mengajukan peminjaman baru.`,
+      409
+    );
+  }
+
+  // Satu transaksi boleh berisi beberapa jenis barang dan quantity berbeda.
+  // Pembatasan yang berlaku adalah satu peminjaman aktif per siswa,
+  // sehingga siswa tidak dapat membuat transaksi baru sebelum transaksi ini selesai.
+  const uniqueItemIds = [...new Set(items.map(i => i.item_id))];
+  if (uniqueItemIds.length !== items.length) {
+    throw new AppError(
+      'Jenis barang yang sama hanya boleh dicantumkan satu kali dengan quantity yang sesuai.',
+      400
+    );
+  }
+
   // Validasi ketersediaan stok
   for (const item of items) {
     const { data: itemData, error: itemError } = await supabase
@@ -154,6 +183,8 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
       borrow_code: borrowCode,
       borrow_date: borrow_date || now,
       planned_return_date: targetReturnDate,
+      package_id: package_id || null,
+      package_quantity: package_id ? normalizeQuantity(package_quantity, package_id) : 1,
       purpose,
       status: 'Pending',
       created_at: now
@@ -165,6 +196,7 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
 
   const stockAdjustments = [];
   try {
+    if (package_id) await decrementPackageStock(package_id, package_quantity);
     // Insert items & kurangi stok
     const borrowingItemsPayload = [];
     for (const item of items) {
@@ -178,9 +210,11 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
         note: item.note || ''
       });
 
-      // Kurangi stok dengan proteksi race condition (RPC lock / OCC retry)
-      await decrementStock(item.item_id, qty);
-      stockAdjustments.push({ item_id: item.item_id, qty });
+      // Paket memiliki stok unit tersendiri; komponen tidak dikurangi lagi agar stok fisik tidak dihitung ganda.
+      if (!package_id) {
+        await decrementStock(item.item_id, qty);
+        stockAdjustments.push({ item_id: item.item_id, qty });
+      }
     }
 
     const { error: insertItemsError } = await supabase
@@ -189,6 +223,9 @@ exports.createBorrowingRequest = async ({ user_id, purpose, items, borrow_date, 
 
     if (insertItemsError) throw insertItemsError;
   } catch (err) {
+    if (package_id) {
+      try { const { incrementPackageStock } = require('../utils/stockManager'); await incrementPackageStock(package_id, package_quantity); } catch (_) { /* best effort rollback */ }
+    }
     for (const adj of stockAdjustments) {
       try {
         await incrementStock(adj.item_id, adj.qty);
@@ -263,6 +300,10 @@ exports.updateStatus = async (id, { status, admin_note }) => {
     !['Ditolak', 'Dibatalkan', 'Dikembalikan'].includes(currentBorrowing.status);
 
   if (isCancelling && bItems) {
+    if (currentBorrowing.package_id) {
+      const { incrementPackageStock } = require('../utils/stockManager');
+      await incrementPackageStock(currentBorrowing.package_id, currentBorrowing.package_quantity || 1);
+    }
     for (const bItem of bItems) {
       await incrementStock(bItem.item_id, bItem.quantity);
     }
