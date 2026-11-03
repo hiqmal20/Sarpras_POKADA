@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/lib/i18n";
@@ -33,14 +34,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
     >
-      <head>
-        <script
+      <head />
+      <body className="min-h-full flex flex-col">
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem("app-theme");if(!t){try{var s=JSON.parse(localStorage.getItem("appSettings")||"{}");t=s&&s.theme;}catch(e){}}if(t!=="dark"&&t!=="light"){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}var p=location.pathname;var scoped=/^\\/user(?:\\/|$)/.test(p)||/^\\/admin(?:\\/|$)/.test(p);document.documentElement.classList.toggle("dark",t==="dark"&&scoped);document.documentElement.style.colorScheme=t==="dark"&&scoped?"dark":"light";}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem("app-theme");if(!t){try{var s=JSON.parse(localStorage.getItem("appSettings")||"{}");t=s&&s.theme;}catch(e){}}if(t!=="dark"&&t!=="light"){t=window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}var p=location.pathname;var scoped=/^\/user(?:\/|$)/.test(p)||/^\/admin(?:\/|$)/.test(p);document.documentElement.classList.toggle("dark",t==="dark"&&scoped);document.documentElement.style.colorScheme=t==="dark"&&scoped?"dark":"light";}catch(e){}})();`,
           }}
         />
-      </head>
-      <body className="min-h-full flex flex-col">
         <ThemeProvider>
           <LanguageProvider>
             {children}

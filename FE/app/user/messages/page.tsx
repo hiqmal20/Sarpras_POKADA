@@ -32,6 +32,7 @@ import {
 } from "@/lib/chatHelper";
 import { UserLayout } from "@/components/user";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface Conversation {
   id: string;
@@ -61,6 +62,7 @@ interface Message {
 }
 
 export default function UserMessagesPage() {
+  const { t, lang } = useLanguage();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -1121,12 +1123,12 @@ export default function UserMessagesPage() {
           {/* Header */}
           <div className="p-4 border-b border-slate-100">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-base font-bold text-slate-900">Pesan Bantuan</h2>
+              <h2 className="text-base font-bold text-slate-900">{t("chat.user_title", "Pesan Bantuan")}</h2>
               <span
                 className={`w-2.5 h-2.5 rounded-full transition-colors duration-200 ${
                   adminOnline ? "bg-emerald-500 animate-pulse shadow-[0_0_6px_rgba(16,185,129,0.7)]" : "bg-slate-300"
                 }`}
-                title={adminOnline ? "Admin Online — siap membalas" : `Admin Offline — ${formatLastSeen(adminLastSeen, false).text}`}
+                title={adminOnline ? t("msg.online", "Admin Online — siap membalas") : `Admin Offline — ${formatLastSeen(adminLastSeen, false).text}`}
               />
             </div>
 
@@ -1134,7 +1136,7 @@ export default function UserMessagesPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari percakapan..."
+                placeholder={t("chat.search_conv", "Cari percakapan...")}
                 value={searchConv}
                 onChange={(e) => setSearchConv(e.target.value)}
                 className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all"
@@ -1156,7 +1158,7 @@ export default function UserMessagesPage() {
               ))
             ) : filteredConvs.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Tidak ada percakapan aktif.
+                {t("msg.no_conv", "Tidak ada percakapan aktif.")}
               </div>
             ) : (
               filteredConvs.map((conv) => {
@@ -1256,10 +1258,10 @@ export default function UserMessagesPage() {
                   {adminOnline ? (
                     <>
                       <CircleDot className="w-3 h-3 text-emerald-500" />
-                      Petugas siap membalas — sedang online
+                      {t("msg.ready_online", "Petugas siap membalas — sedang online")}
                     </>
                   ) : (
-                    "Petugas siap membantu kendala dan pengajuan fasilitas Anda"
+                    t("msg.help_sub", "Petugas siap membantu kendala dan pengajuan fasilitas Anda")
                   )}
                 </p>
               </div>
@@ -1269,9 +1271,9 @@ export default function UserMessagesPage() {
               <button
                 type="button"
                 onClick={handleDeleteChat}
-                className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                title="Hapus percakapan"
-                aria-label="Hapus chat"
+                className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                title={t("chat.delete_conv", "Hapus percakapan")}
+                aria-label={t("chat.delete_conv", "Hapus chat")}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -1283,7 +1285,7 @@ export default function UserMessagesPage() {
             {loadingMessages ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-400">
                 <Loader2 className="w-8 h-8 animate-spin text-[#0785BC] mb-2" />
-                <p className="text-xs">Memuat riwayat chat...</p>
+                <p className="text-xs">{t("msg.loading_chat", "Memuat riwayat chat...")}</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-6">
@@ -1291,10 +1293,10 @@ export default function UserMessagesPage() {
                   <MessageSquare className="w-8 h-8" />
                 </div>
                 <h4 className="text-sm font-bold text-slate-800">
-                  Mulai Percakapan dengan Admin
+                  {t("msg.start_title", "Mulai Percakapan dengan Admin")}
                 </h4>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                  Silakan tanyakan ketersediaan barang, konfirmasi peminjaman, atau bantuan sarpras lainnya.
+                  {t("msg.start_sub", "Silakan tanyakan ketersediaan barang, konfirmasi peminjaman, atau bantuan sarpras lainnya.")}
                 </p>
               </div>
             ) : (
@@ -1592,7 +1594,7 @@ export default function UserMessagesPage() {
             {isAdminTyping && (
               <div className="flex items-center gap-2 text-slate-400 text-xs italic">
                 <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-xl shadow-2xs text-[11px] text-slate-500">
-                  Admin sedang mengetik...
+                  {t("chat.typing_admin", "Admin sedang mengetik...")}
                 </div>
               </div>
             )}
@@ -1607,7 +1609,7 @@ export default function UserMessagesPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0785BC]">
                     <Reply className="w-3 h-3" />
-                    <span>Membalas {replyingTo.senderName}</span>
+                    <span>{t("chat.replying_to", "Membalas")} {replyingTo.senderName}</span>
                   </div>
                   <p className="text-[11px] text-slate-600 truncate mt-0.5">
                     {replyingTo.text}
@@ -1616,8 +1618,8 @@ export default function UserMessagesPage() {
                 <button
                   type="button"
                   onClick={() => setReplyingTo(null)}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition-colors"
-                  title="Batal membalas"
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition-colors cursor-pointer"
+                  title={t("chat.cancel_reply", "Batal membalas")}
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -1638,7 +1640,7 @@ export default function UserMessagesPage() {
                     setReplyingTo(null);
                   }
                 }}
-                placeholder={replyingTo ? `Balas ke ${replyingTo.senderName}...` : "Tulis pesan ke admin..."}
+                placeholder={replyingTo ? `${t("chat.reply", "Balas")} ${replyingTo.senderName}...` : t("chat.type_user_ph", "Tulis pesan ke admin sarpras... (Enter untuk kirim)")}
                 disabled={sending || !activeId}
                 className="flex-1 min-w-0 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all text-slate-800 placeholder-slate-400"
               />
@@ -1653,7 +1655,7 @@ export default function UserMessagesPage() {
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    <span className="hidden sm:inline">Kirim</span>
+                    <span className="hidden sm:inline">{t("msg.send", "Kirim")}</span>
                   </>
                 )}
               </button>

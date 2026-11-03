@@ -38,8 +38,10 @@ import {
   Shield,
   Zap,
 } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 
 export default function LandingPage() {
+  const { t, lang } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeNav, setActiveNav] = useState<string>("beranda");
   const [activeTab, setActiveTab] = useState<string>("all");
@@ -341,7 +343,7 @@ export default function LandingPage() {
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                Beranda
+                {t("landing.nav_home", "Beranda")}
               </button>
               <button
                 onClick={() => handleScrollTo("alur-kerja")}
@@ -351,7 +353,7 @@ export default function LandingPage() {
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                Alur Kerja
+                {t("landing.nav_workflow", "Alur Kerja")}
               </button>
               <button
                 onClick={() => handleScrollTo("katalog")}
@@ -361,7 +363,7 @@ export default function LandingPage() {
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                Katalog Sarpras
+                {t("landing.nav_catalog", "Katalog Sarpras")}
               </button>
               <button
                 onClick={() => handleScrollTo("faq")}
@@ -371,7 +373,7 @@ export default function LandingPage() {
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/60"
                 }`}
               >
-                Bantuan & FAQ
+                {t("landing.nav_faq", "Bantuan & FAQ")}
               </button>
             </nav>
 
@@ -381,13 +383,13 @@ export default function LandingPage() {
                 href="/auth/login"
                 className="px-4 py-2 text-xs font-bold text-slate-700 hover:text-[#0785BC] hover:bg-slate-100/70 rounded-full transition-colors"
               >
-                Masuk Akun
+                {t("landing.nav_login", "Masuk Akun")}
               </Link>
               <Link
                 href="/auth/register"
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-full transition-all shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-full transition-all shadow-sm hover:shadow-md cursor-pointer"
               >
-                Daftar <ArrowRight className="w-3.5 h-3.5" />
+                {t("landing.nav_register", "Daftar")} <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 

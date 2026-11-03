@@ -58,6 +58,7 @@ function RoleBadge({ role }: { role: string }) {
 
 // ── Status badge ──
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage();
   const active = status !== "inactive" && status !== "Nonaktif";
   return (
     <span
@@ -68,7 +69,7 @@ function StatusBadge({ status }: { status: string }) {
       }`}
     >
       {active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
-      {active ? "Aktif" : "Nonaktif"}
+      {active ? t("common.active", "Aktif") : t("common.inactive", "Nonaktif")}
     </span>
   );
 }
@@ -440,7 +441,7 @@ export default function ManajemenUserPage() {
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-50 text-sky-700 border border-sky-200 mb-1.5">
                   MEMBERS
                 </span>
-                <p className="text-xs font-medium text-slate-500">Total Pengguna</p>
+                <p className="text-xs font-medium text-slate-500">{t("admin.users.kpi_total", "Total Pengguna")}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
                 <Users className="w-4 h-4" />
@@ -448,9 +449,9 @@ export default function ManajemenUserPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-slate-900 tabular-nums tracking-tight">
-                {loading ? "..." : allUsersStats.total || total} <span className="text-xs text-slate-500 font-normal">akun terdaftar</span>
+                {loading ? "..." : allUsersStats.total || total} <span className="text-xs text-slate-500 font-normal">{lang === "en" ? "registered accounts" : "akun terdaftar"}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Mahasiswa, Dosen, & Staf Kampus</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Students, Lecturers, & Campus Staff" : "Mahasiswa, Dosen, & Staf Kampus"}</p>
             </div>
           </div>
 
@@ -460,7 +461,7 @@ export default function ManajemenUserPage() {
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-1.5">
                   PRIVILEGED
                 </span>
-                <p className="text-xs font-medium text-slate-500">Admin & Petugas</p>
+                <p className="text-xs font-medium text-slate-500">{t("admin.users.kpi_active", "Admin & Petugas")}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <UserCheck className="w-4 h-4" />
@@ -468,9 +469,9 @@ export default function ManajemenUserPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
-                {loading ? "..." : allUsersStats.admins} <span className="text-xs text-emerald-700/60 font-normal">operator aktif</span>
+                {loading ? "..." : allUsersStats.admins} <span className="text-xs text-emerald-700/60 font-normal">{lang === "en" ? "active operators" : "operator aktif"}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Mengelola hak akses operasional sarpras</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Manage operational access rights" : "Mengelola hak akses operasional sarpras"}</p>
             </div>
           </div>
 
@@ -480,7 +481,7 @@ export default function ManajemenUserPage() {
                 <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 mb-1.5">
                   DEACTIVATED
                 </span>
-                <p className="text-xs font-medium text-slate-500">Akun Nonaktif</p>
+                <p className="text-xs font-medium text-slate-500">{t("admin.users.kpi_inactive", "Akun Nonaktif")}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                 <UserX className="w-4 h-4" />
@@ -488,9 +489,9 @@ export default function ManajemenUserPage() {
             </div>
             <div className="mt-3">
               <p className="text-2xl font-black text-rose-600 tabular-nums tracking-tight">
-                {loading ? "..." : allUsersStats.inactive} <span className="text-xs text-rose-700/60 font-normal">akun terkunci</span>
+                {loading ? "..." : allUsersStats.inactive} <span className="text-xs text-rose-700/60 font-normal">{lang === "en" ? "locked accounts" : "akun terkunci"}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Dibekukan atau dinonaktifkan</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Frozen or deactivated" : "Dibekukan atau dinonaktifkan"}</p>
             </div>
           </div>
         </div>
@@ -661,11 +662,11 @@ export default function ManajemenUserPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 my-auto animate-scale-in">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h2 className="text-base font-bold text-slate-900">
-                {editingUser ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+                {editingUser ? t("admin.users.modal_edit_title", "Edit Pengguna") : t("admin.users.modal_add_title", "Tambah Pengguna Baru")}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -673,19 +674,19 @@ export default function ManajemenUserPage() {
 
             <form onSubmit={handleSaveUser} className="space-y-3.5 text-xs">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap *</label>
+                <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_name", "Nama Lengkap *")}</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                  placeholder="contoh: Ahmad Santoso"
+                  placeholder={t("admin.users.field_name_ph", "contoh: Ahmad Santoso")}
                 />
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Email *</label>
+                <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_email", "Email *")}</label>
                 <input
                   type="email"
                   required
@@ -695,28 +696,28 @@ export default function ManajemenUserPage() {
                   className={`w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] ${
                     editingUser ? "bg-slate-50 text-slate-400 cursor-not-allowed" : ""
                   }`}
-                  placeholder="ahmad@campus.ac.id"
+                  placeholder={t("admin.users.field_email_ph", "ahmad@campus.ac.id")}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nomor Induk (NIM/NIP)</label>
+                  <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_id", "Nomor Induk (NIM/NIP)")}</label>
                   <input
                     type="text"
                     value={formData.nomor_induk}
                     onChange={(e) => setFormData({ ...formData, nomor_induk: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                    placeholder="210403..."
+                    placeholder={t("admin.users.field_id_ph", "210403...")}
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Peran *</label>
+                  <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_role", "Peran *")}</label>
                   <select
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] cursor-pointer"
                   >
                     <option value="Mahasiswa">Mahasiswa</option>
                     <option value="Dosen">Dosen</option>
@@ -728,38 +729,38 @@ export default function ManajemenUserPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Nomor WhatsApp / HP</label>
+                  <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_phone", "Nomor WhatsApp / HP")}</label>
                   <input
                     type="tel"
                     value={formData.no_hp}
                     onChange={(e) => setFormData({ ...formData, no_hp: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                    placeholder="081234..."
+                    placeholder={t("admin.users.field_phone_ph", "081234...")}
                   />
                 </div>
 
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Status Akun</label>
+                  <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_status", "Status Akun")}</label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] cursor-pointer"
                   >
-                    <option value="Aktif">Aktif</option>
-                    <option value="Nonaktif">Nonaktif</option>
+                    <option value="Aktif">{t("common.active", "Aktif")}</option>
+                    <option value="Nonaktif">{t("common.inactive", "Nonaktif")}</option>
                   </select>
                 </div>
               </div>
 
               {!editingUser && (
                 <div>
-                  <label className="block font-semibold text-slate-700 mb-1">Password Sementara</label>
+                  <label className="block font-semibold text-slate-700 mb-1">{t("admin.users.field_pass", "Password Sementara")}</label>
                   <input
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                    placeholder="Default: Pokada@123"
+                    placeholder={t("admin.users.field_pass_ph", "Default: Pokada@123")}
                   />
                 </div>
               )}
@@ -768,17 +769,17 @@ export default function ManajemenUserPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl"
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl cursor-pointer"
                 >
-                  Batal
+                  {t("common.cancel", "Batal")}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#0785BC] text-white font-semibold rounded-xl hover:bg-[#0672a0] disabled:opacity-60 transition-all shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 bg-[#0785BC] text-white font-semibold rounded-xl hover:bg-[#0672a0] disabled:opacity-60 transition-all shadow-sm cursor-pointer"
                 >
                   {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  {editingUser ? "Simpan Perubahan" : "Buat Pengguna"}
+                  {editingUser ? t("common.save_changes", "Simpan Perubahan") : t("admin.users.modal_add_title", "Buat Pengguna")}
                 </button>
               </div>
             </form>

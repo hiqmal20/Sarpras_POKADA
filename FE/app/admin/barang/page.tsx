@@ -355,7 +355,7 @@ function BarangContent() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Hapus barang ini?")) return;
+    if (!confirm(t("admin.items.delete_confirm", "Apakah Anda yakin ingin menghapus barang ini?"))) return;
     try {
       const res = await api.items.delete(id);
       if (res.status === "success") {
@@ -966,8 +966,8 @@ function BarangContent() {
                           </label>
                         )}
                         <div className="text-[11px] text-slate-400 leading-relaxed">
-                          <p className="font-medium text-slate-600">Unggah foto fisik barang</p>
-                          <p>Format: JPG, PNG, WEBP (Maksimal 3MB)</p>
+                          <p className="font-medium text-slate-600">{lang === "en" ? "Upload physical item photo" : "Unggah foto fisik barang"}</p>
+                          <p>{lang === "en" ? "Format: JPG, PNG, WEBP (Max 3MB)" : "Format: JPG, PNG, WEBP (Maksimal 3MB)"}</p>
                         </div>
                       </div>
                     </div>
@@ -998,10 +998,10 @@ function BarangContent() {
                         }}
                         className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all cursor-pointer"
                       >
-                        <option value="Tersedia">Tersedia (Siap Dipinjam)</option>
-                        <option value="Stok Kosong">Stok Kosong / Habis (Tidak Bisa Dipinjam)</option>
-                        <option value="Dipinjam">Dipinjam (Sedang Digunakan)</option>
-                        <option value="Dalam Pemeliharaan">Dalam Pemeliharaan / Perbaikan</option>
+                        <option value="Tersedia">{lang === "en" ? "Available (Ready to Borrow)" : "Tersedia (Siap Dipinjam)"}</option>
+                        <option value="Stok Kosong">{lang === "en" ? "Out of Stock (Cannot Borrow)" : "Stok Kosong / Habis (Tidak Bisa Dipinjam)"}</option>
+                        <option value="Dipinjam">{lang === "en" ? "Borrowed (In Use)" : "Dipinjam (Sedang Digunakan)"}</option>
+                        <option value="Dalam Pemeliharaan">{lang === "en" ? "Maintenance / Repair" : "Dalam Pemeliharaan / Perbaikan"}</option>
                       </select>
                     </div>
 
@@ -1015,9 +1015,9 @@ function BarangContent() {
                         onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                         className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] text-xs font-medium text-slate-800 transition-all cursor-pointer"
                       >
-                        <option value="Baik">Baik (Berfungsi Normal)</option>
-                        <option value="Rusak Ringan">Rusak Ringan (Bisa Digunakan)</option>
-                        <option value="Rusak Berat">Rusak Berat (Tidak Berfungsi)</option>
+                        <option value="Baik">{lang === "en" ? "Good (Normal Function)" : "Baik (Berfungsi Normal)"}</option>
+                        <option value="Rusak Ringan">{lang === "en" ? "Slight Damage (Usable)" : "Rusak Ringan (Bisa Digunakan)"}</option>
+                        <option value="Rusak Berat">{lang === "en" ? "Heavy Damage (Not Functional)" : "Rusak Berat (Tidak Berfungsi)"}</option>
                       </select>
                     </div>
                   </div>
@@ -1084,7 +1084,7 @@ function BarangContent() {
                         </select>
                         {!formData.category_id && (
                           <p className="text-[10px] text-amber-600 mt-1 font-medium">
-                            * Wajib dipilih agar data barang terhubung ke kategori yang tepat
+                            {lang === "en" ? "* Required to link item to correct category" : "* Wajib dipilih agar data barang terhubung ke kategori yang tepat"}
                           </p>
                         )}
                       </div>
@@ -1142,7 +1142,7 @@ function BarangContent() {
                             }}
                             className="text-[10px] font-bold text-[#0785BC] hover:underline cursor-pointer"
                           >
-                            Set = Total Stok
+                            {lang === "en" ? "Set = Total Stock" : "Set = Total Stok"}
                           </button>
                         </div>
                         <div className="flex items-center gap-2">

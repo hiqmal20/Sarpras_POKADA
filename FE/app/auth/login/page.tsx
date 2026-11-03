@@ -12,9 +12,11 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { api, setCurrentUser, setAuthToken, setRefreshToken } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState("");
   const [nomorInduk, setNomorInduk] = useState("");
@@ -174,7 +176,7 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#0785BC] transition-colors"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  Kembali ke Beranda
+                  {t("auth.back_home", "Kembali ke Beranda")}
                 </Link>
               </div>
 
@@ -214,11 +216,11 @@ export default function LoginPage() {
                   text-slate-900
                 "
               >
-                Selamat Datang
+                {t("auth.login_title", "Selamat Datang")}
               </h1>
 
               <p className="mt-1.5 text-[12px] text-slate-600">
-                Silakan masuk menggunakan Email, Nomor Induk, dan Password Anda
+                {t("auth.login_sub", "Silakan masuk menggunakan Email, Nomor Induk, dan Password Anda")}
               </p>
             </div>
 
@@ -248,7 +250,7 @@ export default function LoginPage() {
             >
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  Email atau Nama Pengguna
+                  {t("auth.identifier_label", "Email atau Nama Pengguna")}
                 </label>
 
                 <div className="relative">
@@ -271,7 +273,7 @@ export default function LoginPage() {
 
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  Nomor Induk
+                  {t("auth.nim_label", "Nomor Induk")}
                 </label>
 
                 <div className="relative">
@@ -286,7 +288,7 @@ export default function LoginPage() {
                     required
                     value={nomorInduk}
                     onChange={(e) => setNomorInduk(e.target.value)}
-                    placeholder="Masukkan Nomor Induk"
+                    placeholder={t( "Masukkan Nomor Induk")}
                     className={inputClass}
                   />
                 </div>
@@ -295,7 +297,7 @@ export default function LoginPage() {
               <div>
                 <div className="mb-1.5 flex items-center justify-between">
                   <label className={labelClass}>
-                    Password
+                    {t("auth.password_label", "Password")}
                   </label>
                 </div>
 
@@ -365,15 +367,16 @@ export default function LoginPage() {
                   focus:ring-[#0785BC]/30
                   disabled:cursor-not-allowed
                   disabled:opacity-50
+                  cursor-pointer
                 "
               >
-                {loading ? "Memproses..." : "Masuk"}
+                {loading ? t("auth.logging_in", "Memproses...") : t("auth.login_btn", "Masuk")}
               </button>
             </form>
 
             <div className="relative mt-5 text-center">
               <p className="text-[11px] text-slate-600">
-                Belum punya akun?{" "}
+                {t("auth.no_account", "Belum punya akun?")}{" "}
                 <Link
                   href="/auth/register"
                   className="
@@ -383,7 +386,7 @@ export default function LoginPage() {
                     hover:text-[#0672a0]
                   "
                 >
-                  Daftar di sini
+                  {t("auth.register_link", "Daftar di sini")}
                 </Link>
               </p>
             </div>

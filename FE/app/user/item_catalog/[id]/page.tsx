@@ -420,7 +420,7 @@ export default function ItemDetailPage() {
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <Boxes className="w-3.5 h-3.5 text-[#0785BC]" />
-                        <span>Kategori</span>
+                        <span>{tr("admin.items.th_category", "Kategori")}</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
                         {item?.category || "Umum"}
@@ -430,30 +430,30 @@ export default function ItemDetailPage() {
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>Kondisi</span>
+                        <span>{tr("admin.items.th_condition", "Kondisi")}</span>
                       </div>
                       <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        Baik & Siap Pakai
+                        {lang === "en" ? "Good & Ready to Use" : "Baik & Siap Pakai"}
                       </p>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <Package className="w-3.5 h-3.5 text-blue-500" />
-                        <span>Tipe Peminjaman</span>
+                        <span>{lang === "en" ? "Borrow Type" : "Tipe Peminjaman"}</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        Per Satuan (Item)
+                        {lang === "en" ? "Per Unit (Item)" : "Per Satuan (Item)"}
                       </p>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <Clock className="w-3.5 h-3.5 text-amber-500" />
-                        <span>Verifikasi</span>
+                        <span>{lang === "en" ? "Verification" : "Verifikasi"}</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        Persetujuan Admin
+                        {lang === "en" ? "Admin Approval" : "Persetujuan Admin"}
                       </p>
                     </div>
                   </div>
@@ -462,20 +462,20 @@ export default function ItemDetailPage() {
                   <div className="rounded-2xl bg-blue-50/60 dark:bg-sky-950/30 border border-blue-100/80 dark:border-sky-900/50 p-4 space-y-2">
                     <p className="text-[11px] font-bold text-[#0785BC] dark:text-sky-300 uppercase tracking-wider flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      Ketentuan Peminjaman
+                      {lang === "en" ? "Borrowing Terms" : "Ketentuan Peminjaman"}
                     </p>
                     <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
                       <li className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Wajib menjaga kebersihan dan fisik barang selama peminjaman.</span>
+                        <span>{lang === "en" ? "Must maintain cleanliness and physical condition during borrowing." : "Wajib menjaga kebersihan dan fisik barang selama peminjaman."}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Kembalikan tepat waktu sesuai tanggal rencana pengembalian.</span>
+                        <span>{lang === "en" ? "Return on time according to the planned return date." : "Kembalikan tepat waktu sesuai tanggal rencana pengembalian."}</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Laporkan ke admin jika terjadi kendala saat serah terima barang.</span>
+                        <span>{lang === "en" ? "Report to admin if any issues occur during handover." : "Laporkan ke admin jika terjadi kendala saat serah terima barang."}</span>
                       </li>
                     </ul>
                   </div>
@@ -526,13 +526,13 @@ export default function ItemDetailPage() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold text-[#0785BC] dark:text-sky-300 uppercase tracking-wide">
-                    Barang Utama (1 Unit)
+                    {lang === "en" ? "Primary Item (1 Unit)" : "Barang Utama (1 Unit)"}
                   </span>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {item?.name || "Memuat barang..."}
+                    {item?.name || (lang === "en" ? "Loading item..." : "Memuat barang...")}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    Kategori: {item?.category || "-"}
+                    {tr("admin.items.th_category", "Kategori")}: {item?.category || "-"}
                   </p>
                 </div>
               </div>
@@ -542,10 +542,10 @@ export default function ItemDetailPage() {
                 <CalendarDays className="w-4 h-4 text-[#0785BC]" />
                 {durationDays ? (
                   <span>
-                    Durasi: <b className="text-[#0785BC] dark:text-sky-300">{durationDays} Hari</b>
+                    {lang === "en" ? "Duration:" : "Durasi:"} <b className="text-[#0785BC] dark:text-sky-300">{durationDays} {lang === "en" ? "Days" : "Hari"}</b>
                   </span>
                 ) : (
-                  <span className="text-slate-400">Pilih rentang tanggal</span>
+                  <span className="text-slate-400">{lang === "en" ? "Select date range" : "Pilih rentang tanggal"}</span>
                 )}
               </div>
             </div>
@@ -562,16 +562,16 @@ export default function ItemDetailPage() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               {/* Quantity */}
               <div>
-                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">Jumlah Barang</label>
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">{lang === "en" ? "Item Quantity" : "Jumlah Barang"}</label>
                 <input type="number" min={1} max={currentStock} step={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full px-3.5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/60" />
-                <p className="text-[11px] text-slate-500 mt-1">Stok tersedia: {currentStock} unit</p>
+                <p className="text-[11px] text-slate-500 mt-1">{tr("admin.items.avail_stock", "Stok tersedia")}: {currentStock} {tr("common.units", "unit")}</p>
               </div>
 
               {/* Tanggal Mulai & Tanggal Selesai */}
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">
                   <Calendar className="w-4 h-4 text-[#0785BC]" />
-                  <span>Jadwal Peminjaman Barang <span className="text-rose-500">*</span></span>
+                  <span>{lang === "en" ? "Borrowing Schedule" : "Jadwal Peminjaman Barang"} <span className="text-rose-500">*</span></span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="relative">
@@ -727,9 +727,9 @@ export default function ItemDetailPage() {
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
                 <Info className="w-4 h-4 text-[#0785BC] shrink-0 mt-0.5" />
                 <span>
-                  Pengajuan akan diteruskan ke admin sarpras untuk verifikasi. Anda dapat memantau status secara langsung di halaman{" "}
+                  {lang === "en" ? "Your application will be forwarded to the sarpras admin for verification. You can track status directly on the " : "Pengajuan akan diteruskan ke admin sarpras untuk verifikasi. Anda dapat memantau status secara langsung di halaman "}
                   <Link href="/user/riwayat_peminjaman" className="text-[#0785BC] font-semibold hover:underline">
-                    Riwayat Peminjaman
+                    {tr("nav.history", "Riwayat Peminjaman")}
                   </Link>.
                 </span>
               </div>
@@ -748,12 +748,12 @@ export default function ItemDetailPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Mengirim Pengajuan...</span>
+                      <span>{lang === "en" ? "Submitting Application..." : "Mengirim Pengajuan..."}</span>
                     </>
                   ) : emptyStock ? (
                     <>
                       <Clock className="w-4 h-4" />
-                      <span>Stok Barang Habis / Tidak Tersedia</span>
+                      <span>{lang === "en" ? "Out of Stock / Unavailable" : "Stok Barang Habis / Tidak Tersedia"}</span>
                     </>
                   ) : (
                     <>

@@ -123,10 +123,10 @@ export default function UserDamageReportsPage() {
               <Wrench className="h-8 w-8 text-cyan-100" />
             </div>
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100">Sarpras Pokada · Pusat Bantuan</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-100">Sarpras Pokada · {lang === "en" ? "Help Center" : "Pusat Bantuan"}</p>
               <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl">{tr("damage.title", "Laporan Kerusakan")}</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-cyan-50/90">
-                Laporkan barang yang mengalami kerusakan atau kendala agar dapat segera diperiksa oleh petugas.
+                {lang === "en" ? "Report damaged assets or issues for immediate inspection by facility staff." : "Laporkan barang yang mengalami kerusakan atau kendala agar dapat segera diperiksa oleh petugas."}
               </p>
             </div>
           </div>
@@ -149,7 +149,9 @@ export default function UserDamageReportsPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-100 text-rose-600 dark:bg-rose-950/50 dark:text-rose-300"><FileWarning className="h-5 w-5" /></div>
               <div>
                 <h2 className="text-base font-black text-slate-900 dark:text-white">{ui("damage.new_title", "Create New Report", "Buat Laporan Baru")}</h2>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Lengkapi informasi berikut agar petugas dapat membantu dengan tepat.</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                  {lang === "en" ? "Fill in the following details so facility officers can assist promptly." : "Lengkapi informasi berikut agar petugas dapat membantu dengan tepat."}
+                </p>
               </div>
             </div>
           </div>
@@ -157,53 +159,56 @@ export default function UserDamageReportsPage() {
           <div className="space-y-6 p-6 sm:p-8">
             <div className="flex items-start gap-3 rounded-2xl border border-cyan-100 bg-gradient-to-r from-cyan-50 to-blue-50 p-4 text-xs text-slate-600 dark:border-cyan-900/50 dark:from-cyan-950/40 dark:to-blue-950/40 dark:text-slate-300">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#0785BC]" />
-              <p><span className="font-black text-slate-800 dark:text-white">Tips pengisian:</span> pilih peminjaman terkait, sebutkan kerusakan dengan jelas, dan tambahkan foto jika tersedia.</p>
+              <p>
+                <span className="font-black text-slate-800 dark:text-white">{lang === "en" ? "Tips:" : "Tips pengisian:"}</span>{" "}
+                {lang === "en" ? "select the associated borrowing, clearly describe the damage, and attach photos if available." : "pilih peminjaman terkait, sebutkan kerusakan dengan jelas, dan tambahkan foto jika tersedia."}
+              </p>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
               <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">{ui("damage.related_borrowing", "Related Borrowing", "Peminjaman Terkait")} <span className="font-normal normal-case text-slate-400">(opsional)</span></label>
+                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">{ui("damage.related_borrowing", "Related Borrowing", "Peminjaman Terkait")} <span className="font-normal normal-case text-slate-400">({lang === "en" ? "optional" : "opsional"})</span></label>
                 <div className="relative">
                   <Package className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0785BC]" />
-                  <select value={borrowingId} onChange={(e) => handleBorrowingChange(e.target.value)} disabled={loading} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900">
+                  <select value={borrowingId} onChange={(e) => handleBorrowingChange(e.target.value)} disabled={loading} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900 cursor-pointer">
                     <option value="">{loading ? ui("damage.loading_borrowings", "Loading borrowings...", "Memuat peminjaman...") : ui("damage.select_borrowing", "Select borrowing", "Pilih peminjaman")}</option>
-                    {borrowings.map((b) => <option key={b.id} value={b.id}>{b.borrow_code} · {b.purpose || "Peminjaman"}</option>)}
+                    {borrowings.map((b) => <option key={b.id} value={b.id}>{b.borrow_code} · {b.purpose || (lang === "en" ? "Borrowing" : "Peminjaman")}</option>)}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">Barang yang Bermasalah <span className="font-normal normal-case text-slate-400">(opsional)</span></label>
+                <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">{lang === "en" ? "Damaged Item" : "Barang yang Bermasalah"} <span className="font-normal normal-case text-slate-400">({lang === "en" ? "optional" : "opsional"})</span></label>
                 <div className="relative">
                   <Package className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0785BC]" />
-                  <select value={itemId} onChange={(e) => setItemId(e.target.value)} disabled={!selectedBorrowing} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900">
+                  <select value={itemId} onChange={(e) => setItemId(e.target.value)} disabled={!selectedBorrowing} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-10 pr-10 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900 cursor-pointer">
                     <option value="">{selectedBorrowing ? ui("damage.select_item", "Select item", "Pilih barang") : ui("damage.select_borrowing_first", "Select a borrowing first", "Pilih peminjaman dahulu")}</option>
-                    {selectedItems.map((row: any) => <option key={row.item_id || row.items?.id || row.item?.id} value={row.item_id || row.items?.id || row.item?.id}>{row.items?.name || row.item?.name || "Barang"}</option>)}
+                    {selectedItems.map((row: any) => <option key={row.item_id || row.items?.id || row.item?.id} value={row.item_id || row.items?.id || row.item?.id}>{row.items?.name || row.item?.name || (lang === "en" ? "Item" : "Barang")}</option>)}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
-                {selectedItemName && <p className="mt-2 flex items-center gap-1 text-[11px] font-bold text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> {selectedItemName} terpilih</p>}
+                {selectedItemName && <p className="mt-2 flex items-center gap-1 text-[11px] font-bold text-emerald-600"><CheckCircle2 className="h-3.5 w-3.5" /> {selectedItemName} {lang === "en" ? "selected" : "terpilih"}</p>}
               </div>
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">Judul Laporan <span className="font-normal normal-case text-slate-400">(opsional)</span></label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Contoh: Kabel proyektor tidak menyala" className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-900" />
+              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">{lang === "en" ? "Report Title" : "Judul Laporan"} <span className="font-normal normal-case text-slate-400">({lang === "en" ? "optional" : "opsional"})</span></label>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={lang === "en" ? "e.g., Projector HDMI cable does not display signal" : "Contoh: Kabel proyektor tidak menyala"} className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-900" />
             </div>
 
             <div>
-              <div className="mb-2 flex items-center justify-between"><label className="text-xs font-black uppercase tracking-wide text-slate-500">Deskripsi Kerusakan <span className="text-rose-500">*</span></label><span className="text-[11px] text-slate-400">{description.length}/500</span></div>
-              <textarea required maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder="Jelaskan bagian yang rusak, gejala yang muncul, kapan mulai terjadi, dan kronologinya..." className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-900" />
+              <div className="mb-2 flex items-center justify-between"><label className="text-xs font-black uppercase tracking-wide text-slate-500">{lang === "en" ? "Damage Description" : "Deskripsi Kerusakan"} <span className="text-rose-500">*</span></label><span className="text-[11px] text-slate-400">{description.length}/500</span></div>
+              <textarea required maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} rows={6} placeholder={lang === "en" ? "Explain the damaged part, symptoms, when it occurred, and chronology..." : "Jelaskan bagian yang rusak, gejala yang muncul, kapan mulai terjadi, dan kronologinya..."} className="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#0785BC] focus:bg-white focus:ring-4 focus:ring-[#0785BC]/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-900" />
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">Foto Kerusakan <span className="font-normal normal-case text-slate-400">(opsional)</span></label>
+              <label className="mb-2 block text-xs font-black uppercase tracking-wide text-slate-500">{lang === "en" ? "Damage Photo" : "Foto Kerusakan"} <span className="font-normal normal-case text-slate-400">({lang === "en" ? "optional" : "opsional"})</span></label>
               {!photoUrl ? (
                 <label className="group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 px-5 text-center transition hover:border-[#0785BC]/60 hover:bg-cyan-50/50 dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-cyan-700">
                   <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-[#0785BC] shadow-sm transition group-hover:scale-105 dark:bg-slate-700"><ImagePlus className="h-5 w-5" /></div>
-                  <span className="text-xs font-black text-slate-700 dark:text-slate-200">Klik untuk unggah foto</span>
-                  <span className="mt-1 text-[11px] text-slate-400">Format JPG, PNG atau WEBP (Maksimal 3MB)</span>
+                  <span className="text-xs font-black text-slate-700 dark:text-slate-200">{lang === "en" ? "Click to upload photo" : "Klik untuk unggah foto"}</span>
+                  <span className="mt-1 text-[11px] text-slate-400">{lang === "en" ? "JPG, PNG or WEBP (Max 3MB)" : "Format JPG, PNG atau WEBP (Maksimal 3MB)"}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -212,7 +217,7 @@ export default function UserDamageReportsPage() {
                       const file = event.target.files?.[0];
                       if (!file) return;
                       if (file.size > 3 * 1024 * 1024) {
-                        setFeedback({ type: "error", text: "Ukuran gambar melebihi batas maksimal 3MB." });
+                        setFeedback({ type: "error", text: lang === "en" ? "Image exceeds maximum 3MB." : "Ukuran gambar melebihi batas maksimal 3MB." });
                         event.target.value = "";
                         return;
                       }
@@ -228,10 +233,10 @@ export default function UserDamageReportsPage() {
             </div>
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800">
-              <div className="flex items-center gap-2 text-[11px] text-slate-400"><ShieldCheck className="h-4 w-4 text-emerald-500" /> Data laporan akan diperiksa oleh admin.</div>
+              <div className="flex items-center gap-2 text-[11px] text-slate-400"><ShieldCheck className="h-4 w-4 text-emerald-500" /> {lang === "en" ? "Report data will be reviewed by admin." : "Data laporan akan diperiksa oleh admin."}</div>
               <button disabled={sending} className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#0785BC] to-[#0aa5e0] px-7 text-sm font-black text-white shadow-lg shadow-cyan-700/20 transition hover:-translate-y-0.5 hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer">
                 {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {sending ? "Mengirim laporan..." : "Kirim Laporan"}
+                {sending ? (lang === "en" ? "Submitting report..." : "Mengirim laporan...") : (lang === "en" ? "Submit Report" : "Kirim Laporan")}
               </button>
             </div>
           </div>

@@ -129,13 +129,14 @@ function useMount() {
   return m;
 }
 
-// â”€â”€ Modern Status Badge â”€â”€
+// ── Modern Status Badge ──
 function StatusBadge({ status }: { status: ReportStatus }) {
+  const { t, lang } = useLanguage();
   if (status === "pending") {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs">
         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-        Menunggu Review
+        {t("admin.damage.kpi_pending", "Menunggu Review")}
       </span>
     );
   }
@@ -143,14 +144,14 @@ function StatusBadge({ status }: { status: ReportStatus }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-        Sedang Diperbaiki
+        {t("admin.damage.kpi_repair", "Sedang Diperbaiki")}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs">
       <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
-      Selesai
+      {t("modal.st_done", "Selesai")}
     </span>
   );
 }
@@ -841,7 +842,7 @@ export default function RekapLaporanPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                   REVIEW REQUIRED
                 </span>
-                <p className="text-xs font-medium text-slate-500">Menunggu Tindak Lanjut</p>
+                <p className="text-xs font-medium text-slate-500">{lang === "en" ? "Awaiting Follow-up" : "Menunggu Tindak Lanjut"}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
                 <FileText className="w-4 h-4" />
@@ -850,9 +851,9 @@ export default function RekapLaporanPage() {
 
             <div className="mt-3">
               <h3 className="text-2xl font-black tracking-tight tabular-nums text-slate-900">
-                {globalStats.pending} <span className="text-xs text-slate-500 font-normal font-sans">laporan</span>
+                {globalStats.pending} <span className="text-xs text-slate-500 font-normal font-sans">{lang === "en" ? "reports" : "laporan"}</span>
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Butuh review & konfirmasi admin</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Needs admin review & confirmation" : "Butuh review & konfirmasi admin"}</p>
             </div>
           </div>
 
@@ -874,7 +875,7 @@ export default function RekapLaporanPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
                   IN REPAIR
                 </span>
-                <p className="text-xs font-medium text-slate-500">Sedang Dikerjakan</p>
+                <p className="text-xs font-medium text-slate-500">{lang === "en" ? "In Repair" : "Sedang Dikerjakan"}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-sky-50 border border-sky-100 text-[#0785BC] flex items-center justify-center shrink-0">
                 <Wrench className="w-4 h-4" />
@@ -883,9 +884,9 @@ export default function RekapLaporanPage() {
 
             <div className="mt-3">
               <h3 className="text-2xl font-black tracking-tight tabular-nums text-slate-900">
-                {globalStats.in_progress} <span className="text-xs text-slate-500 font-normal font-sans">laporan</span>
+                {globalStats.in_progress} <span className="text-xs text-slate-500 font-normal font-sans">{lang === "en" ? "reports" : "laporan"}</span>
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Dalam proses perbaikan teknisi</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Currently under technician repair" : "Dalam proses perbaikan teknisi"}</p>
             </div>
           </div>
 
@@ -907,7 +908,7 @@ export default function RekapLaporanPage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   RESOLVED
                 </span>
-                <p className="text-xs font-medium text-slate-500">Tuntas / Diganti</p>
+                <p className="text-xs font-medium text-slate-500">{lang === "en" ? "Resolved / Replaced" : "Tuntas / Diganti"}</p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-4 h-4" />
@@ -916,14 +917,14 @@ export default function RekapLaporanPage() {
 
             <div className="mt-3">
               <h3 className="text-2xl font-black tracking-tight tabular-nums text-slate-900">
-                {globalStats.resolved} <span className="text-xs text-slate-500 font-normal font-sans">laporan</span>
+                {globalStats.resolved} <span className="text-xs text-slate-500 font-normal font-sans">{lang === "en" ? "reports" : "laporan"}</span>
               </h3>
-              <p className="text-[11px] text-slate-400 mt-0.5">Aset telah tuntas diselesaikan</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Cases successfully resolved" : "Aset telah tuntas diselesaikan"}</p>
             </div>
           </div>
         </div>
 
-        {/* â”€â”€ Filter Bar & Quick Stats â”€â”€ */}
+        {/* ── Filter Bar & Quick Stats ── */}
         <div className={`bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3.5 ${mounted ? "animate-fade-up delay-200" : "opacity-0"}`}>
           {/* Status & Fine Filters */}
           <div className="flex flex-wrap items-center gap-2.5">
@@ -931,43 +932,43 @@ export default function RekapLaporanPage() {
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
               <button
                 onClick={() => { setStatusFilter(""); setPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   statusFilter === ""
                     ? "bg-[#0785BC] text-white shadow-xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Semua Status ({globalStats.total || total})
+                {lang === "en" ? "All Statuses" : "Semua Status"} ({globalStats.total || total})
               </button>
               <button
                 onClick={() => { setStatusFilter("pending"); setPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   statusFilter === "pending"
                     ? "bg-rose-500 text-white shadow-xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Menunggu ({globalStats.pending})
+                {lang === "en" ? "Pending" : "Menunggu"} ({globalStats.pending})
               </button>
               <button
                 onClick={() => { setStatusFilter("in_progress"); setPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   statusFilter === "in_progress"
                     ? "bg-[#0785BC] text-white shadow-xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Perbaikan ({globalStats.in_progress})
+                {lang === "en" ? "Repairing" : "Perbaikan"} ({globalStats.in_progress})
               </button>
               <button
                 onClick={() => { setStatusFilter("resolved"); setPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   statusFilter === "resolved"
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "bg-slate-50 text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                Selesai ({globalStats.resolved})
+                {lang === "en" ? "Resolved" : "Selesai"} ({globalStats.resolved})
               </button>
             </div>
 
@@ -977,39 +978,39 @@ export default function RekapLaporanPage() {
             {/* Filter Denda (Lunas vs Belum Lunas) */}
             <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 hidden sm:inline">
-                Status Denda:
+                {lang === "en" ? "Fine Status:" : "Status Denda:"}
               </span>
               <button
                 onClick={() => { setFineFilter("all"); setPage(1); }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   fineFilter === "all"
                     ? "bg-white text-slate-900 shadow-2xs font-bold"
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                Semua
+                {lang === "en" ? "All" : "Semua"}
               </button>
               <button
                 onClick={() => { setFineFilter(fineFilter === "unpaid" ? "all" : "unpaid"); setPage(1); }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                   fineFilter === "unpaid"
                     ? "bg-rose-500 text-white shadow-2xs font-bold"
                     : "text-rose-600 hover:bg-white/60"
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${fineFilter === "unpaid" ? "bg-white" : "bg-rose-500 animate-pulse"}`} />
-                Belum Lunas {unpaidFineCount > 0 ? `(${unpaidFineCount})` : ""}
+                {lang === "en" ? "Unpaid" : "Belum Lunas"} {unpaidFineCount > 0 ? `(${unpaidFineCount})` : ""}
               </button>
               <button
                 onClick={() => { setFineFilter(fineFilter === "paid" ? "all" : "paid"); setPage(1); }}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
                   fineFilter === "paid"
                     ? "bg-emerald-600 text-white shadow-2xs font-bold"
                     : "text-emerald-600 hover:bg-white/60"
                 }`}
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${fineFilter === "paid" ? "bg-white" : "bg-emerald-500"}`} />
-                Sudah Lunas {paidFineCount > 0 ? `(${paidFineCount})` : ""}
+                {lang === "en" ? "Paid" : "Sudah Lunas"} {paidFineCount > 0 ? `(${paidFineCount})` : ""}
               </button>
             </div>
           </div>
@@ -1018,7 +1019,7 @@ export default function RekapLaporanPage() {
           {globalStats.totalFine > 0 && (
             <div className="flex items-center gap-2 bg-amber-50/70 border border-amber-200/60 px-3 py-1.5 rounded-xl text-xs text-amber-800 shrink-0 self-start xl:self-auto">
               <DollarSign className="w-3.5 h-3.5 text-amber-600" />
-              <span>Total Denda: <strong className="font-bold">Rp {globalStats.totalFine.toLocaleString("id-ID")}</strong></span>
+              <span>{lang === "en" ? "Total Fines:" : "Total Denda:"} <strong className="font-bold">Rp {globalStats.totalFine.toLocaleString("id-ID")}</strong></span>
               {globalStats.unpaidFine > 0 && (
                 <button
                   type="button"
@@ -1188,12 +1189,12 @@ export default function RekapLaporanPage() {
                                 ) : (
                                   <AlertTriangle className="w-3 h-3 text-amber-600" />
                                 )}
-                                {row.fine_status === "Sudah Dibayar" || isFullyResolved ? "Sudah Dibayar" : row.fine_status}
+                                {row.fine_status === "Sudah Dibayar" || isFullyResolved ? (lang === "en" ? "Paid" : "Sudah Dibayar") : row.fine_status}
                               </span>
                             </div>
                           ) : (
                             <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-semibold">
-                              Bebas Denda
+                              {lang === "en" ? "No Fine" : "Bebas Denda"}
                             </span>
                           )}
                         </td>
@@ -1204,31 +1205,31 @@ export default function RekapLaporanPage() {
                             <button
                               type="button"
                               onClick={() => setHistoryReport(row)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl transition-all shadow-2xs"
-                              title="Lihat Detail Riwayat Kasus"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 rounded-xl transition-all shadow-2xs cursor-pointer"
+                              title={lang === "en" ? "View Case History Details" : "Lihat Detail Riwayat Kasus"}
                             >
                               <Eye className="w-3.5 h-3.5 text-[#0785BC]" />
-                              <span>Detail Riwayat</span>
+                              <span>{lang === "en" ? "History Details" : "Detail Riwayat"}</span>
                             </button>
                           ) : (
                             <div className="inline-flex items-center justify-end gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => handleDirectResolve(row)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl transition-all shadow-2xs"
-                                title="Atur Langsung Selesai (Denda otomatis lunas)"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-95 rounded-xl transition-all shadow-2xs cursor-pointer"
+                                title={lang === "en" ? "Resolve Directly (Fine marked paid automatically)" : "Atur Langsung Selesai (Denda otomatis lunas)"}
                               >
                                 <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                                <span>Selesai</span>
+                                <span>{lang === "en" ? "Resolve" : "Selesai"}</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleOpenActionModal(row)}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs"
-                                title="Tindak Lanjut & Atur Denda"
+                                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 active:scale-95 rounded-xl transition-all shadow-2xs cursor-pointer"
+                                title={lang === "en" ? "Follow Up & Set Fines" : "Tindak Lanjut & Atur Denda"}
                               >
                                 <Wrench className="w-3.5 h-3.5 text-[#0785BC]" />
-                                <span>Tindak Lanjut</span>
+                                <span>{lang === "en" ? "Follow Up" : "Tindak Lanjut"}</span>
                               </button>
                             </div>
                           )}

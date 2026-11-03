@@ -130,7 +130,7 @@ function CatalogLoadingFallback() {
 function UserCatalogContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const tr = (k: string, fb: string) => {
     const v = t(k);
     return v === k ? fb : v;
@@ -354,7 +354,7 @@ function UserCatalogContent() {
                     </div>
                     <span className="text-xl sm:text-2xl font-black leading-none text-white">{catalogs.length}</span>
                     <span className="text-[10px] sm:text-[11px] font-semibold text-white/80 mt-1">
-                      Kategori
+                      {tr("common.categories", "Kategori")}
                     </span>
                   </div>
 
@@ -364,7 +364,7 @@ function UserCatalogContent() {
                     </div>
                     <span className="text-xl sm:text-2xl font-black leading-none text-white">{items.length}</span>
                     <span className="text-[10px] sm:text-[11px] font-semibold text-white/80 mt-1">
-                      Barang
+                      {tr("common.items", "Barang")}
                     </span>
                   </div>
 
@@ -374,7 +374,7 @@ function UserCatalogContent() {
                     </div>
                     <span className="text-xl sm:text-2xl font-black leading-none text-white">{packages.length}</span>
                     <span className="text-[10px] sm:text-[11px] font-semibold text-white/80 mt-1">
-                      Paket
+                      {tr("common.packages", "Paket")}
                     </span>
                   </div>
                 </div>
@@ -395,7 +395,7 @@ function UserCatalogContent() {
                       : "bg-white dark:bg-[#111c30] text-slate-600 dark:text-slate-300 border border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800"
                   }`}
                 >
-                  Semua Kategori ({catalogs.length})
+                  {tr("admin.items.all_categories", "Semua Kategori")} ({catalogs.length})
                 </button>
                 <button
                   type="button"
@@ -407,7 +407,7 @@ function UserCatalogContent() {
                   }`}
                 >
                   <Package className="w-3.5 h-3.5" />
-                  Ada Barang
+                  {tr("catalog.has_items", "Ada Barang")}
                 </button>
                 <button
                   type="button"
@@ -419,7 +419,7 @@ function UserCatalogContent() {
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  Ada Paket
+                  {tr("catalog.has_packages", "Ada Paket")}
                 </button>
               </div>
 
@@ -427,7 +427,7 @@ function UserCatalogContent() {
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 {q && (
                   <span className="flex items-center gap-1 font-semibold text-[#0785BC]">
-                    Pencarian: &quot;{q}&quot;
+                    {tr("common.search", "Pencarian")}: &quot;{q}&quot;
                     <button
                       type="button"
                       onClick={() => setSearch("")}
@@ -439,7 +439,7 @@ function UserCatalogContent() {
                   </span>
                 )}
                 <span>
-                  Menampilkan <b>{visibleCatalogs.length}</b> dari {catalogs.length} kategori
+                  {tr("admin.items.showing", "Menampilkan")} <b>{visibleCatalogs.length}</b> {lang === "en" ? "of" : "dari"} {catalogs.length} {tr("common.categories", "kategori").toLowerCase()}
                 </span>
               </div>
             </div>
@@ -549,11 +549,11 @@ function UserCatalogContent() {
                         <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/55 backdrop-blur-md text-white text-[11px] font-semibold border border-white/10 shadow-xs">
                             <Package className="w-3.5 h-3.5 text-sky-300" />
-                            {cat.itemCount} Barang
+                            {cat.itemCount} {tr("common.items", "Barang")}
                           </span>
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/55 backdrop-blur-md text-white text-[11px] font-semibold border border-white/10 shadow-xs">
                             <Layers className="w-3.5 h-3.5 text-sky-300" />
-                            {cat.packageCount} Paket
+                            {cat.packageCount} {tr("common.packages", "Paket")}
                           </span>
                         </div>
                       </div>
@@ -577,9 +577,9 @@ function UserCatalogContent() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 leading-none">
-                                {cat.itemCount} Unit
+                                {cat.itemCount} {tr("common.units", "Unit")}
                               </p>
-                              <p className="text-[9px] text-slate-400 mt-0.5">Per Item</p>
+                              <p className="text-[9px] text-slate-400 mt-0.5">{tr("catalog.per_item", "Per Item")}</p>
                             </div>
                           </div>
 
@@ -589,9 +589,9 @@ function UserCatalogContent() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-[11px] font-bold text-slate-800 dark:text-slate-200 leading-none">
-                                {cat.packageCount} Paket
+                                {cat.packageCount} {tr("common.packages", "Paket")}
                               </p>
-                              <p className="text-[9px] text-slate-400 mt-0.5">Bundling</p>
+                              <p className="text-[9px] text-slate-400 mt-0.5">{tr("catalog.bundling", "Bundling")}</p>
                             </div>
                           </div>
                         </div>
@@ -599,10 +599,10 @@ function UserCatalogContent() {
                         {/* Divider & Modern Action Footer */}
                         <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                           <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500">
-                            Buka koleksi fasilitas
+                            {tr("catalog.open_collection", "Buka koleksi fasilitas")}
                           </span>
                           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 group-hover:bg-[#0785BC] text-slate-700 dark:text-slate-200 group-hover:text-white text-xs font-bold transition-all shadow-2xs">
-                            <span>Jelajahi</span>
+                            <span>{tr("catalog.explore", "Jelajahi")}</span>
                             <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                           </span>
                         </div>
@@ -630,7 +630,7 @@ function UserCatalogContent() {
               </button>
 
               <span className="text-xs text-slate-400 font-medium hidden sm:inline">
-                Kategori Terpilih
+                {tr("catalog.selected_cat", "Kategori Terpilih")}
               </span>
             </div>
 
@@ -646,10 +646,10 @@ function UserCatalogContent() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#0785BC] dark:text-sky-300">
-                      Kategori Fasilitas
+                      {tr("catalog.facility_cat", "Kategori Fasilitas")}
                     </span>
                     <span className="text-xs text-slate-300 dark:text-slate-700">•</span>
-                    <span className="text-xs text-slate-500 font-medium">Aktif</span>
+                    <span className="text-xs text-slate-500 font-medium">{tr("common.active", "Aktif")}</span>
                   </div>
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white truncate mt-0.5">
                     {selectedCatalog.name}
@@ -664,11 +664,11 @@ function UserCatalogContent() {
               <div className="flex items-center gap-2 shrink-0">
                 <span className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800 text-[#0785BC] dark:text-sky-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                   <Package className="w-3.5 h-3.5" />
-                  {detailItems.length} Barang
+                  {detailItems.length} {tr("common.items", "Barang")}
                 </span>
                 <span className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                   <Layers className="w-3.5 h-3.5" />
-                  {detailPackages.length} Paket
+                  {detailPackages.length} {tr("common.packages", "Paket")}
                 </span>
               </div>
             </div>
@@ -745,7 +745,7 @@ function UserCatalogContent() {
                           )}
                           {empty && <div className="absolute inset-0 bg-slate-950/30" />}
                           <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-[#0785BC] dark:text-sky-300 shadow-xs border border-white/40 dark:border-slate-700">
-                            Per Item
+                            {tr("catalog.per_item", "Per Item")}
                           </span>
                           {empty ? (
                             <span className="absolute top-2.5 right-2.5 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm">
@@ -774,7 +774,7 @@ function UserCatalogContent() {
                                 empty ? "text-rose-600" : "text-emerald-600 dark:text-emerald-400"
                               }`}
                             >
-                              {empty ? "Habis / Dipinjam" : `Stok: ${it.stock} Unit`}
+                              {empty ? tr("common.stock_out", "Habis / Dipinjam") : `${tr("admin.items.avail_stock", "Stok")}: ${it.stock} ${tr("common.units", "Unit")}`}
                             </span>
                           </div>
 
@@ -785,7 +785,7 @@ function UserCatalogContent() {
                           ) : (
                             <Link
                               href={`/user/item_catalog/${it.id}`}
-                              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-[#0785BC]/25 transition-all active:scale-98"
+                              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-[#0785BC]/25 transition-all active:scale-98 cursor-pointer"
                             >
                               <span>{tr("catalog.borrow_item_btn", "Pinjam Barang")}</span>
                               <ChevronRight className="w-3.5 h-3.5" />
@@ -835,15 +835,15 @@ function UserCatalogContent() {
                         )}
                         {empty && <div className="absolute inset-0 bg-slate-950/30" />}
                         <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-sky-600 dark:text-sky-400 shadow-xs border border-white/40 dark:border-slate-700">
-                          Paket Bundling
+                          {tr("catalog.bundling", "Paket Bundling")}
                         </span>
                         {empty ? (
                           <span className="absolute top-2.5 right-2.5 rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm">
-                            Sebagian Habis
+                            {tr("catalog.partial_out", "Sebagian Habis")}
                           </span>
                         ) : (
                           <span className="absolute top-2.5 right-2.5 rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-extrabold text-white shadow-sm">
-                            Paket Lengkap
+                            {tr("catalog.full_ready", "Paket Lengkap")}
                           </span>
                         )}
                       </div>
@@ -857,26 +857,26 @@ function UserCatalogContent() {
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">
                           {isi
-                            ? `Komponen: ${isi}`
-                            : pkg.description || "Paket fasilitas sarpras kampus."}
+                            ? `${lang === "en" ? "Components" : "Komponen"}: ${isi}`
+                            : pkg.description || tr("admin.pkg.sub", "Paket fasilitas sarpras kampus.")}
                         </p>
 
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                           <span className="text-[11px] font-bold text-sky-600 dark:text-sky-400">
-                            {(pkg.packages_items || []).length} Item Termasuk
+                            {(pkg.packages_items || []).length} {tr("catalog.items_included", "Item Termasuk")}
                           </span>
                         </div>
 
                         {empty ? (
                           <span className="mt-3 w-full inline-flex items-center justify-center gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 text-xs font-bold py-2.5 cursor-not-allowed">
-                            Paket Tidak Tersedia
+                            {tr("catalog.pkg_unavailable", "Paket Tidak Tersedia")}
                           </span>
                         ) : (
                           <Link
                             href={`/user/item_catalog/package/${pkg.id}`}
                             className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-[#0785BC] hover:from-sky-700 hover:to-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-sky-500/25 transition-all active:scale-98 cursor-pointer"
                           >
-                            <span>Ajukan Pinjam Paket</span>
+                            <span>{tr("catalog.borrow_pkg_btn", "Ajukan Pinjam Paket")}</span>
                             <ChevronRight className="w-3.5 h-3.5" />
                           </Link>
                         )}

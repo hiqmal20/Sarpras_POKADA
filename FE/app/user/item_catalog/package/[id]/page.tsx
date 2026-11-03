@@ -84,7 +84,7 @@ export default function PackageDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const mounted = useMount();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const tr = (k: string, fb: string) => {
     const v = t(k);
     return v === k ? fb : v;
@@ -818,9 +818,9 @@ export default function PackageDetailPage() {
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
                 <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                 <span>
-                  Pengajuan paket ini akan mencakup seluruh komponen barang sekaligus. Status dapat dipantau di halaman{" "}
+                  {lang === "en" ? "This package application includes all bundle components at once. Track status on the " : "Pengajuan paket ini akan mencakup seluruh komponen barang sekaligus. Status dapat dipantau di halaman "}
                   <Link href="/user/riwayat_peminjaman" className="text-sky-600 font-semibold hover:underline">
-                    Riwayat Peminjaman
+                    {tr("nav.history", "Riwayat Peminjaman")}
                   </Link>.
                 </span>
               </div>
@@ -839,16 +839,16 @@ export default function PackageDetailPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Mengirim Pengajuan Paket...</span>
+                      <span>{lang === "en" ? "Submitting Package Request..." : "Mengirim Pengajuan Paket..."}</span>
                     </>
                   ) : !isAvailable ? (
                     <>
                       <Clock className="w-4 h-4" />
-                      <span>Paket Tidak Tersedia (Sebagian Item Habis)</span>
+                      <span>{lang === "en" ? "Package Unavailable (Partial Stock Out)" : "Paket Tidak Tersedia (Sebagian Item Habis)"}</span>
                     </>
                   ) : (
                     <>
-                      <span>Ajukan Peminjaman Paket</span>
+                      <span>{lang === "en" ? "Apply for Package Borrowing" : "Ajukan Peminjaman Paket"}</span>
                       <Send className="w-4 h-4" />
                     </>
                   )}

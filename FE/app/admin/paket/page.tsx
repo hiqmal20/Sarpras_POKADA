@@ -743,7 +743,7 @@ export default function PaketPage() {
               <p className="text-2xl font-black text-emerald-600 tabular-nums tracking-tight">
                 {loading ? "..." : readyPackagesCount} <span className="text-xs text-emerald-700/60 font-normal">{t("admin.pkg.kpi_ready_sub", "paket siap pakai")}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Semua komponen barang berstatus cukup</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "All components available in adequate quantity" : "Semua komponen barang berstatus cukup"}</p>
             </div>
           </div>
 
@@ -763,7 +763,7 @@ export default function PaketPage() {
               <p className="text-2xl font-black text-amber-600 tabular-nums tracking-tight">
                 {loading ? "..." : limitedPackagesCount} <span className="text-xs text-amber-700/60 font-normal">{t("admin.pkg.kpi_limited_sub", "paket menunggu stok")}</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Sebagian item sedang dipinjam terpisah</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{lang === "en" ? "Some items currently borrowed separately" : "Sebagian item sedang dipinjam terpisah"}</p>
             </div>
           </div>
         </div>
@@ -771,8 +771,8 @@ export default function PaketPage() {
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-6 py-4 border-b border-slate-100">
             <div>
-              <h2 className="text-sm font-bold text-slate-900">Daftar Paket Sarpras</h2>
-              <p className="text-xs text-slate-400">Total {filteredPackages.length} paket sesuai filter</p>
+              <h2 className="text-sm font-bold text-slate-900">{t("admin.pkg.list_title", "Daftar Paket Sarpras")}</h2>
+              <p className="text-xs text-slate-400">{lang === "en" ? `Total ${filteredPackages.length} packages match filter` : `Total ${filteredPackages.length} paket sesuai filter`}</p>
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1.5">
@@ -1234,10 +1234,10 @@ export default function PaketPage() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
-                    {editingId ? "Edit Paket Sarpras" : "Tambah Paket Sarpras Baru"}
+                    {editingId ? (lang === "en" ? "Edit Sarpras Package" : "Edit Paket Sarpras") : (lang === "en" ? "Add New Sarpras Package" : "Tambah Paket Sarpras Baru")}
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Kelola identitas paket dan kombinasi komponen barang di dalamnya
+                    {lang === "en" ? "Manage package identity and component combinations inside" : "Kelola identitas paket dan kombinasi komponen barang di dalamnya"}
                   </p>
                 </div>
               </div>
@@ -1315,7 +1315,7 @@ export default function PaketPage() {
                     {/* Status Paket */}
                     <div>
                       <label className="block font-semibold text-slate-700 mb-1.5">
-                        Status Ketersediaan Paket *
+                        {lang === "en" ? "Package Availability Status *" : "Status Ketersediaan Paket *"}
                       </label>
                       <div className="grid grid-cols-2 gap-2.5">
                         <label

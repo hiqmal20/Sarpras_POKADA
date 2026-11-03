@@ -31,6 +31,7 @@ import {
 import api from "@/lib/api";
 import { AdminLayout } from "@/components/admin";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 
 interface Category {
   id: string;
@@ -39,7 +40,8 @@ interface Category {
   item_count?: number;
 }
 
-function getCategoryMeta(name: string) {
+function getCategoryMeta(name: string, t?: (k: string, fb?: string) => string) {
+  const tr = (k: string, fb: string) => (t ? t(k, fb) : fb);
   const lower = (name || "").toLowerCase();
   if (
     lower.includes("elektronik") ||
@@ -54,7 +56,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-[#0785BC] text-white shadow-xs shadow-[#0785BC]/30",
       badgeBg: "bg-blue-50 text-[#0785BC] border-blue-200",
       barBg: "bg-[#0785BC]",
-      tag: "Teknologi & Komputasi",
+      tag: tr("cat.tag.tech", "Teknologi & Komputasi"),
     };
   }
   if (
@@ -70,7 +72,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-amber-500 text-white shadow-xs shadow-amber-500/30",
       badgeBg: "bg-amber-50 text-amber-700 border-amber-200",
       barBg: "bg-amber-500",
-      tag: "Perkakas & Utilitas",
+      tag: tr("cat.tag.tools", "Perkakas & Utilitas"),
     };
   }
   if (
@@ -86,7 +88,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-sky-600 text-white shadow-xs shadow-sky-600/30",
       badgeBg: "bg-sky-50 text-sky-700 border-sky-200",
       barBg: "bg-sky-600",
-      tag: "Multimedia & Studio",
+      tag: tr("cat.tag.media", "Multimedia & Studio"),
     };
   }
   if (
@@ -101,7 +103,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-rose-500 text-white shadow-xs shadow-rose-500/30",
       badgeBg: "bg-rose-50 text-rose-700 border-rose-200",
       barBg: "bg-rose-500",
-      tag: "Audio & Suara",
+      tag: tr("cat.tag.audio", "Audio & Akustik"),
     };
   }
   if (
@@ -116,7 +118,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-emerald-600 text-white shadow-xs shadow-emerald-600/30",
       badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-200",
       barBg: "bg-emerald-600",
-      tag: "Fasilitas Olahraga",
+      tag: tr("cat.tag.sport", "Olahraga & Rekreasi"),
     };
   }
   if (
@@ -132,7 +134,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-teal-600 text-white shadow-xs shadow-teal-600/30",
       badgeBg: "bg-teal-50 text-teal-700 border-teal-200",
       barBg: "bg-teal-600",
-      tag: "Praktikum & Laboratorium",
+      tag: tr("cat.tag.lab", "Laboratorium & Medis"),
     };
   }
   if (
@@ -148,7 +150,7 @@ function getCategoryMeta(name: string) {
       iconBg: "bg-blue-600 text-white shadow-xs shadow-blue-600/30",
       badgeBg: "bg-blue-50 text-blue-700 border-blue-200",
       barBg: "bg-blue-600",
-      tag: "Perabot & Ruangan",
+      tag: tr("cat.tag.furniture", "Perabot & Ruangan"),
     };
   }
   return {
@@ -157,7 +159,7 @@ function getCategoryMeta(name: string) {
     iconBg: "bg-slate-700 text-white shadow-xs shadow-slate-700/30",
     badgeBg: "bg-slate-50 text-slate-700 border-slate-200",
     barBg: "bg-slate-700",
-    tag: "Inventaris Umum",
+    tag: tr("cat.tag.general", "Inventaris Umum"),
   };
 }
 
@@ -171,7 +173,7 @@ const QUICK_SUGGESTIONS = [
   "Olahraga & Rekreasi",
 ];
 
-// â”€â”€ Modal Tambah / Edit â”€â”€
+// ── Modal Tambah / Edit ──
 function CategoryModal({
   initial,
   onClose,
@@ -181,11 +183,12 @@ function CategoryModal({
   onClose: () => void;
   onSave: (data: { name: string; description: string }) => Promise<void>;
 }) {
+  const { t } = useLanguage();
   const [name, setName] = useState(initial?.name ?? "");
   const [desc, setDesc] = useState(initial?.description ?? "");
   const [saving, setSaving] = useState(false);
 
-  const previewMeta = getCategoryMeta(name || "Umum");
+  const previewMeta = getCategoryMeta(name || "Umum", t);
   const PreviewIcon = previewMeta.icon;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -206,10 +209,10 @@ function CategoryModal({
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {initial ? "Perbarui Kategori" : "Buat Kategori Baru"}
+                {initial ? t("admin.cat.modal_update", "Perbarui Kategori") : t("admin.cat.modal_create_new", "Buat Kategori Baru")}
               </h2>
               <p className="text-xs text-slate-500">
-                Atur klasifikasi untuk memudahkan inventarisasi sarpras
+                {t("admin.cat.modal_hint", "Atur klasifikasi untuk memudahkan inventarisasi sarpras")}
               </p>
             </div>
           </div>
@@ -230,14 +233,14 @@ function CategoryModal({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <p className="text-xs font-bold text-slate-900 truncate">
-                {name || "Nama Kategori Preview"}
+                {name || t("admin.cat.live_preview", "Pratinjau Kategori")}
               </p>
               <span className={`px-1.5 py-0.5 rounded text-[9px] font-medium border ${previewMeta.badgeBg}`}>
                 {previewMeta.tag}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 truncate mt-0.5">
-              {desc || "Deskripsi ringkas kategori akan tampil di sini..."}
+              {desc || t("admin.cat.desc_ph", "Jelaskan cakupan aset dalam kategori ini...")}
             </p>
           </div>
         </div>
@@ -245,13 +248,13 @@ function CategoryModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-              Nama Kategori <span className="text-rose-500">*</span>
+              {t("admin.cat.field_name", "Nama Kategori")} <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="contoh: Elektronik & Komputer"
+              placeholder={t("admin.cat.name_ph", "contoh: Elektronik & IT")}
               required
               className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
             />
@@ -261,7 +264,7 @@ function CategoryModal({
           {!initial && (
             <div>
               <span className="text-[11px] font-medium text-slate-400 mb-1.5 block">
-                Pilih rekomendasi nama cepat:
+                {t("admin.cat.suggestions", "Rekomendasi Cepat:")}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {QUICK_SUGGESTIONS.map((item) => (
@@ -280,12 +283,12 @@ function CategoryModal({
 
           <div>
             <label className="text-xs font-semibold text-slate-700 mb-1.5 block">
-              Deskripsi / Ruang Lingkup
+              {t("admin.cat.field_desc", "Deskripsi (Opsional)")}
             </label>
             <textarea
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="Jelaskan jenis atau spesifikasi barang yang masuk ke dalam kategori ini..."
+              placeholder={t("admin.cat.desc_ph", "Jelaskan cakupan aset dalam kategori ini...")}
               rows={3}
               className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] resize-none transition-all"
             />
@@ -297,14 +300,14 @@ function CategoryModal({
               onClick={onClose}
               className="flex-1 py-2.5 text-xs sm:text-sm font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
             >
-              Batal
+              {t("common.cancel", "Batal")}
             </button>
             <button
               type="submit"
               disabled={saving || !name.trim()}
               className="flex-1 py-2.5 text-xs sm:text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-xs disabled:opacity-50"
             >
-              {saving ? "Menyimpan..." : initial ? "Simpan Perubahan" : "Buat Kategori"}
+              {saving ? t("common.saving", "Menyimpan...") : initial ? t("admin.cat.btn_save_changes", "Simpan Perubahan") : t("admin.cat.btn_create", "Buat Kategori")}
             </button>
           </div>
         </form>
@@ -313,7 +316,7 @@ function CategoryModal({
   );
 }
 
-// â”€â”€ Delete Confirmation Modal â”€â”€
+// ── Delete Confirmation Modal ──
 function DeleteConfirmModal({
   category,
   onClose,
@@ -323,6 +326,7 @@ function DeleteConfirmModal({
   onClose: () => void;
   onConfirm: () => Promise<void>;
 }) {
+  const { t } = useLanguage();
   const [deleting, setDeleting] = useState(false);
 
   return (
@@ -332,17 +336,17 @@ function DeleteConfirmModal({
           <AlertCircle className="w-6 h-6" />
         </div>
         <div className="text-center mb-5">
-          <h3 className="text-base font-bold text-slate-900">Hapus Kategori?</h3>
+          <h3 className="text-base font-bold text-slate-900">{t("admin.cat.delete_title", "Hapus Kategori?")}</h3>
           <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-            Anda akan menghapus kategori{" "}
+            {t("admin.cat.delete_confirm_text", "Anda akan menghapus kategori")}{" "}
             <span className="font-semibold text-slate-800">&quot;{category.name}&quot;</span>.
             {category.item_count && category.item_count > 0 ? (
               <span className="block mt-1 text-rose-600 font-medium">
-                Peringatan: Kategori ini masih memiliki {category.item_count} unit barang terkait!
+                {t("admin.cat.delete_warn_items", "Peringatan: Kategori ini masih memiliki unit barang terkait!")}
               </span>
             ) : (
               <span className="block mt-1 text-slate-400">
-                Tindakan ini tidak dapat dibatalkan.
+                {t("admin.cat.delete_irreversible", "Tindakan ini tidak dapat dibatalkan.")}
               </span>
             )}
           </p>
@@ -353,7 +357,7 @@ function DeleteConfirmModal({
             onClick={onClose}
             className="flex-1 py-2.5 text-xs font-semibold border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 active:scale-95 transition-all"
           >
-            Batal
+            {t("common.cancel", "Batal")}
           </button>
           <button
             type="button"
@@ -365,7 +369,7 @@ function DeleteConfirmModal({
             }}
             className="flex-1 py-2.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 rounded-xl transition-all shadow-xs disabled:opacity-50"
           >
-            {deleting ? "Menghapus..." : "Ya, Hapus"}
+            {deleting ? t("common.deleting", "Menghapus...") : t("common.yes_delete", "Ya, Hapus")}
           </button>
         </div>
       </div>
@@ -373,8 +377,9 @@ function DeleteConfirmModal({
   );
 }
 
-// â”€â”€ Main Page Component â”€â”€
+// ── Main Page Component ──
 export default function KategoriBarangPage() {
+  const { t, lang } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name_asc" | "name_desc" | "items_desc" | "items_asc">("items_desc");
@@ -499,7 +504,7 @@ export default function KategoriBarangPage() {
   return (
     <AdminLayout>
       <div className="space-y-6 pb-12">
-        {/* â”€â”€ Page Header & Action Banner â”€â”€ */}
+        {/* ── Page Header & Action Banner ── */}
         <div className="relative overflow-hidden rounded-2xl bg-white border border-slate-200/90 shadow-2xs p-5 sm:p-6">
           <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 bg-gradient-to-br from-[#0785BC]/10 to-transparent rounded-full blur-2xl pointer-events-none" />
 
@@ -510,14 +515,14 @@ export default function KategoriBarangPage() {
                   <FolderKanban className="w-4 h-4" />
                 </div>
                 <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Kategori Inventaris
+                  {t("admin.cat.title", "Kategori Inventaris")}
                 </h1>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-blue-50 text-[#0785BC] border border-blue-200/60">
-                  {categories.length} KATEGORI
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-blue-50 text-[#0785BC] border border-blue-200/60 uppercase">
+                  {categories.length} {t("common.categories", "Kategori")}
                 </span>
               </div>
               <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
-                Kelola taksonomi dan klasifikasi fasilitas kampus. Kategori digunakan untuk pengelompokan unit, filter peminjaman, dan penentuan paket barang.
+                {t("admin.cat.sub", "Kelola taksonomi dan klasifikasi fasilitas kampus. Kategori digunakan untuk pengelompokan unit, filter peminjaman, dan penentuan paket barang.")}
               </p>
             </div>
 
@@ -527,21 +532,21 @@ export default function KategoriBarangPage() {
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl transition-all active:scale-95"
               >
                 <Boxes className="w-3.5 h-3.5 text-slate-500" />
-                Daftar Barang
+                {t("admin.cat.items_list", "Daftar Barang")}
               </Link>
               <button
                 type="button"
                 onClick={() => setModal({ open: true })}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-xs"
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                Tambah Kategori
+                {t("admin.cat.add_btn", "Tambah Kategori")}
               </button>
             </div>
           </div>
         </div>
 
-        {/* â”€â”€ Summary KPI Cards â”€â”€ */}
+        {/* ── Summary KPI Cards ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
           {/* Card 1: Total Kategori */}
           <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 flex items-center gap-3.5">
@@ -549,11 +554,11 @@ export default function KategoriBarangPage() {
               <Layers className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Total Kategori</p>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{t("admin.cat.kpi_total", "Total Kategori")}</p>
               <h3 className="text-lg font-bold font-mono text-slate-900 mt-0.5">
                 {loading ? "..." : stats.totalCategories}
               </h3>
-              <p className="text-[10px] text-slate-500 truncate">Klasifikasi inventaris aktif</p>
+              <p className="text-[10px] text-slate-500 truncate">{t("admin.cat.kpi_total_desc", "Klasifikasi inventaris aktif")}</p>
             </div>
           </div>
 
@@ -563,11 +568,11 @@ export default function KategoriBarangPage() {
               <Boxes className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Unit Terdistribusi</p>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{t("admin.cat.kpi_units", "Unit Terdistribusi")}</p>
               <h3 className="text-lg font-bold font-mono text-slate-900 mt-0.5">
                 {loading ? "..." : stats.totalItems}
               </h3>
-              <p className="text-[10px] text-slate-500 truncate">Total unit barang terdaftar</p>
+              <p className="text-[10px] text-slate-500 truncate">{t("admin.cat.kpi_units_desc", "Total unit barang terdaftar")}</p>
             </div>
           </div>
 
@@ -577,12 +582,12 @@ export default function KategoriBarangPage() {
               <TrendingUp className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Kategori Terbanyak</p>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{t("admin.cat.kpi_top", "Kategori Terbanyak")}</p>
               <h3 className="text-xs font-bold text-slate-900 truncate mt-0.5">
                 {loading ? "..." : stats.topCategory?.name || "-"}
               </h3>
               <p className="text-[10px] font-mono text-sky-700 truncate font-semibold">
-                {stats.topCategory?.item_count ?? 0} Unit Barang
+                {stats.topCategory?.item_count ?? 0} {t("common.units", "Unit")}
               </p>
             </div>
           </div>
@@ -593,23 +598,23 @@ export default function KategoriBarangPage() {
               <AlertCircle className="w-5 h-5" />
             </div>
             <div className="min-w-0">
-              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Kategori Kosong</p>
+              <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{t("admin.cat.kpi_empty", "Kategori Kosong")}</p>
               <h3 className="text-lg font-bold font-mono text-slate-900 mt-0.5">
                 {loading ? "..." : stats.emptyCategories}
               </h3>
-              <p className="text-[10px] text-slate-500 truncate">Belum memiliki unit barang</p>
+              <p className="text-[10px] text-slate-500 truncate">{t("admin.cat.kpi_empty_desc", "Belum memiliki unit barang")}</p>
             </div>
           </div>
         </div>
 
-        {/* â”€â”€ Filter Bar & View Toggle â”€â”€ */}
+        {/* ── Filter Bar & View Toggle ── */}
         <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Search Input */}
           <div className="relative w-full sm:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input
               type="text"
-              placeholder="Cari nama atau deskripsi..."
+              placeholder={t("admin.cat.search_ph", "Cari nama atau deskripsi...")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0785BC]/20 focus:border-[#0785BC] transition-all"
@@ -618,7 +623,7 @@ export default function KategoriBarangPage() {
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -632,12 +637,12 @@ export default function KategoriBarangPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="px-2.5 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]/20"
+                className="px-2.5 py-1.5 text-xs bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]/20 cursor-pointer"
               >
-                <option value="items_desc">Unit Terbanyak</option>
-                <option value="items_asc">Unit Paling Sedikit</option>
-                <option value="name_asc">Nama (A - Z)</option>
-                <option value="name_desc">Nama (Z - A)</option>
+                <option value="items_desc">{t("admin.cat.sort_most", "Unit Terbanyak")}</option>
+                <option value="items_asc">{t("admin.cat.sort_least", "Unit Paling Sedikit")}</option>
+                <option value="name_asc">{t("admin.cat.sort_name_az", "Nama (A - Z)")}</option>
+                <option value="name_desc">{t("admin.cat.sort_name_za", "Nama (Z - A)")}</option>
               </select>
             </div>
 
@@ -646,8 +651,8 @@ export default function KategoriBarangPage() {
               <button
                 type="button"
                 onClick={() => setViewMode("grid")}
-                title="Tampilan Kartu (Grid)"
-                className={`p-1.5 rounded-md transition-all ${
+                title={t("admin.cat.view_grid", "Tampilan Kartu (Grid)")}
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === "grid"
                     ? "bg-white text-[#0785BC] shadow-2xs font-bold"
                     : "text-slate-500 hover:text-slate-800"
@@ -658,8 +663,8 @@ export default function KategoriBarangPage() {
               <button
                 type="button"
                 onClick={() => setViewMode("table")}
-                title="Tampilan Tabel (List)"
-                className={`p-1.5 rounded-md transition-all ${
+                title={t("admin.cat.view_table", "Tampilan Tabel (List)")}
+                className={`p-1.5 rounded-md transition-all cursor-pointer ${
                   viewMode === "table"
                     ? "bg-white text-[#0785BC] shadow-2xs font-bold"
                     : "text-slate-500 hover:text-slate-800"
@@ -671,7 +676,7 @@ export default function KategoriBarangPage() {
           </div>
         </div>
 
-        {/* â”€â”€ Content View (Grid vs Table) â”€â”€ */}
+        {/* ── Content View (Grid vs Table) ── */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -699,36 +704,36 @@ export default function KategoriBarangPage() {
               <Boxes className="w-7 h-7" />
             </div>
             <h3 className="text-sm font-bold text-slate-800">
-              {search ? "Kategori tidak ditemukan" : "Belum ada kategori"}
+              {search ? t("admin.cat.empty_search", "Kategori tidak ditemukan") : t("admin.cat.empty_init", "Belum ada kategori")}
             </h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
               {search
-                ? `Tidak ada kategori yang sesuai dengan kata kunci "${search}".`
-                : "Mulai tambahkan kategori pertama Anda untuk mengelompokkan sarana dan prasarana kampus."}
+                ? t("admin.cat.empty_desc", `Tidak ada kategori yang sesuai dengan kata kunci "${search}".`)
+                : t("admin.cat.empty_init_sub", "Mulai tambahkan kategori pertama Anda untuk mengelompokkan sarana dan prasarana kampus.")}
             </p>
             {search ? (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="mt-4 px-3 py-1.5 text-xs font-semibold text-[#0785BC] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                className="mt-4 px-3 py-1.5 text-xs font-semibold text-[#0785BC] bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
               >
-                Reset Pencarian
+                {t("common.reset", "Reset Pencarian")}
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => setModal({ open: true })}
-                className="mt-4 px-4 py-2 text-xs font-semibold text-white bg-[#0785BC] rounded-xl hover:bg-[#0672a0] transition-colors"
+                className="mt-4 px-4 py-2 text-xs font-semibold text-white bg-[#0785BC] rounded-xl hover:bg-[#0672a0] transition-colors cursor-pointer"
               >
-                Tambah Kategori Sekarang
+                {t("admin.cat.add_btn", "Tambah Kategori Sekarang")}
               </button>
             )}
           </div>
         ) : viewMode === "grid" ? (
-          /* â”€â”€ GRID CARD VIEW â”€â”€ */
+          /* ── GRID CARD VIEW ── */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
             {filtered.map((cat, idx) => {
-              const meta = getCategoryMeta(cat.name);
+              const meta = getCategoryMeta(cat.name, t);
               const Icon = meta.icon;
               const count = cat.item_count || 0;
               const percent = stats.totalItems > 0 ? Math.round((count / stats.totalItems) * 100) : 0;
@@ -765,16 +770,16 @@ export default function KategoriBarangPage() {
                       <button
                         type="button"
                         onClick={() => setModal({ open: true, item: cat })}
-                        title="Edit Kategori"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                        title={t("admin.cat.modal_edit", "Edit Kategori")}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(cat)}
-                        title="Hapus Kategori"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                        title={t("common.delete", "Hapus Kategori")}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -787,14 +792,14 @@ export default function KategoriBarangPage() {
                       {cat.name}
                     </h3>
                     <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-2 min-h-[2rem]">
-                      {cat.description || "Tidak ada rincian deskripsi untuk kategori inventaris ini."}
+                      {cat.description || t("admin.items.no_desc", "Tidak ada deskripsi rinci untuk barang ini.")}
                     </p>
                   </div>
 
                   {/* Inventory Distribution Bar */}
                   <div className="mt-auto pt-3.5 border-t border-slate-100/90 space-y-2">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-slate-500 font-medium">Unit Terdaftar</span>
+                      <span className="text-[11px] text-slate-500 font-medium">{t("admin.cat.th_registered_units", "Unit Terdaftar")}</span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-sm font-bold font-mono text-slate-900">{count}</span>
                         <span className="text-[10px] text-slate-400">({percent}%)</span>
@@ -814,7 +819,7 @@ export default function KategoriBarangPage() {
                         href={`/admin/barang?kategori=${encodeURIComponent(cat.name)}`}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0785BC] hover:text-[#0672a0] group/link"
                       >
-                        Lihat Barang
+                        {t("admin.cat.view_items", "Lihat Barang")}
                         <ArrowRight className="w-3 h-3 group-hover/link:translate-x-0.5 transition-transform" />
                       </Link>
                     </div>
@@ -824,22 +829,22 @@ export default function KategoriBarangPage() {
             })}
           </div>
         ) : (
-          /* â”€â”€ TABLE / LIST VIEW â”€â”€ */
+          /* ── TABLE / LIST VIEW ── */
           <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-mono text-[11px] uppercase tracking-wider">
                   <tr>
-                    <th className="py-3.5 px-4 font-semibold">Kategori</th>
-                    <th className="py-3.5 px-4 font-semibold">Kelompok</th>
-                    <th className="py-3.5 px-4 font-semibold text-center">Unit Terdaftar</th>
-                    <th className="py-3.5 px-4 font-semibold">Porsi Inventaris</th>
-                    <th className="py-3.5 px-4 font-semibold text-right">Aksi</th>
+                    <th className="py-3.5 px-4 font-semibold">{t("admin.cat.th_category", "Kategori")}</th>
+                    <th className="py-3.5 px-4 font-semibold">{t("admin.cat.th_group", "Kelompok")}</th>
+                    <th className="py-3.5 px-4 font-semibold text-center">{t("admin.cat.th_registered_units", "Unit Terdaftar")}</th>
+                    <th className="py-3.5 px-4 font-semibold">{t("admin.cat.th_share", "Porsi Inventaris")}</th>
+                    <th className="py-3.5 px-4 font-semibold text-right">{t("common.action", "Aksi")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filtered.map((cat, idx) => {
-                    const meta = getCategoryMeta(cat.name);
+                    const meta = getCategoryMeta(cat.name, t);
                     const Icon = meta.icon;
                     const count = cat.item_count || 0;
                     const percent = stats.totalItems > 0 ? Math.round((count / stats.totalItems) * 100) : 0;
@@ -881,7 +886,7 @@ export default function KategoriBarangPage() {
                           <div className="w-36">
                             <div className="flex justify-between text-[10px] text-slate-500 mb-1 font-mono">
                               <span>{percent}%</span>
-                              <span>dari {stats.totalItems} unit</span>
+                              <span>{count} / {stats.totalItems} {t("common.units", "unit")}</span>
                             </div>
                             <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                               <div
@@ -896,24 +901,24 @@ export default function KategoriBarangPage() {
                           <div className="flex items-center justify-end gap-1">
                             <Link
                               href={`/admin/barang?kategori=${encodeURIComponent(cat.name)}`}
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 transition-colors"
-                              title="Lihat Daftar Barang"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-[#0785BC] hover:bg-blue-50 transition-colors cursor-pointer"
+                              title={t("admin.cat.view_items", "Lihat Daftar Barang")}
                             >
                               <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
                             <button
                               type="button"
                               onClick={() => setModal({ open: true, item: cat })}
-                              title="Edit Kategori"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                              title={t("admin.cat.modal_edit", "Edit Kategori")}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
                             >
                               <Pencil className="w-3.5 h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => setDeleteTarget(cat)}
-                              title="Hapus Kategori"
-                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                              title={t("common.delete", "Hapus Kategori")}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

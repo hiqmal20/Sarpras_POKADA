@@ -75,33 +75,34 @@ function useMount() {
 
 // ── Status Badge ──
 function StatusBadge({ status }: { status: string }) {
+  const { t } = useLanguage();
   const s = status?.toLowerCase();
   if (s === "pending")
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-        Perlu Divalidasi
+        {t("modal.st_need_validate", "Perlu Divalidasi")}
       </span>
     );
   if (s === "active" || s === "dipinjam")
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
         <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-        Sedang Dipinjam
+        {t("modal.st_borrowed", "Sedang Dipinjam")}
       </span>
     );
   if (s === "overdue" || s === "terlambat")
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-600 border border-red-200">
         <AlertTriangle className="w-3 h-3" />
-        Melewati Batas Waktu
+        {t("modal.st_late", "Melewati Batas Waktu")}
       </span>
     );
   if (s === "completed" || s === "selesai" || s === "dikembalikan")
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
         <Check className="w-3 h-3 text-emerald-600" />
-        Selesai
+        {t("modal.st_done", "Selesai")}
       </span>
     );
   return (
@@ -367,36 +368,36 @@ export default function ManajemenPeminjamanPage() {
   // Real stats from API
   const stats = [
     {
-      label: "Perlu Divalidasi",
+      label: t("modal.st_need_validate", "Perlu Divalidasi"),
       value: realStats.pending,
-      badge: "Menunggu",
+      badge: lang === "en" ? "Waiting" : "Menunggu",
       badgeColor: "bg-amber-100 text-amber-700",
       icon: <Clock className="w-6 h-6 text-amber-500" />,
       iconBg: "bg-amber-50",
       filterKey: "pending" as StatusFilter,
     },
     {
-      label: "Sedang Dipinjam",
+      label: t("modal.st_borrowed", "Sedang Dipinjam"),
       value: realStats.active,
-      badge: "Aktif",
+      badge: lang === "en" ? "Active" : "Aktif",
       badgeColor: "bg-blue-100 text-blue-700",
       icon: <CheckCircle2 className="w-6 h-6 text-blue-500" />,
       iconBg: "bg-blue-50",
       filterKey: "active" as StatusFilter,
     },
     {
-      label: "Melewati Batas Waktu",
+      label: t("modal.st_late", "Melewati Batas Waktu"),
       value: realStats.overdue,
-      badge: "Terlambat",
+      badge: lang === "en" ? "Overdue" : "Terlambat",
       badgeColor: "bg-red-100 text-red-600",
       icon: <AlertTriangle className="w-6 h-6 text-red-500" />,
       iconBg: "bg-red-50",
       filterKey: "overdue" as StatusFilter,
     },
     {
-      label: "Selesai",
+      label: t("modal.st_done", "Selesai"),
       value: realStats.completed,
-      badge: "Selesai",
+      badge: lang === "en" ? "Done" : "Selesai",
       badgeColor: "bg-emerald-100 text-emerald-700",
       icon: <Check className="w-6 h-6 text-emerald-500" />,
       iconBg: "bg-emerald-50",
@@ -570,17 +571,17 @@ export default function ManajemenPeminjamanPage() {
                   <div className="pt-2.5 mt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span className="text-[11px] text-slate-400">
                       {s.filterKey === "pending"
-                        ? "Perlu verifikasi admin"
+                        ? (lang === "en" ? "Needs admin verification" : "Perlu verifikasi admin")
                         : s.filterKey === "active"
-                        ? "Peminjaman berjalan"
+                        ? (lang === "en" ? "Ongoing borrowing" : "Peminjaman berjalan")
                         : s.filterKey === "overdue"
-                        ? "Lewat estimasi kembali"
-                        : "Aset telah kembali"}
+                        ? (lang === "en" ? "Past estimated return" : "Lewat estimasi kembali")
+                        : (lang === "en" ? "Assets returned" : "Aset telah kembali")}
                     </span>
                     <span className={`text-[10px] font-mono font-semibold transition-colors ${
                       activeFilter === s.filterKey ? "text-[#0785BC]" : "text-slate-400 group-hover:text-[#0785BC]"
                     }`}>
-                      {activeFilter === s.filterKey ? "• AKTIF" : "FILTER"}
+                      {activeFilter === s.filterKey ? (lang === "en" ? "• ACTIVE" : "• AKTIF") : "FILTER"}
                     </span>
                   </div>
                 </div>
@@ -597,7 +598,7 @@ export default function ManajemenPeminjamanPage() {
                   <button
                     key={tab.key}
                     onClick={() => { setActiveFilter(tab.key); setPage(1); }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 cursor-pointer ${
                       activeFilter === tab.key
                         ? "bg-[#0785BC] text-white shadow-xs"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -610,9 +611,9 @@ export default function ManajemenPeminjamanPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowExportModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs active:scale-95 bg-white"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-xl text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs active:scale-95 bg-white cursor-pointer"
                 >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" /> Ekspor Peminjaman (CSV / XLSX)
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-[#0785BC]" /> {lang === "en" ? "Export Borrowings (CSV / XLSX)" : "Ekspor Peminjaman (CSV / XLSX)"}
                 </button>
               </div>
             </div>
@@ -689,11 +690,11 @@ export default function ManajemenPeminjamanPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               onClick={() => setSelectedBorrowing(row)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all"
-                              title="Lihat Detail Peminjaman"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:scale-95 transition-all cursor-pointer"
+                              title={t("admin.borrow.detail_heading", "Lihat Detail Peminjaman")}
                             >
                               <Eye className="w-3.5 h-3.5" />
-                              Detail
+                              {t("common.detail", "Detail")}
                             </button>
 
                             {row.status === "pending" && (
@@ -701,31 +702,31 @@ export default function ManajemenPeminjamanPage() {
                                 <button
                                   onClick={() => handleApprove(row.id)}
                                   disabled={actionLoading}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 transition-all disabled:opacity-50 shadow-2xs"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 transition-all disabled:opacity-50 shadow-2xs cursor-pointer"
                                 >
                                   <Check className="w-3.5 h-3.5" />
-                                  Validasi
+                                  {t("admin.borrow.btn_validate", "Validasi")}
                                 </button>
                                 <button
                                   onClick={() => handleReject(row.id)}
                                   disabled={actionLoading}
-                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50"
-                                  title="Tolak Pengajuan"
+                                  className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
+                                  title={t("admin.borrow.btn_reject_req", "Tolak Pengajuan")}
                                 >
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               </>
                             )}
                             {row.status === "active" && (
-                              <span className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">Dipinjam</span>
+                              <span className="text-xs px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 font-medium">{t("admin.dash.st_borrowed", "Dipinjam")}</span>
                             )}
                             {row.status === "overdue" && (
-                              <button className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all">
-                                Ingatkan
+                              <button className="text-xs font-semibold px-2.5 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 active:scale-95 transition-all cursor-pointer">
+                                {t("admin.borrow.btn_remind_wa", "Ingatkan")}
                               </button>
                             )}
                             {row.status === "completed" && (
-                              <span className="text-xs px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-medium">Selesai</span>
+                              <span className="text-xs px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-medium">{t("dash.st_done", "Selesai")}</span>
                             )}
                           </div>
                         </td>
@@ -783,13 +784,13 @@ export default function ManajemenPeminjamanPage() {
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm sm:text-base">Detail Peminjaman</h3>
+                  <h3 className="font-bold text-slate-800 text-sm sm:text-base">{t("admin.borrow.detail_heading", "Detail Peminjaman")}</h3>
                   <p className="text-xs text-slate-400 font-mono mt-0.5">{selectedBorrowing.borrow_code}</p>
                 </div>
               </div>
               <button
                 onClick={() => setSelectedBorrowing(null)}
-                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -800,13 +801,13 @@ export default function ManajemenPeminjamanPage() {
               {/* Status Banner */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 border border-slate-100">
                 <div>
-                  <p className="text-xs text-slate-500 font-medium">Status Pengajuan</p>
+                  <p className="text-xs text-slate-500 font-medium">{t("admin.borrow.status_label", "Status Pengajuan")}</p>
                   <div className="mt-1">
                     <StatusBadge status={selectedBorrowing.status} />
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs text-slate-500 font-medium">Dibuat Pada</p>
+                  <p className="text-xs text-slate-500 font-medium">{t("admin.borrow.created_on", "Dibuat Pada")}</p>
                   <p className="text-xs font-semibold text-slate-700 mt-1">{selectedBorrowing.created_at}</p>
                 </div>
               </div>
@@ -814,7 +815,7 @@ export default function ManajemenPeminjamanPage() {
               {/* Data Peminjam */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-slate-500" /> Informasi Peminjam
+                  <User className="w-4 h-4 text-slate-500" /> {t("admin.borrow.borrower_heading", "Informasi Peminjam")}
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
                   <div className="sm:col-span-2 flex items-center gap-3 pb-2 border-b border-slate-100">
@@ -825,19 +826,19 @@ export default function ManajemenPeminjamanPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Nama Lengkap</p>
+                    <p className="text-xs text-slate-400">{t("admin.borrow.full_name", "Nama Lengkap")}</p>
                     <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_name}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Email</p>
+                    <p className="text-xs text-slate-400">{t("admin.borrow.email", "Email")}</p>
                     <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_email}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">No. Telepon</p>
+                    <p className="text-xs text-slate-400">{t("admin.borrow.phone", "No. Telepon")}</p>
                     <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_phone}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400">Peran</p>
+                    <p className="text-xs text-slate-400">{t("admin.borrow.role", "Peran")}</p>
                     <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrower_role}</p>
                   </div>
                 </div>
@@ -846,16 +847,16 @@ export default function ManajemenPeminjamanPage() {
               {/* Jadwal & Keperluan */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-slate-500" /> Jadwal & Keperluan
+                  <Calendar className="w-4 h-4 text-slate-500" /> {t("admin.borrow.schedule_heading", "Jadwal & Keperluan")}
                 </h4>
                 <div className="space-y-3 p-4 rounded-xl border border-slate-100 bg-slate-50/30">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <p className="text-xs text-slate-400">Tanggal Pinjam</p>
+                      <p className="text-xs text-slate-400">{t("admin.borrow.borrow_date_label", "Tanggal Pinjam")}</p>
                       <p className="text-sm font-semibold text-slate-800 mt-0.5">{selectedBorrowing.borrow_date}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-slate-400">Estimasi Kembali</p>
+                      <p className="text-xs text-slate-400">{t("admin.borrow.est_return_label", "Estimasi Kembali")}</p>
                       <p className="text-sm font-semibold text-slate-800 mt-0.5">
                         {selectedBorrowing.planned_return_date && selectedBorrowing.planned_return_date !== "-"
                           ? selectedBorrowing.planned_return_date
@@ -864,12 +865,12 @@ export default function ManajemenPeminjamanPage() {
                     </div>
                   </div>
                   <div className="pt-2 border-t border-slate-100">
-                    <p className="text-xs text-slate-400">Tujuan / Keperluan</p>
+                    <p className="text-xs text-slate-400">{t("admin.borrow.purpose_label", "Tujuan / Keperluan")}</p>
                     <p className="text-sm text-slate-700 mt-0.5 whitespace-pre-wrap">{selectedBorrowing.purpose || "-"}</p>
                   </div>
                   {selectedBorrowing.admin_note && (
                     <div className="pt-2 border-t border-slate-100">
-                      <p className="text-xs text-slate-400">Catatan Admin</p>
+                      <p className="text-xs text-slate-400">{t("admin.borrow.admin_note_label", "Catatan Admin")}</p>
                       <p className="text-sm text-slate-700 mt-0.5">{selectedBorrowing.admin_note}</p>
                     </div>
                   )}
@@ -879,7 +880,7 @@ export default function ManajemenPeminjamanPage() {
               {/* Daftar Barang yang Dipinjam */}
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
-                  <Package className="w-4 h-4 text-slate-500" /> Barang yang Dipinjam ({selectedBorrowing.items.length})
+                  <Package className="w-4 h-4 text-slate-500" /> {t("admin.borrow.items_heading", "Barang yang Dipinjam")} ({selectedBorrowing.items.length})
                 </h4>
                 <div className="space-y-2 max-h-56 overflow-y-auto">
                   {selectedBorrowing.items.length > 0 ? (
@@ -893,23 +894,23 @@ export default function ManajemenPeminjamanPage() {
                             <Package className="w-4 h-4" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-800">{it.items?.name || "Barang"}</p>
+                            <p className="text-sm font-semibold text-slate-800">{it.items?.name || t("common.items", "Barang")}</p>
                             <p className="text-xs text-slate-400 font-mono">{it.items?.code || it.item_id}</p>
                           </div>
                         </div>
                         <div className="text-right">
                           <span className="inline-flex items-center px-2 py-1 rounded-md bg-slate-100 text-xs font-bold text-slate-700">
-                            {it.quantity} Unit
+                            {it.quantity} {t("common.units", "Unit")}
                           </span>
                           {it.condition_before && (
-                            <p className="text-[11px] text-slate-400 mt-0.5">Kondisi: {it.condition_before}</p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{t("admin.borrow.cond_label", "Kondisi:")} {it.condition_before}</p>
                           )}
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="p-4 rounded-xl border border-slate-100 text-center text-xs text-slate-400">
-                      Tidak ada rincian barang individual
+                      {t("admin.borrow.empty_items_note", "Tidak ada rincian barang individual")}
                     </div>
                   )}
                 </div>
@@ -920,9 +921,9 @@ export default function ManajemenPeminjamanPage() {
             <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2.5">
               <button
                 onClick={() => setSelectedBorrowing(null)}
-                className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-200/70 rounded-xl transition-all"
+                className="px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-200/70 rounded-xl transition-all cursor-pointer"
               >
-                Tutup
+                {t("common.close", "Tutup")}
               </button>
 
               <div className="flex items-center gap-2 flex-wrap">
@@ -931,16 +932,16 @@ export default function ManajemenPeminjamanPage() {
                     <button
                       onClick={() => handleReject(selectedBorrowing.id)}
                       disabled={actionLoading}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all active:scale-95 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
-                      <X className="w-4 h-4" /> Tolak
+                      <X className="w-4 h-4" /> {t("admin.borrow.btn_reject_req", "Tolak")}
                     </button>
                     <button
                       onClick={() => handleApprove(selectedBorrowing.id)}
                       disabled={actionLoading}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
-                      <Check className="w-4 h-4" /> Validasi & Setujui
+                      <Check className="w-4 h-4" /> {t("admin.borrow.btn_approve_validate", "Validasi & Setujui")}
                     </button>
                   </>
                 )}

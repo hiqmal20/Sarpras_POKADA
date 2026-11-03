@@ -21,6 +21,7 @@ import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
 import { getSocket, joinChatRoom } from "@/lib/socket";
 import { toast } from "@/components/Toast";
+import { useLanguage } from "@/lib/i18n";
 import {
   formatChatDateBadge,
   isDifferentDay,
@@ -58,6 +59,7 @@ interface Conversation {
 }
 
 export default function MessagesPage() {
+  const { t, lang } = useLanguage();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -929,7 +931,7 @@ export default function MessagesPage() {
       senderRole: "admin",
       text: messageText,
       rawDate: nowIso,
-      timestamp: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      timestamp: new Date().toLocaleTimeString(lang === "en" ? "en-US" : "id-ID", { hour: "2-digit", minute: "2-digit" }),
       isRead: false,
       reply_to_message_id: currentReply?.id || null,
       replyTo: currentReply,
@@ -940,7 +942,7 @@ export default function MessagesPage() {
     setConversations((prev) =>
       prev.map((c) =>
         c.id === selectedConversation.id
-          ? { ...c, lastMessage: messageText, timestamp: "Baru saja" }
+          ? { ...c, lastMessage: messageText, timestamp: t("chat.just_now", "Baru saja") }
           : c
       )
     );
@@ -1008,14 +1010,14 @@ export default function MessagesPage() {
         <div className={`w-full shrink-0 bg-white border-b border-slate-100 flex flex-col h-full lg:w-80 lg:border-b-0 lg:border-r ${selectedConversation ? "hidden lg:flex" : "flex"}`}>
           <div className="p-4 border-b border-slate-100 bg-white">
             <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-base font-bold text-slate-900">Pesan Pengguna</h2>
-              <span className="text-[10px] font-mono text-slate-400">{filteredConversations.length} obrolan</span>
+              <h2 className="text-base font-bold text-slate-900">{t("chat.admin_title", "Pesan & Live Chat")}</h2>
+              <span className="text-[10px] font-mono text-slate-400">{filteredConversations.length} {t("chat.all_messages", "obrolan")}</span>
             </div>
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input
                 type="text"
-                placeholder="Cari percakapan..."
+                placeholder={t("chat.search_conv", "Cari percakapan...")}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-100/80 hover:bg-slate-100 focus:bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0785BC]/30 focus:border-[#0785BC] transition-all"
@@ -1033,7 +1035,7 @@ export default function MessagesPage() {
             ) : filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-slate-400 text-xs">
                 <MessageSquare className="w-6 h-6 mx-auto mb-2 text-slate-300" />
-                Belum ada percakapan dari pengguna.
+                {t("msg.empty", "Belum ada percakapan dari pengguna.")}
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -1410,7 +1412,7 @@ export default function MessagesPage() {
               {isTyping && (
                 <div className="flex justify-start">
                   <div className="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-[11px] text-slate-500 italic shadow-2xs">
-                    Pengguna sedang mengetik...
+                    {t("chat.typing_user", "Pengguna sedang mengetik...")}
                   </div>
                 </div>
               )}
@@ -1425,7 +1427,7 @@ export default function MessagesPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#0785BC]">
                       <Reply className="w-3 h-3" />
-                      <span>Membalas {replyingTo.senderName}</span>
+                      <span>{t("chat.replying_to", "Membalas")} {replyingTo.senderName}</span>
                     </div>
                     <p className="text-[11px] text-slate-600 truncate mt-0.5">
                       {replyingTo.text}
@@ -1434,8 +1436,8 @@ export default function MessagesPage() {
                   <button
                     type="button"
                     onClick={() => setReplyingTo(null)}
-                    className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition-colors"
-                    title="Batal membalas"
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded-md hover:bg-slate-200/60 transition-colors cursor-pointer"
+                    title={t("chat.cancel_reply", "Batal membalas")}
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1456,14 +1458,14 @@ export default function MessagesPage() {
                       setReplyingTo(null);
                     }
                   }}
-                  placeholder={replyingTo ? `Balas ke ${replyingTo.senderName}...` : "Ketik pesan balasan..."}
+                  placeholder={replyingTo ? `${t("chat.reply", "Balas")} ${replyingTo.senderName}...` : t("chat.type_reply_ph", "Ketik pesan balasan...")}
                   className="flex-1 px-3 py-1.5 text-xs bg-transparent border-none focus:outline-none text-slate-800 placeholder-slate-400 min-w-0"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || sending}
-                  className="p-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-lg disabled:opacity-40 transition-colors shrink-0 active:scale-95 shadow-xs"
-                  title="Kirim Pesan"
+                  className="p-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-lg disabled:opacity-40 transition-colors shrink-0 active:scale-95 shadow-xs cursor-pointer"
+                  title={t("msg.send", "Kirim Pesan")}
                 >
                   {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 </button>
@@ -1474,8 +1476,8 @@ export default function MessagesPage() {
           <div className="hidden lg:flex flex-1 items-center justify-center text-slate-400 text-xs bg-[#fafafa]">
             <div className="text-center">
               <MessageSquare className="w-9 h-9 mx-auto mb-2 text-slate-300" />
-              <p className="font-semibold text-slate-700">Pusat Layanan & Chat Pengguna</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Pilih salah satu percakapan di sebelah kiri untuk melihat pesan.</p>
+              <p className="font-semibold text-slate-700">{t("chat.no_conv_selected", "Pusat Layanan & Chat Pengguna")}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{t("chat.no_conv_desc", "Pilih salah satu percakapan di sebelah kiri untuk melihat pesan.")}</p>
             </div>
           </div>
         )}

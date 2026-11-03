@@ -319,10 +319,10 @@ export default function DashboardAdminPage() {
   const totalTypesDisplay = stats?.items.totalTypes ?? stats?.items.total ?? 0;
 
   const statusPieData: PieSlice[] = [
-    { label: "Tersedia", value: stats?.items.tersedia || 0, color: "#10B981" },
-    { label: "Dipinjam", value: stats?.items.dipinjam || 0, color: "#0785BC" },
-    { label: "Pemeliharaan", value: stats?.items.dalamPemeliharaan || 0, color: "#F59E0B" },
-    { label: "Rusak", value: stats?.items.rusak || 0, color: "#EF4444" },
+    { label: t("admin.dash.st_available", "Tersedia"), value: stats?.items.tersedia || 0, color: "#10B981" },
+    { label: t("admin.dash.st_borrowed", "Dipinjam"), value: stats?.items.dipinjam || 0, color: "#0785BC" },
+    { label: t("admin.dash.st_maintenance", "Pemeliharaan"), value: stats?.items.dalamPemeliharaan || 0, color: "#F59E0B" },
+    { label: t("admin.dash.st_broken", "Rusak"), value: stats?.items.rusak || 0, color: "#EF4444" },
   ];
 
   const categoryColors = ["#0785BC", "#10B981", "#F59E0B", "#0785BC", "#EC4899", "#3B82F6", "#14B8A6", "#F97316"];
@@ -354,7 +354,7 @@ export default function DashboardAdminPage() {
       tag: t("admin.dash.kpi_active_borrow_tag", "SEDANG BERJALAN"),
       tagColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
       value: stats?.borrowings.aktif ?? 0,
-      sub: `${stats?.borrowings.dikembalikan ?? 0} transaksi pengembalian tuntas`,
+      sub: `${stats?.borrowings.dikembalikan ?? 0} ${t("admin.dash.kpi_active_borrow_sub", "transaksi pengembalian tuntas")}`,
       link: "/admin/manajemen_peminjaman",
       icon: <BookOpen className="w-4 h-4 text-emerald-600" />,
       accentColor: "#10B981",
@@ -374,7 +374,7 @@ export default function DashboardAdminPage() {
       tag: t("admin.dash.kpi_damage_tag", "INSIDEN ASET"),
       tagColor: "bg-rose-50 text-rose-700 border-rose-200",
       value: stats?.laporanKerusakan.menungguReview ?? 0,
-      sub: `${stats?.laporanKerusakan.sedangDiperbaiki ?? 0} sedang proses perbaikan teknisi`,
+      sub: `${stats?.laporanKerusakan.sedangDiperbaiki ?? 0} ${t("admin.dash.kpi_damage_sub", "sedang proses perbaikan teknisi")}`,
       link: "/admin/rekap_laporan",
       icon: <AlertTriangle className="w-4 h-4 text-rose-600" />,
       accentColor: "#EF4444",

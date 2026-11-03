@@ -12,9 +12,11 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { api, setAuthToken, setRefreshToken, setCurrentUser } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [formData, setFormData] = useState({
     nomor_induk: "",
@@ -207,7 +209,7 @@ export default function RegisterPage() {
                   className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#0785BC] transition-colors"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  Kembali ke Beranda
+                  {t("auth.back_home", "Kembali ke Beranda")}
                 </Link>
               </div>
 
@@ -247,11 +249,11 @@ export default function RegisterPage() {
                   text-slate-900
                 "
               >
-                Buat Akun
+                {t("auth.reg_title", "Buat Akun")}
               </h1>
 
               <p className="mt-1.5 text-[12px] text-slate-600">
-                Daftarkan akun untuk mengakses sistem peminjaman sarpras
+                {t("auth.reg_sub", "Daftarkan akun untuk mengakses sistem peminjaman sarpras")}
               </p>
             </div>
 
@@ -281,7 +283,7 @@ export default function RegisterPage() {
             >
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  Nama Lengkap
+                  {t("auth.fullname_label", "Nama Lengkap")}
                 </label>
 
                 <div className="relative">
@@ -297,7 +299,7 @@ export default function RegisterPage() {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Masukkan nama lengkap"
+                    placeholder={t("auth.fullname_ph", "Masukkan nama lengkap")}
                     className={inputClass}
                   />
                 </div>
@@ -305,7 +307,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  Email
+                  {t("auth.campus_email_label", "Email")}
                 </label>
 
                 <div className="relative">
@@ -329,7 +331,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  Nomor Induk
+                  {t("auth.campus_nim_label", "Nomor Induk")}
                 </label>
 
                 <div className="relative">
@@ -345,7 +347,7 @@ export default function RegisterPage() {
                     required
                     value={formData.nomor_induk}
                     onChange={handleChange}
-                    placeholder="Masukkan Nomor Induk"
+                    placeholder={t("auth.campus_nim_ph", "Masukkan Nomor Induk")}
                     className={inputClass}
                   />
                 </div>
@@ -353,7 +355,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  No. WhatsApp / HP
+                  {t("auth.phone_label", "No. WhatsApp / HP")}
                 </label>
 
                 <div className="relative">
@@ -368,7 +370,7 @@ export default function RegisterPage() {
                     name="no_hp"
                     value={formData.no_hp}
                     onChange={handleChange}
-                    placeholder="08123456789"
+                    placeholder={t("auth.phone_ph", "08123456789")}
                     className={inputClass}
                   />
                 </div>
@@ -376,7 +378,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className={`${labelClass} mb-1.5`}>
-                  Password
+                  {t("auth.password_label", "Password")}
                 </label>
 
                 <div className="relative">
@@ -421,15 +423,16 @@ export default function RegisterPage() {
                   focus:ring-[#0785BC]/30
                   disabled:cursor-not-allowed
                   disabled:opacity-50
+                  cursor-pointer
                 "
               >
-                {loading ? "Mendaftarkan..." : "Daftar"}
+                {loading ? t("auth.registering", "Mendaftarkan...") : t("auth.reg_btn", "Daftar")}
               </button>
             </form>
 
             <div className="relative mt-5 text-center">
               <p className="text-[11px] text-slate-600">
-                Sudah punya akun?{" "}
+                {t("auth.have_account", "Sudah punya akun?")}{" "}
                 <Link
                   href="/auth/login"
                   className="
@@ -439,7 +442,7 @@ export default function RegisterPage() {
                     hover:text-[#0672a0]
                   "
                 >
-                  Masuk di sini
+                  {t("auth.login_here", "Masuk di sini")}
                 </Link>
               </p>
             </div>

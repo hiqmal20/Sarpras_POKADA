@@ -254,15 +254,22 @@ export default function ExportModal({
             <div>
               <label className="block font-bold text-slate-800 mb-2 flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[#0785BC]" />
-                {t("export.date_range", "Pilih Kategori Waktu (Filter Rentang Tanggal)")}
+                {lang === "en" ? "Time Filter (Select Date Range)" : t("export.date_range", "Pilih Kategori Waktu (Filter Rentang Tanggal)")}
               </label>
               <div className="space-y-1.5">
-                {DATE_RANGE_OPTIONS.map((opt) => (
+                {[
+                  { key: "today" as DateRangeFilter, label: lang === "en" ? "Today" : "Hari Ini", sublabel: lang === "en" ? "Activity since 00:00 today" : "Aktivitas sejak pukul 00:00 hari ini" },
+                  { key: "7days" as DateRangeFilter, label: lang === "en" ? "Last 7 Days" : "7 Hari Terakhir", sublabel: lang === "en" ? "Past 1 week activity" : "Aktivitas 1 minggu terakhir" },
+                  { key: "30days" as DateRangeFilter, label: lang === "en" ? "Last 30 Days" : "30 Hari Terakhir", sublabel: lang === "en" ? "Past 1 month activity" : "Aktivitas 1 bulan terakhir" },
+                  { key: "1year" as DateRangeFilter, label: lang === "en" ? "Last 1 Year" : "1 Tahun Terakhir", sublabel: lang === "en" ? "Past 1 calendar/fiscal year" : "Aktivitas 1 tahun buku berjalan" },
+                  { key: "custom" as DateRangeFilter, label: lang === "en" ? "Custom Range (Pick Dates / Year)" : "Kustom Kalender (Pilih Tanggal / Tahun)", sublabel: lang === "en" ? "Pick specific years or flexible start & end dates" : "Cari data spesifik dari tahun sebelumnya atau rentang bebas" },
+                  { key: "all" as DateRangeFilter, label: lang === "en" ? "All Time" : "Semua Periode", sublabel: lang === "en" ? "Entire historical data across platform" : "Seluruh data riil sejak awal platform" },
+                ].map((opt) => (
                   <button
                     key={opt.key}
                     type="button"
                     onClick={() => setSelectedRange(opt.key)}
-                    className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between ${
+                    className={`w-full p-2.5 rounded-xl text-left border transition-all flex items-center justify-between cursor-pointer ${
                       selectedRange === opt.key
                         ? "border-[#0785BC] bg-blue-50/60 ring-2 ring-[#0785BC]/20 text-[#0785BC]"
                         : "border-slate-200/80 hover:bg-slate-50 text-slate-700"
@@ -287,14 +294,14 @@ export default function ExportModal({
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-xs text-slate-800 flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-[#0785BC]" />
-                      Pilih Tanggal Kalender
+                      {lang === "en" ? "Select Calendar Dates" : "Pilih Tanggal Kalender"}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-medium">Bebas pilih tahun & tanggal</span>
+                    <span className="text-[10px] text-slate-400 font-medium">{lang === "en" ? "Flexible year & date range" : "Bebas pilih tahun & tanggal"}</span>
                   </div>
 
                   {/* Quick Year Shortcuts */}
                   <div>
-                    <p className="text-[10px] font-semibold text-slate-500 mb-1.5">Pilih Tahun Cepat:</p>
+                    <p className="text-[10px] font-semibold text-slate-500 mb-1.5">{lang === "en" ? "Quick Select Year:" : "Pilih Tahun Cepat:"}</p>
                     <div className="flex flex-wrap gap-1.5">
                       {quickYears.map((yr) => {
                         const isThisYear = customStartDate === `${yr}-01-01` && customEndDate === `${yr}-12-31`;
@@ -303,13 +310,13 @@ export default function ExportModal({
                             key={yr}
                             type="button"
                             onClick={() => handleSelectYear(yr)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                               isThisYear
                                 ? "bg-[#0785BC] text-white border-[#0785BC] shadow-2xs"
                                 : "bg-white text-slate-700 border-slate-200 hover:border-[#0785BC] hover:text-[#0785BC]"
                             }`}
                           >
-                            Tahun {yr}
+                            {lang === "en" ? `Year ${yr}` : `Tahun ${yr}`}
                           </button>
                         );
                       })}
@@ -320,7 +327,7 @@ export default function ExportModal({
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Dari Tanggal
+                        {lang === "en" ? "From Date" : "Dari Tanggal"}
                       </label>
                       <input
                         type="date"
@@ -331,7 +338,7 @@ export default function ExportModal({
                     </div>
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                        Sampai Tanggal
+                        {lang === "en" ? "To Date" : "Sampai Tanggal"}
                       </label>
                       <input
                         type="date"
@@ -349,13 +356,13 @@ export default function ExportModal({
             <div>
               <label className="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
                 <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-                {t("export.select_format", "Pilih Format Berkas")}
+                {lang === "en" ? "Select File Format" : t("export.select_format", "Pilih Format Berkas")}
               </label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedFormat("xlsx")}
-                  className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 ${
+                  className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer ${
                     selectedFormat === "xlsx"
                       ? "border-emerald-500 bg-emerald-50/60 ring-2 ring-emerald-500/20 text-emerald-800"
                       : "border-slate-200 hover:bg-slate-50 text-slate-700"
@@ -366,14 +373,14 @@ export default function ExportModal({
                   </div>
                   <div>
                     <p className="font-bold text-xs">Excel (.xlsx)</p>
-                    <p className="text-[10px] text-slate-400">Kolom rapi & terstruktur</p>
+                    <p className="text-[10px] text-slate-400">{lang === "en" ? "Neat & formatted spreadsheet" : "Kolom rapi & terstruktur"}</p>
                   </div>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSelectedFormat("csv")}
-                  className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 ${
+                  className={`p-2.5 rounded-xl border text-left transition-all flex items-center gap-2 cursor-pointer ${
                     selectedFormat === "csv"
                       ? "border-blue-500 bg-blue-50/60 ring-2 ring-blue-500/20 text-blue-800"
                       : "border-slate-200 hover:bg-slate-50 text-slate-700"
@@ -384,7 +391,7 @@ export default function ExportModal({
                   </div>
                   <div>
                     <p className="font-bold text-xs">Teks (.csv)</p>
-                    <p className="text-[10px] text-slate-400">UTF-8 BOM siap Excel</p>
+                    <p className="text-[10px] text-slate-400">{lang === "en" ? "UTF-8 BOM Excel ready" : "UTF-8 BOM siap Excel"}</p>
                   </div>
                 </button>
               </div>
@@ -395,13 +402,13 @@ export default function ExportModal({
               {isMasterArchive ? (
                 <span className="flex items-center gap-1.5 text-slate-700 font-semibold text-[11px]">
                   <Layers className="w-3.5 h-3.5 text-[#0785BC] shrink-0" />
-                  Seluruh 5 modul: Peminjaman, Pengembalian, Inventaris, Kerusakan & User
+                  {lang === "en" ? "All 5 core modules: Borrowings, Returns, Items, Damage Reports & Users" : "Seluruh 5 modul: Peminjaman, Pengembalian, Inventaris, Kerusakan & User"}
                 </span>
               ) : (
                 <span className="text-[11px]">
-                  Data terfilter: <strong className="font-bold text-slate-900">{matchedCount} baris</strong>
+                  {lang === "en" ? "Filtered data:" : "Data terfilter:"} <strong className="font-bold text-slate-900">{matchedCount} {lang === "en" ? "rows" : "baris"}</strong>
                   {selectedRange === "custom" && (
-                    <span className="text-slate-400 ml-1">({customStartDate} s/d {customEndDate})</span>
+                    <span className="text-slate-400 ml-1">({customStartDate} {lang === "en" ? "to" : "s/d"} {customEndDate})</span>
                   )}
                 </span>
               )}
@@ -423,7 +430,7 @@ export default function ExportModal({
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#0785BC] to-[#0672a0] hover:from-[#0672a0] hover:to-[#055c82] text-white font-bold rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50 text-xs cursor-pointer"
               >
                 {exporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                {t("export.download_btn", "Unduh Data")} ({selectedFormat.toUpperCase()})
+                {lang === "en" ? "Download Data" : t("export.download_btn", "Unduh Data")} ({selectedFormat.toUpperCase()})
               </button>
             </div>
           </div>

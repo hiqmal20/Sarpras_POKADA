@@ -26,10 +26,12 @@ import {
 import { AdminLayout } from "@/components/admin";
 import api, { getCurrentUser } from "@/lib/api";
 import ExportModal from "@/components/ExportModal";
+import { useLanguage } from "@/lib/i18n";
 
 type SettingsTab = "profile" | "account" | "notifications" | "security" | "data";
 
 export default function SettingsPage() {
+  const { t, lang, setLang } = useLanguage();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [saved, setSaved] = useState(false);
@@ -330,11 +332,11 @@ export default function SettingsPage() {
   };
 
   const tabs = [
-    { id: "profile", label: "Profil", icon: User },
-    { id: "account", label: "Akun & Sandi", icon: Lock },
-    { id: "notifications", label: "Notifikasi", icon: Bell },
-    { id: "security", label: "Keamanan Sesi", icon: Shield },
-    { id: "data", label: "Data & Privasi", icon: Database },
+    { id: "profile", label: t("admin.settings.tab_profile", "Profil"), icon: User },
+    { id: "account", label: t("admin.settings.tab_account", "Akun & Sandi"), icon: Lock },
+    { id: "notifications", label: t("admin.settings.tab_notif", "Notifikasi"), icon: Bell },
+    { id: "security", label: t("admin.settings.tab_security", "Keamanan Sesi"), icon: Shield },
+    { id: "data", label: t("admin.settings.tab_data", "Data & Privasi"), icon: Database },
   ];
 
   return (
@@ -343,13 +345,13 @@ export default function SettingsPage() {
         {/* Header */}
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">Pengaturan Sistem & Akun</h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200">
-              KONFIGURASI SISTEM
+            <h1 className="text-xl font-bold text-slate-900 tracking-tight">{t("admin.settings.title", "Pengaturan Sistem & Akun")}</h1>
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-medium bg-slate-100 text-slate-600 border border-slate-200 uppercase">
+              {t("admin.nav.settings", "KONFIGURASI SISTEM")}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Kelola preferensi akun, integrasi notifikasi, keamanan sesi, dan ekspor data platform.
+            {t("admin.settings.sub", "Kelola preferensi akun, integrasi notifikasi, keamanan sesi, dan ekspor data platform.")}
           </p>
         </div>
 
@@ -394,9 +396,9 @@ export default function SettingsPage() {
               {activeTab === "profile" && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Informasi Profil</h2>
+                    <h2 className="text-base font-bold text-slate-900">{t("settings.profile_title", "Informasi Profil")}</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Perbarui informasi identitas, foto profil, dan kontak admin Anda di database
+                      {t("settings.profile_sub", "Perbarui informasi identitas, foto profil, dan kontak admin Anda di database")}
                     </p>
                   </div>
 
@@ -429,11 +431,11 @@ export default function SettingsPage() {
                       )}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-slate-800 mb-1">Foto Profil Avatar</p>
-                      <p className="text-[11px] text-slate-400 mb-2.5">JPG, PNG, atau WEBP. Maksimal 3MB.</p>
+                      <p className="text-xs font-bold text-slate-800 mb-1">{lang === "en" ? "Avatar Profile Photo" : "Foto Profil Avatar"}</p>
+                      <p className="text-[11px] text-slate-400 mb-2.5">{lang === "en" ? "JPG, PNG, or WEBP. Max 3MB." : "JPG, PNG, atau WEBP. Maksimal 3MB."}</p>
                       <label className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl cursor-pointer transition-all shadow-xs">
                         <Camera className="w-3.5 h-3.5" />
-                        <span>{uploadingPhoto ? "Mengunggah..." : "Ubah Foto"}</span>
+                        <span>{uploadingPhoto ? t("settings.uploading", "Mengunggah...") : t("settings.change_photo", "Ubah Foto")}</span>
                         <input
                           type="file"
                           accept="image/*"
@@ -447,18 +449,18 @@ export default function SettingsPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Nama Lengkap</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{t("settings.name", "Nama Lengkap")}</label>
                       <input
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                        placeholder="Nama lengkap..."
+                        placeholder={lang === "en" ? "Full name..." : "Nama lengkap..."}
                       />
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Alamat Email</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{t("settings.email", "Alamat Email")}</label>
                       <input
                         type="email"
                         value={email}
@@ -466,11 +468,11 @@ export default function SettingsPage() {
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
                         placeholder="contoh@kampus.ac.id"
                       />
-                      <p className="text-[10px] text-slate-400 mt-1">Email disinkronkan ke akun login Supabase</p>
+                      <p className="text-[10px] text-slate-400 mt-1">{lang === "en" ? "Email synchronized with Supabase login account" : "Email disinkronkan ke akun login Supabase"}</p>
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Nomor Telepon / WhatsApp</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{t("settings.phone", "Nomor Telepon / WhatsApp")}</label>
                       <input
                         type="tel"
                         value={phone}
@@ -481,7 +483,7 @@ export default function SettingsPage() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Hak Akses / Peran</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{lang === "en" ? "Access Role / Authority" : "Hak Akses / Peran"}</label>
                       <input
                         type="text"
                         value={department}
@@ -491,24 +493,24 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-slate-700 mb-1.5">Alamat / Lokasi Kerja</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{lang === "en" ? "Work Location / Address" : "Alamat / Lokasi Kerja"}</label>
                       <input
                         type="text"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                        placeholder="contoh: Gedung Rektorat Lt. 2, Ruang Sarpras"
+                        placeholder={lang === "en" ? "e.g., Rectorate Building 2nd Fl, Sarpras Office" : "contoh: Gedung Rektorat Lt. 2, Ruang Sarpras"}
                       />
                     </div>
 
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-slate-700 mb-1.5">Bio / Keterangan</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{lang === "en" ? "Bio / Notes" : "Bio / Keterangan"}</label>
                       <textarea
                         value={bio}
                         onChange={(e) => setBio(e.target.value)}
                         rows={2}
                         className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] resize-none"
-                        placeholder="Catatan profil atau peran tugas sarpras..."
+                        placeholder={lang === "en" ? "Profile notes or sarpras role duties..." : "Catatan profil atau peran tugas sarpras..."}
                       />
                     </div>
                   </div>
@@ -517,10 +519,10 @@ export default function SettingsPage() {
                     <button
                       onClick={handleSaveProfile}
                       disabled={savingProfile}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0785BC] text-white text-xs font-semibold rounded-xl hover:bg-[#0672a0] active:scale-95 transition-all shadow-sm disabled:opacity-60"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0785BC] text-white text-xs font-semibold rounded-xl hover:bg-[#0672a0] active:scale-95 transition-all shadow-sm disabled:opacity-60 cursor-pointer"
                     >
                       {savingProfile && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      <span>{savingProfile ? "Menyimpan ke DB..." : "Simpan Profil"}</span>
+                      <span>{savingProfile ? t("common.saving", "Menyimpan ke DB...") : t("settings.save", "Simpan Profil")}</span>
                     </button>
                   </div>
                 </div>
@@ -530,9 +532,9 @@ export default function SettingsPage() {
               {activeTab === "account" && (
                 <div className="space-y-6">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Pengaturan Akun & Sandi</h2>
+                    <h2 className="text-base font-bold text-slate-900">{t("admin.settings.password_header", "Pengaturan Akun & Sandi")}</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Perbarui kata sandi akun Anda secara langsung ke server autentikasi
+                      {t("admin.settings.password_desc", "Perbarui kata sandi akun Anda secara langsung ke server autentikasi")}
                     </p>
                   </div>
 
@@ -555,19 +557,19 @@ export default function SettingsPage() {
 
                   <form onSubmit={handleChangePassword} className="max-w-md space-y-4 text-xs">
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Kata Sandi Saat Ini</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{t("admin.settings.cur_pass", "Kata Sandi Saat Ini")}</label>
                       <div className="relative">
                         <input
                           type={showCurrentPassword ? "text" : "password"}
                           value={currentPassword}
                           onChange={(e) => setCurrentPassword(e.target.value)}
                           className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                          placeholder="Masukkan sandi lama"
+                          placeholder={lang === "en" ? "Enter current password" : "Masukkan sandi lama"}
                         />
                         <button
                           type="button"
                           onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
                           {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -575,19 +577,19 @@ export default function SettingsPage() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Kata Sandi Baru</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{t("admin.settings.new_pass", "Kata Sandi Baru")}</label>
                       <div className="relative">
                         <input
                           type={showNewPassword ? "text" : "password"}
                           value={newPassword}
                           onChange={(e) => setNewPassword(e.target.value)}
                           className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                          placeholder="Minimal 6 karakter"
+                          placeholder={lang === "en" ? "Minimum 6 characters" : "Minimal 6 karakter"}
                         />
                         <button
                           type="button"
                           onClick={() => setShowNewPassword(!showNewPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
                           {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -595,19 +597,19 @@ export default function SettingsPage() {
                     </div>
 
                     <div>
-                      <label className="block font-semibold text-slate-700 mb-1.5">Konfirmasi Kata Sandi Baru</label>
+                      <label className="block font-semibold text-slate-700 mb-1.5">{t("admin.settings.confirm_pass", "Konfirmasi Kata Sandi Baru")}</label>
                       <div className="relative">
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                          placeholder="Ulangi kata sandi baru"
+                          placeholder={lang === "en" ? "Repeat new password" : "Ulangi kata sandi baru"}
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                         >
                           {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -617,10 +619,10 @@ export default function SettingsPage() {
                     <button
                       type="submit"
                       disabled={savingPassword}
-                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0785BC] text-white text-xs font-semibold rounded-xl hover:bg-[#0672a0] active:scale-95 transition-all shadow-sm disabled:opacity-60"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#0785BC] text-white text-xs font-semibold rounded-xl hover:bg-[#0672a0] active:scale-95 transition-all shadow-sm disabled:opacity-60 cursor-pointer"
                     >
                       {savingPassword && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                      <span>{savingPassword ? "Memperbarui Sandi..." : "Perbarui Kata Sandi"}</span>
+                      <span>{savingPassword ? t("common.saving", "Memperbarui Sandi...") : t("admin.settings.update_pass_btn", "Perbarui Kata Sandi")}</span>
                     </button>
                   </form>
                 </div>
@@ -630,23 +632,23 @@ export default function SettingsPage() {
               {activeTab === "notifications" && (
                 <div className="space-y-6 text-xs">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Pengaturan Notifikasi Realtime</h2>
+                    <h2 className="text-base font-bold text-slate-900">{t("settings.notif_title", "Pengaturan Notifikasi Realtime")}</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Pilihan ini langsung menyaring notifikasi yang tampil di Navbar dan saluran peringatan
+                      {t("settings.notif_sub", "Pilihan ini langsung menyaring notifikasi yang tampil di Navbar dan saluran peringatan")}
                     </p>
                   </div>
 
                   <div className="space-y-3">
                     <h3 className="font-semibold text-slate-700 uppercase tracking-wider text-[11px]">
-                      Saluran Pemberitahuan
+                      {lang === "en" ? "Notification Channels" : "Saluran Pemberitahuan"}
                     </h3>
 
                     <div className="flex items-center justify-between p-3.5 bg-slate-50/70 border border-slate-100 rounded-xl">
                       <div className="flex items-center gap-3">
                         <Mail className="w-4 h-4 text-[#0785BC]" />
                         <div>
-                          <p className="font-semibold text-slate-800">Email Notification</p>
-                          <p className="text-[11px] text-slate-400">Terima ringkasan transaksi & peringatan via email</p>
+                          <p className="font-semibold text-slate-800">{lang === "en" ? "Email Notification" : "Notifikasi Email"}</p>
+                          <p className="text-[11px] text-slate-400">{lang === "en" ? "Receive transaction summaries & alerts via email" : "Terima ringkasan transaksi & peringatan via email"}</p>
                         </div>
                       </div>
                       <button
@@ -670,7 +672,7 @@ export default function SettingsPage() {
                             },
                           });
                         }}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
                           emailNotif ? "bg-[#0785BC]" : "bg-slate-300"
                         }`}
                       >
@@ -686,9 +688,9 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-3">
                         <Bell className="w-4 h-4 text-[#0785BC]" />
                         <div>
-                          <p className="font-semibold text-slate-800">In-App Notification Badge (Navbar)</p>
+                          <p className="font-semibold text-slate-800">{t("settings.badge", "In-App Notification Badge (Navbar)")}</p>
                           <p className="text-[11px] text-slate-400">
-                            Tampilkan badge lonceng & pop-up notifikasi langsung di bilah atas aplikasi
+                            {t("settings.badge_sub", "Tampilkan badge lonceng & pop-up notifikasi langsung di bilah atas aplikasi")}
                           </p>
                         </div>
                       </div>
@@ -713,7 +715,7 @@ export default function SettingsPage() {
                             },
                           });
                         }}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer ${
                           pushNotif ? "bg-[#0785BC]" : "bg-slate-300"
                         }`}
                       >
@@ -728,7 +730,7 @@ export default function SettingsPage() {
 
                   <div className="border-t border-slate-100 pt-4 space-y-3">
                     <h3 className="font-semibold text-slate-700 uppercase tracking-wider text-[11px]">
-                      Filter Jenis Notifikasi Masuk
+                      {lang === "en" ? "Incoming Notification Filters" : "Filter Jenis Notifikasi Masuk"}
                     </h3>
 
                     <label className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors">
@@ -758,8 +760,8 @@ export default function SettingsPage() {
                         className="w-4 h-4 text-[#0785BC] rounded border-slate-300"
                       />
                       <div>
-                        <p className="font-semibold text-slate-800">Pengajuan Peminjaman Baru</p>
-                        <p className="text-[11px] text-slate-400">Pemberitahuan saat ada user meminjam barang/paket</p>
+                        <p className="font-semibold text-slate-800">{t("settings.borrow_status", "Pengajuan Peminjaman Baru")}</p>
+                        <p className="text-[11px] text-slate-400">{t("settings.borrow_status_sub", "Pemberitahuan saat ada user meminjam barang/paket")}</p>
                       </div>
                     </label>
 
@@ -790,8 +792,8 @@ export default function SettingsPage() {
                         className="w-4 h-4 text-[#0785BC] rounded border-slate-300"
                       />
                       <div>
-                        <p className="font-semibold text-slate-800">Pengembalian Barang</p>
-                        <p className="text-[11px] text-slate-400">Pemberitahuan saat aset fisik telah dikembalikan peminjam</p>
+                        <p className="font-semibold text-slate-800">{t("settings.return_rem", "Pengembalian Barang")}</p>
+                        <p className="text-[11px] text-slate-400">{t("settings.return_rem_sub", "Pemberitahuan saat aset fisik telah dikembalikan peminjam")}</p>
                       </div>
                     </label>
 
@@ -822,8 +824,8 @@ export default function SettingsPage() {
                         className="w-4 h-4 text-[#0785BC] rounded border-slate-300"
                       />
                       <div>
-                        <p className="font-semibold text-slate-800">Laporan Kerusakan & Insiden</p>
-                        <p className="text-[11px] text-slate-400">Pemberitahuan tiket kerusakan atau kehilangan aset</p>
+                        <p className="font-semibold text-slate-800">{lang === "en" ? "Damage & Incident Reports" : "Laporan Kerusakan & Insiden"}</p>
+                        <p className="text-[11px] text-slate-400">{lang === "en" ? "Notification of asset damage or loss tickets" : "Pemberitahuan tiket kerusakan atau kehilangan aset"}</p>
                       </div>
                     </label>
                   </div>
@@ -834,9 +836,9 @@ export default function SettingsPage() {
               {activeTab === "security" && (
                 <div className="space-y-6 text-xs">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Keamanan Sesi & Hak Akses</h2>
+                    <h2 className="text-base font-bold text-slate-900">{lang === "en" ? "Session Security & Access Control" : "Keamanan Sesi & Hak Akses"}</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Pengaturan batas waktu tidak aktif, proteksi autentikasi, dan status sesi berjalan
+                      {lang === "en" ? "Settings for idle timeout, authentication safeguards, and active sessions" : "Pengaturan batas waktu tidak aktif, proteksi autentikasi, dan status sesi berjalan"}
                     </p>
                   </div>
 
@@ -845,10 +847,10 @@ export default function SettingsPage() {
                     <div className="p-4 bg-slate-50/70 border border-slate-200/80 rounded-2xl space-y-2">
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-[#0785BC]" />
-                        <label className="font-bold text-slate-800">Batas Waktu Sesi Tidak Aktif (Idle Timeout)</label>
+                        <label className="font-bold text-slate-800">{lang === "en" ? "Idle Session Timeout" : "Batas Waktu Sesi Tidak Aktif (Idle Timeout)"}</label>
                       </div>
                       <p className="text-[11px] text-slate-500 leading-relaxed">
-                        Sistem secara otomatis akan mengeluarkan (logout) admin jika tidak ada interaksi mouse/keyboard selama batas waktu yang ditentukan.
+                        {lang === "en" ? "The system will automatically log out administrators if there is no keyboard/mouse interaction within the selected limit." : "Sistem secara otomatis akan mengeluarkan (logout) admin jika tidak ada interaksi mouse/keyboard selama batas waktu yang ditentukan."}
                       </p>
                       <select
                         value={sessionTimeout}
@@ -872,12 +874,12 @@ export default function SettingsPage() {
                             },
                           });
                         }}
-                        className="w-full mt-1.5 px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] bg-white font-semibold text-slate-800"
+                        className="w-full mt-1.5 px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] bg-white font-semibold text-slate-800 cursor-pointer"
                       >
-                        <option value="15">15 Menit (Sangat Aman)</option>
-                        <option value="30">30 Menit (Standar)</option>
-                        <option value="60">1 Jam (Aktivitas Padat)</option>
-                        <option value="120">2 Jam (Maksimal)</option>
+                        <option value="15">{lang === "en" ? "15 Minutes (High Security)" : "15 Menit (Sangat Aman)"}</option>
+                        <option value="30">{lang === "en" ? "30 Minutes (Standard)" : "30 Menit (Standar)"}</option>
+                        <option value="60">{lang === "en" ? "1 Hour (Heavy Activity)" : "1 Jam (Aktivitas Padat)"}</option>
+                        <option value="120">{lang === "en" ? "2 Hours (Maximum)" : "2 Jam (Maksimal)"}</option>
                       </select>
                     </div>
 
@@ -886,10 +888,10 @@ export default function SettingsPage() {
                       <div className="space-y-0.5 pr-4">
                         <div className="flex items-center gap-2">
                           <Key className="w-4 h-4 text-[#0785BC]" />
-                          <p className="font-bold text-slate-800">Konfirmasi Keamanan Tindakan Kritis (2FA)</p>
+                          <p className="font-bold text-slate-800">{lang === "en" ? "Critical Action Security Confirmation (2FA)" : "Konfirmasi Keamanan Tindakan Kritis (2FA)"}</p>
                         </div>
                         <p className="text-[11px] text-slate-500">
-                          Memerlukan konfirmasi ulang kata sandi saat menghapus barang, mengubah denda, atau aksi sensitif
+                          {lang === "en" ? "Requires password confirmation when deleting items, modifying fines, or executing critical actions" : "Memerlukan konfirmasi ulang kata sandi saat menghapus barang, mengubah denda, atau aksi sensitif"}
                         </p>
                       </div>
                       <button
@@ -913,7 +915,7 @@ export default function SettingsPage() {
                             },
                           });
                         }}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
                           twoFactorEnabled ? "bg-[#0785BC]" : "bg-slate-300"
                         }`}
                       >
@@ -930,10 +932,10 @@ export default function SettingsPage() {
                       <div className="space-y-0.5 pr-4">
                         <div className="flex items-center gap-2">
                           <Shield className="w-4 h-4 text-[#0785BC]" />
-                          <p className="font-bold text-slate-800">Peringatan Deteksi Sesi Login Baru</p>
+                          <p className="font-bold text-slate-800">{lang === "en" ? "New Login Session Alert" : "Peringatan Deteksi Sesi Login Baru"}</p>
                         </div>
                         <p className="text-[11px] text-slate-500">
-                          Simpan log identitas browser dan beri peringatan jika terdeteksi login dari peramban berbeda
+                          {lang === "en" ? "Store browser fingerprint and alert when logins are detected from different browsers" : "Simpan log identitas browser dan beri peringatan jika terdeteksi login dari peramban berbeda"}
                         </p>
                       </div>
                       <button
@@ -957,7 +959,7 @@ export default function SettingsPage() {
                             },
                           });
                         }}
-                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+                        className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
                           loginAlerts ? "bg-[#0785BC]" : "bg-slate-300"
                         }`}
                       >
@@ -973,21 +975,21 @@ export default function SettingsPage() {
                     <div className="p-4 bg-blue-50/40 border border-blue-100 rounded-2xl space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                          <Laptop className="w-3.5 h-3.5 text-[#0785BC]" /> Sesi Aktif Saat Ini
+                          <Laptop className="w-3.5 h-3.5 text-[#0785BC]" /> {lang === "en" ? "Current Active Session" : "Sesi Aktif Saat Ini"}
                         </span>
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Terverifikasi
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> {lang === "en" ? "Verified" : "Terverifikasi"}
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-600 space-y-1">
                         <p>
-                          <span className="text-slate-400">Pengguna:</span> {currentUser?.name} ({currentUser?.email})
+                          <span className="text-slate-400">{lang === "en" ? "User:" : "Pengguna:"}</span> {currentUser?.name} ({currentUser?.email})
                         </p>
                         <p>
-                          <span className="text-slate-400">Otoritas:</span> {currentUser?.role || "Admin SARPRAS"}
+                          <span className="text-slate-400">{lang === "en" ? "Authority:" : "Otoritas:"}</span> {currentUser?.role || "Admin SARPRAS"}
                         </p>
                         <p>
-                          <span className="text-slate-400">Pemberlakuan Idle Timeout:</span> {sessionTimeout} Menit
+                          <span className="text-slate-400">{lang === "en" ? "Idle Timeout Enforcement:" : "Pemberlakuan Idle Timeout:"}</span> {sessionTimeout} {lang === "en" ? "Minutes" : "Menit"}
                         </p>
                       </div>
                     </div>
@@ -999,9 +1001,9 @@ export default function SettingsPage() {
               {activeTab === "data" && (
                 <div className="space-y-6 text-xs">
                   <div>
-                    <h2 className="text-base font-bold text-slate-900">Data & Privasi Akun</h2>
+                    <h2 className="text-base font-bold text-slate-900">{lang === "en" ? "Data & Account Privacy" : "Data & Privasi Akun"}</h2>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Unduh arsip sistem komprehensif, salinan konfigurasi, atau kelola sesi akun
+                      {lang === "en" ? "Download comprehensive archives, system configurations, or manage your account session" : "Unduh arsip sistem komprehensif, salinan konfigurasi, atau kelola sesi akun"}
                     </p>
                   </div>
 
@@ -1009,64 +1011,64 @@ export default function SettingsPage() {
                     {/* Master Excel Archive */}
                     <div className="p-4 border border-blue-200 bg-blue-50/40 rounded-2xl flex items-center justify-between gap-4">
                       <div>
-                        <p className="font-bold text-slate-900 text-xs">Arsip Master Komprehensif (Excel / CSV)</p>
+                        <p className="font-bold text-slate-900 text-xs">{lang === "en" ? "Comprehensive Master Archive (Excel / CSV)" : "Arsip Master Komprehensif (Excel / CSV)"}</p>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          Unduh berkas rekapitulasi data riil 5 modul utama (Peminjaman, Pengembalian, Barang, Kerusakan, User)
+                          {lang === "en" ? "Download full operational data archive for 5 core modules (Borrowings, Returns, Items, Damage Reports, Users)" : "Unduh berkas rekapitulasi data riil 5 modul utama (Peminjaman, Pengembalian, Barang, Kerusakan, User)"}
                         </p>
                       </div>
                       <button
                         onClick={() => setShowExportModal(true)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl font-bold shadow-2xs shrink-0 active:scale-95 transition-all"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white rounded-xl font-bold shadow-2xs shrink-0 active:scale-95 transition-all cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" /> Ekspor Master
+                        <Download className="w-3.5 h-3.5" /> {lang === "en" ? "Export Master" : "Ekspor Master"}
                       </button>
                     </div>
 
                     {/* JSON Config Export */}
                     <div className="p-4 border border-slate-200 rounded-2xl flex items-center justify-between gap-4 bg-white">
                       <div>
-                        <p className="font-bold text-slate-800">Ekspor Salinan Konfigurasi Sistem</p>
+                        <p className="font-bold text-slate-800">{lang === "en" ? "Export System Configuration Copy" : "Ekspor Salinan Konfigurasi Sistem"}</p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          Unduh salinan profil dan preferensi sistem lokal dalam format JSON
+                          {lang === "en" ? "Download local profile and system preferences copy in JSON format" : "Unduh salinan profil dan preferensi sistem lokal dalam format JSON"}
                         </p>
                       </div>
                       <button
                         onClick={handleExportData}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-700 font-semibold active:scale-95 transition-all shrink-0 shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-700 font-semibold active:scale-95 transition-all shrink-0 shadow-2xs cursor-pointer"
                       >
-                        <Download className="w-3.5 h-3.5" /> Unduh JSON
+                        <Download className="w-3.5 h-3.5" /> {lang === "en" ? "Download JSON" : "Unduh JSON"}
                       </button>
                     </div>
 
                     {/* Logout Session */}
                     <div className="p-4 border border-amber-200 bg-amber-50/40 rounded-2xl flex items-center justify-between gap-4">
                       <div>
-                        <p className="font-bold text-amber-900">Keluar Sesi (Logout)</p>
+                        <p className="font-bold text-amber-900">{lang === "en" ? "Sign Out Session" : "Keluar Sesi (Logout)"}</p>
                         <p className="text-[11px] text-amber-700 mt-0.5">
-                          Akhiri token autentikasi sesi admin saat ini dan bersihkan memori peramban
+                          {lang === "en" ? "End current administrator authentication token and clear browser cache" : "Akhiri token autentikasi sesi admin saat ini dan bersihkan memori peramban"}
                         </p>
                       </div>
                       <button
                         onClick={handleLogout}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold active:scale-95 transition-all shrink-0 shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold active:scale-95 transition-all shrink-0 shadow-2xs cursor-pointer"
                       >
-                        <LogOut className="w-3.5 h-3.5" /> Logout Sesi
+                        <LogOut className="w-3.5 h-3.5" /> {lang === "en" ? "Sign Out" : "Logout Sesi"}
                       </button>
                     </div>
 
                     {/* Delete Account */}
                     <div className="p-4 border border-rose-200 bg-rose-50/40 rounded-2xl flex items-center justify-between gap-4">
                       <div>
-                        <p className="font-bold text-rose-900">Hapus Akun Permanen</p>
+                        <p className="font-bold text-rose-900">{lang === "en" ? "Permanently Delete Account" : "Hapus Akun Permanen"}</p>
                         <p className="text-[11px] text-rose-600 mt-0.5">
-                          Hapus akun administrator ini secara permanen dari basis data sistem
+                          {lang === "en" ? "Permanently delete this administrator account from system database" : "Hapus akun administrator ini secara permanen dari basis data sistem"}
                         </p>
                       </div>
                       <button
                         onClick={handleDeleteAccount}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold active:scale-95 transition-all shrink-0 shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-semibold active:scale-95 transition-all shrink-0 shadow-2xs cursor-pointer"
                       >
-                        <Trash2 className="w-3.5 h-3.5" /> Hapus Akun
+                        <Trash2 className="w-3.5 h-3.5" /> {lang === "en" ? "Delete Account" : "Hapus Akun"}
                       </button>
                     </div>
                   </div>

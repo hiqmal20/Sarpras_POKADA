@@ -514,7 +514,7 @@ export default function UserDashboardPage() {
                   const firstItem = b.borrowings_items?.[0]?.items;
                   const itemName = firstItem?.name || b.purpose || tr("dash.facility", "Peminjaman Fasilitas");
                   const borrowDate = b.borrow_date
-                    ? new Date(b.borrow_date).toLocaleDateString("id-ID", {
+                    ? new Date(b.borrow_date).toLocaleDateString(lang === "en" ? "en-US" : "id-ID", {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
