@@ -12,6 +12,7 @@ import {
   Headphones,
   Pencil,
   Trash2,
+  Eraser,
   ChevronDown,
   Reply,
   X,
@@ -1089,6 +1090,21 @@ export default function UserMessagesPage() {
     }
   };
 
+  const handleClearChat = async () => {
+    if (!activeId || !window.confirm("Bersihkan seluruh pesan dalam chat ini?")) return;
+    try {
+      const socket = getSocket();
+      const res = await api.chats.clearMessages(activeId);
+      if (res.status === "success") {
+        setMessages([]);
+        socket?.emit("clear_chat", { chatId: activeId });
+        toast.success("Seluruh pesan berhasil dibersihkan.", "Chat Dibersihkan");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Gagal membersihkan chat.", "Gagal");
+    }
+  };
+
   const handleDeleteChat = async () => {
     if (!activeId || !window.confirm("Hapus seluruh chat ini?")) return;
     try {
@@ -1268,6 +1284,15 @@ export default function UserMessagesPage() {
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
+                onClick={handleClearChat}
+                className="rounded-lg p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
+                title="Bersihkan semua pesan"
+                aria-label="Bersihkan chat"
+              >
+                <Eraser className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
                 onClick={handleDeleteChat}
                 className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
                 title="Hapus percakapan"
@@ -1349,9 +1374,9 @@ export default function UserMessagesPage() {
                           {m.replyTo && (
                             <div
                               onClick={() => handleScrollToMessage(m.replyTo!.id)}
-                              className="mb-1.5 px-2 py-1 rounded-md border-l-[3px] border-sky-200 bg-black/25 text-white text-left cursor-pointer transition-all hover:bg-black/35 select-none max-w-[19rem]"
+                              className="mb-1.5 px-2 py-1 rounded-md border-l-[3px] border-[#bfeeff] bg-black/25 text-white text-left cursor-pointer transition-all hover:bg-black/35 select-none max-w-[19rem]"
                             >
-                              <div className="text-[10px] font-bold text-sky-200 flex items-center gap-1">
+                              <div className="text-[10px] font-bold text-[#bfeeff] flex items-center gap-1">
                                 <Reply className="w-2.5 h-2.5" />
                                 <span>{m.replyTo.senderName}</span>
                               </div>
@@ -1371,7 +1396,7 @@ export default function UserMessagesPage() {
                               <input
                                 value={editingText}
                                 onChange={(e) => setEditingText(e.target.value)}
-                                className="w-full rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-sky-300"
+                                className="w-full rounded-lg px-2.5 py-1.5 text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-[#8ed8f5]"
                                 autoFocus
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") handleEditMessage(m);
@@ -1467,7 +1492,7 @@ export default function UserMessagesPage() {
                                       <button
                                         type="button"
                                         onClick={() => handleStartReply(m)}
-                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
+                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-[#eef7fc] rounded-lg transition-colors group/item"
                                       >
                                         <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover/item:bg-[#0785BC]/15 group-hover/item:text-[#0785BC] transition-colors">
                                           <Reply className="h-3 w-3" />
@@ -1481,7 +1506,7 @@ export default function UserMessagesPage() {
                                           setEditingMessageId(m.id);
                                           setEditingText(parsed.text);
                                         }}
-                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-sky-50 rounded-lg transition-colors group/item"
+                                        className="flex w-full items-center gap-2.5 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:text-[#0785BC] hover:bg-[#eef7fc] rounded-lg transition-colors group/item"
                                       >
                                         <div className="w-5 h-5 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover/item:bg-[#0785BC]/15 group-hover/item:text-[#0785BC] transition-colors">
                                           <Pencil className="h-3 w-3" />

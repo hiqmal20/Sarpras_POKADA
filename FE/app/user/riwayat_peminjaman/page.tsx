@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -41,7 +41,7 @@ function useMount() {
   return m;
 }
 
-// â”€â”€ Status badge â”€â”€
+// ── Status badge ──
 function StatusBadge({ status }: { status: Rental["status"] }) {
   const { t } = useLanguage();
   const tr = (k: string, fb: string) => { const v = t(k); return v === k ? fb : v; };
@@ -81,7 +81,7 @@ function StatusBadge({ status }: { status: Rental["status"] }) {
   );
 }
 
-// â”€â”€ Rental Card (gaya katalog: medium, presisi) â”€â”€
+// ── Rental Card (gaya katalog: medium, presisi) ──
 function RentalCard({
   rental,
   mounted,
@@ -313,8 +313,8 @@ function RiwayatPeminjamanContent() {
       <div className="user-page-shell w-full min-w-0 space-y-6">
         <div className={`user-page-hero relative overflow-hidden rounded-[1.35rem] px-5 py-6 md:px-8 md:py-7 text-white shadow-[0_12px_32px_-12px_rgba(7,133,188,0.55)] bg-gradient-to-br from-[#0B3B60] via-[#0785BC] to-[#0785BC] ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div className="absolute inset-0 bg-dot-grid-dark opacity-50" />
-          <div className="absolute -right-14 -top-24 w-72 h-72 rounded-full bg-sky-400/30 blur-2xl" />
-          <div className="absolute -left-16 -bottom-28 w-72 h-72 rounded-full bg-fuchsia-500/25 blur-2xl" />
+          <div className="absolute -right-14 -top-24 w-72 h-72 rounded-full bg-[#35b8e8]/30 blur-2xl" />
+          <div className="absolute -left-16 -bottom-28 w-72 h-72 rounded-full bg-[#0785BC]/20 blur-2xl" />
           <div className="absolute right-24 top-1/2 -translate-y-1/2 hidden xl:block w-44 h-44 rounded-full border-[22px] border-white/10" />
           <div className="absolute right-10 bottom-[-1.8rem] hidden xl:block w-16 h-16 rounded-2xl bg-[var(--card)]/15 backdrop-blur rotate-12" />
           <div className="absolute right-6 top-6 hidden sm:flex items-center gap-1.5 rounded-full bg-[var(--card)]/15 border border-white/20 backdrop-blur px-2.5 py-1 text-[11px] font-bold text-white">
@@ -327,7 +327,7 @@ function RiwayatPeminjamanContent() {
                 <ClipboardList className="w-6 h-6" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-sky-200">{tr("history.mine", "Riwayat Saya")}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#bfeeff]">{tr("history.mine", "Riwayat Saya")}</p>
                 <h1 className="mt-1 text-2xl md:text-[26px] font-extrabold tracking-tight leading-tight">{tr("history.title", "Riwayat Peminjaman")}</h1>
                 <p className="mt-1.5 text-sm text-white/80 max-w-xl leading-relaxed">
                   {tr("history.subtitle", "Lihat seluruh riwayat peminjaman, pengembalian, dan laporan kerusakan Anda.")}
@@ -337,7 +337,7 @@ function RiwayatPeminjamanContent() {
                     <ClipboardList className="w-3.5 h-3.5 text-[#0785BC]" /> {rentals.length} {tr("history.count_borrow", "Peminjaman")}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[var(--card)]/10 px-3 py-1.5 text-white backdrop-blur">
-                    <Clock className="w-3.5 h-3.5 text-sky-200" /> {countActive} {tr("history.count_active", "Dipinjam")}
+                    <Clock className="w-3.5 h-3.5 text-[#bfeeff]" /> {countActive} {tr("history.count_active", "Dipinjam")}
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[var(--card)]/10 px-3 py-1.5 text-white backdrop-blur">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" /> {countReturned} {tr("history.count_done", "Selesai")}

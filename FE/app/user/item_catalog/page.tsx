@@ -52,11 +52,11 @@ interface Catalog {
 
 const COVERS = [
   "from-[#0785BC] via-[#0992cf] to-[#0aa5e0]",
-  "from-sky-600 via-sky-600 to-blue-500",
+  "from-[#0672a0] via-[#0672a0] to-blue-500",
   "from-emerald-600 via-teal-600 to-cyan-500",
-  "from-amber-500 via-orange-500 to-rose-500",
-  "from-rose-500 via-pink-600 to-sky-500",
-  "from-cyan-600 via-sky-600 to-blue-500",
+  "from-[#0785BC] via-[#0aa5e0] to-cyan-500",
+  "from-[#0672a0] via-[#0785BC] to-teal-500",
+  "from-cyan-600 via-[#0672a0] to-blue-500",
 ];
 
 function catalogIcon(name: string) {
@@ -326,7 +326,7 @@ function UserCatalogContent() {
                ══════════════════════════════════════════════════════════ */}
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#176b9d] via-[#2589bd] via-85% to-[#e8f5fc] dark:from-[#102338] dark:via-[#173c5c] dark:to-[#245d86] p-6 sm:p-8 md:p-10 text-white shadow-lg shadow-[#2589bd]/20 border border-[#69b2d8] dark:border-[#376b91]">
               {/* Background ambient lighting glows */}
-              <div className="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-white/15 dark:bg-sky-300/10 blur-3xl pointer-events-none" />
+              <div className="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-white/15 dark:bg-[#8ed8f5]/10 blur-3xl pointer-events-none" />
               <div className="absolute -left-10 -bottom-10 w-64 h-64 rounded-full bg-[#bde4f7]/25 dark:bg-[#4b91c5]/20 blur-2xl pointer-events-none" />
 
               <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-10">
@@ -338,7 +338,7 @@ function UserCatalogContent() {
                     {tr("catalog.title", "Kategori Fasilitas & Barang")}
                   </h1>
 
-                  <p className="mt-2.5 text-xs sm:text-sm text-sky-100/90 dark:text-slate-300 leading-relaxed">
+                  <p className="mt-2.5 text-xs sm:text-sm text-[#d9effa]/90 dark:text-slate-300 leading-relaxed">
                     {tr(
                       "catalog.hero_desc",
                       "Jelajahi seluruh kategori fasilitas sarana dan prasarana. Pilih kategori untuk melihat unit barang perorangan maupun paket bundling siap pakai."
@@ -525,7 +525,7 @@ function UserCatalogContent() {
 
                         {/* Top Left: Category Badge */}
                         <div className="absolute top-3 left-3">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md text-[11px] font-bold text-[#0785BC] dark:text-sky-300 shadow-xs border border-white/40 dark:border-slate-700">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur-md text-[11px] font-bold text-[#0785BC] dark:text-[#8ed8f5] shadow-xs border border-white/40 dark:border-slate-700">
                             <Icon className="w-3.5 h-3.5 text-[#0785BC]" />
                             Kategori
                           </span>
@@ -548,11 +548,11 @@ function UserCatalogContent() {
                         {/* Bottom Overlay Pills on Image */}
                         <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/55 backdrop-blur-md text-white text-[11px] font-semibold border border-white/10 shadow-xs">
-                            <Package className="w-3.5 h-3.5 text-sky-300" />
+                            <Package className="w-3.5 h-3.5 text-[#8ed8f5]" />
                             {cat.itemCount} Barang
                           </span>
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/55 backdrop-blur-md text-white text-[11px] font-semibold border border-white/10 shadow-xs">
-                            <Layers className="w-3.5 h-3.5 text-sky-300" />
+                            <Layers className="w-3.5 h-3.5 text-[#8ed8f5]" />
                             {cat.packageCount} Paket
                           </span>
                         </div>
@@ -561,7 +561,7 @@ function UserCatalogContent() {
                       {/* Card Content */}
                       <div className="p-5 sm:p-6 flex flex-col flex-1">
                         <div className="flex-1">
-                          <h3 className="text-base sm:text-lg font-extrabold leading-snug text-slate-900 dark:text-white group-hover:text-[#0785BC] dark:group-hover:text-sky-400 transition-colors line-clamp-1">
+                          <h3 className="text-base sm:text-lg font-extrabold leading-snug text-slate-900 dark:text-white group-hover:text-[#0785BC] dark:group-hover:text-[#35b8e8] transition-colors line-clamp-1">
                             {cat.name}
                           </h3>
                           <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 min-h-[2.3rem]">
@@ -572,7 +572,7 @@ function UserCatalogContent() {
                         {/* Mini Asset Distribution Grid */}
                         <div className="mt-4 grid grid-cols-2 gap-2">
                           <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-[#0785BC] flex items-center justify-center shrink-0">
+                            <div className="w-6 h-6 rounded-lg bg-[#d9effa] dark:bg-[#062b40]/60 text-[#0785BC] flex items-center justify-center shrink-0">
                               <Package className="w-3.5 h-3.5" />
                             </div>
                             <div className="min-w-0">
@@ -584,7 +584,7 @@ function UserCatalogContent() {
                           </div>
 
                           <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-600 flex items-center justify-center shrink-0">
+                            <div className="w-6 h-6 rounded-lg bg-[#d9effa] dark:bg-[#062b40]/60 text-[#0672a0] flex items-center justify-center shrink-0">
                               <Layers className="w-3.5 h-3.5" />
                             </div>
                             <div className="min-w-0">
@@ -645,7 +645,7 @@ function UserCatalogContent() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#0785BC] dark:text-sky-300">
+                    <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#0785BC] dark:text-[#8ed8f5]">
                       Kategori Fasilitas
                     </span>
                     <span className="text-xs text-slate-300 dark:text-slate-700">•</span>
@@ -662,11 +662,11 @@ function UserCatalogContent() {
 
               {/* Quick Summary Pill on Header */}
               <div className="flex items-center gap-2 shrink-0">
-                <span className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800 text-[#0785BC] dark:text-sky-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                <span className="px-3 py-1.5 rounded-xl bg-[#eef7fc] dark:bg-[#062b40]/60 border border-[#bfeeff]/80 dark:border-[#034d6e] text-[#0785BC] dark:text-[#8ed8f5] text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                   <Package className="w-3.5 h-3.5" />
                   {detailItems.length} Barang
                 </span>
-                <span className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200/80 dark:border-sky-800 text-sky-700 dark:text-sky-300 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                <span className="px-3 py-1.5 rounded-xl bg-[#eef7fc] dark:bg-[#062b40]/60 border border-[#bfeeff]/80 dark:border-[#034d6e] text-[#055b80] dark:text-[#8ed8f5] text-xs font-bold flex items-center gap-1.5 shadow-2xs">
                   <Layers className="w-3.5 h-3.5" />
                   {detailPackages.length} Paket
                 </span>
@@ -680,7 +680,7 @@ function UserCatalogContent() {
                 onClick={() => setDetailTab("item")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   detailTab === "item"
-                    ? "bg-white dark:bg-[#111c30] text-[#0785BC] dark:text-sky-300 shadow-sm"
+                    ? "bg-white dark:bg-[#111c30] text-[#0785BC] dark:text-[#8ed8f5] shadow-sm"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -695,7 +695,7 @@ function UserCatalogContent() {
                 onClick={() => setDetailTab("paket")}
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   detailTab === "paket"
-                    ? "bg-white dark:bg-[#111c30] text-sky-600 dark:text-sky-400 shadow-sm"
+                    ? "bg-white dark:bg-[#111c30] text-[#0672a0] dark:text-[#35b8e8] shadow-sm"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
@@ -744,7 +744,7 @@ function UserCatalogContent() {
                             </div>
                           )}
                           {empty && <div className="absolute inset-0 bg-slate-950/30" />}
-                          <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-[#0785BC] dark:text-sky-300 shadow-xs border border-white/40 dark:border-slate-700">
+                          <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-[#0785BC] dark:text-[#8ed8f5] shadow-xs border border-white/40 dark:border-slate-700">
                             Per Item
                           </span>
                           {empty ? (
@@ -818,7 +818,7 @@ function UserCatalogContent() {
                       className={`group bg-white dark:bg-[#111c30] rounded-3xl border overflow-hidden transition-all duration-300 flex flex-col ${
                         empty
                           ? "border-rose-200/80 dark:border-rose-900/50 shadow-xs"
-                          : "border-slate-200/80 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05)] hover:shadow-[0_12px_28px_-8px_rgba(124,58,237,0.2)] hover:-translate-y-1 hover:border-sky-500/30"
+                          : "border-slate-200/80 dark:border-slate-800 shadow-[0_4px_16px_-4px_rgba(15,23,42,0.05)] hover:shadow-[0_12px_28px_-8px_rgba(7,133,188,0.2)] hover:-translate-y-1 hover:border-[#0785BC]/30"
                       }`}
                     >
                       <div className="relative h-[160px] bg-slate-100 dark:bg-slate-900 overflow-hidden flex items-center justify-center shrink-0">
@@ -834,7 +834,7 @@ function UserCatalogContent() {
                           <Layers className="w-10 h-10 text-slate-300 stroke-[1.2]" />
                         )}
                         {empty && <div className="absolute inset-0 bg-slate-950/30" />}
-                        <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-sky-600 dark:text-sky-400 shadow-xs border border-white/40 dark:border-slate-700">
+                        <span className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 text-[10px] font-bold text-[#0672a0] dark:text-[#35b8e8] shadow-xs border border-white/40 dark:border-slate-700">
                           Paket Bundling
                         </span>
                         {empty ? (
@@ -849,10 +849,10 @@ function UserCatalogContent() {
                       </div>
 
                       <div className="p-4 sm:p-5 flex flex-1 flex-col">
-                        <p className="text-[10px] uppercase font-bold tracking-[0.08em] text-sky-600">
+                        <p className="text-[10px] uppercase font-bold tracking-[0.08em] text-[#0672a0]">
                           {selectedCatalog.name}
                         </p>
-                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 leading-snug line-clamp-1 group-hover:text-sky-600 transition-colors">
+                        <h3 className="text-sm font-extrabold text-slate-900 dark:text-white mt-1 leading-snug line-clamp-1 group-hover:text-[#0672a0] transition-colors">
                           {pkg.name}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed line-clamp-2 min-h-[2rem] flex-1">
@@ -862,7 +862,7 @@ function UserCatalogContent() {
                         </p>
 
                         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-sky-600 dark:text-sky-400">
+                          <span className="text-[11px] font-bold text-[#0672a0] dark:text-[#35b8e8]">
                             {(pkg.packages_items || []).length} Item Termasuk
                           </span>
                         </div>
@@ -874,7 +874,7 @@ function UserCatalogContent() {
                         ) : (
                           <Link
                             href={`/user/item_catalog/package/${pkg.id}`}
-                            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-sky-600 to-[#0785BC] hover:from-sky-700 hover:to-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-sky-500/25 transition-all active:scale-98 cursor-pointer"
+                            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-[#0672a0] to-[#0785BC] hover:from-[#055b80] hover:to-[#0672a0] text-white text-xs font-bold py-2.5 shadow-sm shadow-[#0785BC]/25 transition-all active:scale-98 cursor-pointer"
                           >
                             <span>Ajukan Pinjam Paket</span>
                             <ChevronRight className="w-3.5 h-3.5" />

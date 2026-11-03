@@ -646,7 +646,7 @@ function SettingsContent() {
                               : "bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700"
                           }`}
                         >
-                          {m === "light" ? tr("settings.theme_light", "☀️ Terang") : tr("settings.theme_dark", "🌙 Gelap")}
+                          {m === "light" ? tr("settings.theme_light", "Terang") : tr("settings.theme_dark", "Gelap")}
                         </button>
                       ))}
                     </div>

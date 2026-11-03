@@ -174,7 +174,7 @@ export default function LoginPage() {
                   className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-[#0785BC] transition-colors"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  Kembali ke Beranda
+                  Kembali
                 </Link>
               </div>
 

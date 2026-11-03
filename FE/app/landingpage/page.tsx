@@ -469,7 +469,7 @@ export default function LandingPage() {
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-5xl lg:text-[54px] font-black tracking-tight text-slate-900 leading-[1.15] break-words">
                 Pengelolaan Sarpras Kampus{" "}
-                <span className="bg-gradient-to-r from-[#0785BC] via-sky-600 to-teal-600 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#0785BC] via-[#0785BC] to-teal-600 bg-clip-text text-transparent">
                   Cerdas & Otomatis.
                 </span>
               </h1>
@@ -508,36 +508,36 @@ export default function LandingPage() {
                       setSearchQuery("Tensimeter");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded-md bg-[#eef7fc] hover:bg-[#d9effa] hover:text-[#0785BC] text-[#0785BC] transition-colors cursor-pointer"
                   >
-                    ðŸ©º Tensimeter
+                    Tensimeter
                   </button>
                   <button
                     onClick={() => {
                       setSearchQuery("Workstation");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded-md bg-[#eef7fc] hover:bg-[#d9effa] hover:text-[#0785BC] text-[#0785BC] transition-colors cursor-pointer"
                   >
-                    ðŸ’» Lab MIK
+                    Lab MIK
                   </button>
                   <button
                     onClick={() => {
                       setSearchQuery("Projector");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded-md bg-[#eef7fc] hover:bg-[#d9effa] hover:text-[#0785BC] text-[#0785BC] transition-colors cursor-pointer"
                   >
-                    ðŸ“½ï¸ Proyektor
+                    Proyektor
                   </button>
                   <button
                     onClick={() => {
                       setSearchQuery("Aula");
                       handleScrollTo("katalog");
                     }}
-                    className="px-2 py-0.5 rounded-md bg-slate-100 hover:bg-blue-50 hover:text-[#0785BC] text-slate-600 transition-colors cursor-pointer"
+                    className="px-2 py-0.5 rounded-md bg-[#eef7fc] hover:bg-[#d9effa] hover:text-[#0785BC] text-[#0785BC] transition-colors cursor-pointer"
                   >
-                    ðŸ›ï¸ Ruang Aula
+                    Ruang Aula
                   </button>
                 </div>
               </div>

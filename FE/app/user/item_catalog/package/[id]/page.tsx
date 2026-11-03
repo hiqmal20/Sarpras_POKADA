@@ -306,7 +306,7 @@ export default function PackageDetailPage() {
             <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 truncate">
               <span>{tr("catalog.title", "Katalog Barang")}</span>
               <ChevronRight className="w-3 h-3 text-slate-400" />
-              <span className="text-sky-600 font-medium">Paket Bundling</span>
+              <span className="text-[#0672a0] font-medium">Paket Bundling</span>
               <ChevronRight className="w-3 h-3 text-slate-400" />
               <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
                 {pkg?.name || "Detail Paket"}
@@ -343,7 +343,7 @@ export default function PackageDetailPage() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[10px] font-bold tracking-wider uppercase">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#0785BC]/10 text-[#0672a0] dark:text-[#35b8e8] text-[10px] font-bold tracking-wider uppercase">
                 <Layers className="w-3 h-3" />
                 {tr("catalog.package_label", "Paket Barang Bundling")}
               </span>
@@ -368,9 +368,9 @@ export default function PackageDetailPage() {
              ══════════════════════════════════════════════════════════ */}
           <div className="w-full bg-white dark:bg-[#111c30] rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-[0_4px_24px_-4px_rgba(15,23,42,0.06)] dark:shadow-none overflow-hidden transition-all duration-300 hover:border-[#0785BC]/30">
             {/* Visual Media Showcase */}
-            <div className="relative h-[250px] sm:h-[270px] bg-gradient-to-br from-sky-50/50 via-slate-50 to-sky-50/30 dark:from-[#102338] dark:via-[#111c30] dark:to-[#0f2238] flex items-center justify-center overflow-hidden group p-4 border-b border-slate-100 dark:border-slate-800/80">
+            <div className="relative h-[250px] sm:h-[270px] bg-gradient-to-br from-[#eef7fc]/50 via-slate-50 to-[#eef7fc]/30 dark:from-[#102338] dark:via-[#111c30] dark:to-[#0f2238] flex items-center justify-center overflow-hidden group p-4 border-b border-slate-100 dark:border-slate-800/80">
               {/* Decorative background glow */}
-              <div className="absolute w-44 h-44 rounded-full bg-sky-500/10 dark:bg-sky-500/15 blur-2xl pointer-events-none" />
+              <div className="absolute w-44 h-44 rounded-full bg-[#0785BC]/10 dark:bg-[#0785BC]/15 blur-2xl pointer-events-none" />
 
               {loading ? (
                 <div className="w-full h-full bg-slate-200 dark:bg-slate-800 animate-pulse rounded-2xl" />
@@ -386,14 +386,14 @@ export default function PackageDetailPage() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 gap-2">
-                  <Layers className="w-16 h-16 stroke-[1.2] text-sky-400" />
+                  <Layers className="w-16 h-16 stroke-[1.2] text-[#35b8e8]" />
                   <span className="text-xs font-semibold text-slate-400">Paket Sarpras Pokada</span>
                 </div>
               )}
 
               {/* Badges Over Image */}
               <div className="absolute top-3.5 left-3.5 flex items-center gap-1.5">
-                <span className="px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur text-[11px] font-bold text-sky-600 dark:text-sky-400 shadow-xs border border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
+                <span className="px-2.5 py-1 rounded-xl bg-white/95 dark:bg-slate-900/90 backdrop-blur text-[11px] font-bold text-[#0672a0] dark:text-[#35b8e8] shadow-xs border border-slate-200/60 dark:border-slate-700 flex items-center gap-1">
                   <Layers className="w-3 h-3" />
                   {tr("catalog.package_label", "Paket Barang")}
                 </span>
@@ -419,7 +419,7 @@ export default function PackageDetailPage() {
                   <span className="text-slate-500 dark:text-slate-400 text-[11px] font-medium">
                     Total Komponen Paket
                   </span>
-                  <span className="font-extrabold text-sky-600 dark:text-sky-400">
+                  <span className="font-extrabold text-[#0672a0] dark:text-[#35b8e8]">
                     {packageItems.length} Macam Barang
                   </span>
                 </div>
@@ -450,7 +450,7 @@ export default function PackageDetailPage() {
                   <div className="rounded-2xl bg-slate-50/90 dark:bg-slate-800/40 border border-slate-200/80 dark:border-slate-800 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <p className="text-[11px] font-extrabold text-slate-700 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                        <Boxes className="w-3.5 h-3.5 text-sky-600" />
+                        <Boxes className="w-3.5 h-3.5 text-[#0672a0]" />
                         Rincian Komponen Paket
                       </p>
                       <span className="text-[10px] font-bold text-slate-400">
@@ -478,7 +478,7 @@ export default function PackageDetailPage() {
                               }`}
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-7 h-7 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 flex items-center justify-center shrink-0">
+                                <div className="w-7 h-7 rounded-lg bg-[#d9effa] dark:bg-[#062b40]/60 text-[#0672a0] dark:text-[#8ed8f5] flex items-center justify-center shrink-0">
                                   <Package className="w-3.5 h-3.5" />
                                 </div>
                                 <div className="min-w-0">
@@ -513,7 +513,7 @@ export default function PackageDetailPage() {
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 mb-1">
-                        <Layers2 className="w-3.5 h-3.5 text-sky-600" />
+                        <Layers2 className="w-3.5 h-3.5 text-[#0672a0]" />
                         <span>Format Aset</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
@@ -553,8 +553,8 @@ export default function PackageDetailPage() {
                   </div>
 
                   {/* Ketentuan Ringkas */}
-                  <div className="rounded-2xl bg-sky-50/60 dark:bg-sky-950/30 border border-sky-100/80 dark:border-sky-900/50 p-4 space-y-2">
-                    <p className="text-[11px] font-bold text-sky-700 dark:text-sky-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <div className="rounded-2xl bg-[#eef7fc]/60 dark:bg-[#062b40]/30 border border-[#d9effa]/80 dark:border-[#023b55]/50 p-4 space-y-2">
+                    <p className="text-[11px] font-bold text-[#055b80] dark:text-[#8ed8f5] uppercase tracking-wider flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5" />
                       Ketentuan Peminjaman Paket
                     </p>
@@ -585,11 +585,11 @@ export default function PackageDetailPage() {
             {/* Form Header */}
             <div className="flex items-center justify-between pb-5 border-b border-slate-100 dark:border-slate-800 gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-[#0785BC] text-white flex items-center justify-center shadow-md shadow-sky-500/20 shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#0672a0] to-[#0785BC] text-white flex items-center justify-center shadow-md shadow-#eef7fc0/20 shrink-0">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold tracking-widest text-sky-600 dark:text-sky-400 uppercase">
+                  <p className="text-[10px] font-bold tracking-widest text-[#0672a0] dark:text-[#35b8e8] uppercase">
                     Formulir Resmi Paket
                   </p>
                   <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white mt-0.5">
@@ -609,17 +609,17 @@ export default function PackageDetailPage() {
             </div>
 
             {/* Hero Item Summary Card */}
-            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-sky-50/90 via-sky-50/50 to-blue-50/40 dark:from-sky-950/40 dark:via-sky-950/30 dark:to-blue-950/20 border border-sky-100/80 dark:border-sky-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="mt-5 p-4 rounded-2xl bg-gradient-to-br from-[#eef7fc]/90 via-[#eef7fc]/50 to-blue-50/40 dark:from-[#062b40]/40 dark:via-[#062b40]/30 dark:to-blue-950/20 border border-[#d9effa]/80 dark:border-[#023b55]/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-sky-100 dark:border-sky-900/80 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
+                <div className="w-12 h-12 rounded-xl bg-white dark:bg-slate-800 border border-[#d9effa] dark:border-[#023b55]/80 flex items-center justify-center shrink-0 overflow-hidden shadow-xs">
                   {pkg?.image_url ? (
                     <img src={pkg.image_url} alt={pkg.name} className="w-full h-full object-cover" />
                   ) : (
-                    <Layers className="w-6 h-6 text-sky-600" />
+                    <Layers className="w-6 h-6 text-[#0672a0]" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wide">
+                  <span className="text-[10px] font-bold text-[#0672a0] dark:text-[#35b8e8] uppercase tracking-wide">
                     Paket Terpilih ({packageItems.length} Komponen)
                   </span>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
@@ -632,11 +632,11 @@ export default function PackageDetailPage() {
               </div>
 
               {/* Dynamic Duration Badge */}
-              <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-sky-200/70 dark:border-sky-800 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs">
-                <CalendarDays className="w-4 h-4 text-sky-600" />
+              <div className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-[#bfeeff]/70 dark:border-[#034d6e] text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs">
+                <CalendarDays className="w-4 h-4 text-[#0672a0]" />
                 {durationDays ? (
                   <span>
-                    Durasi: <b className="text-sky-600 dark:text-sky-400">{durationDays} Hari</b>
+                    Durasi: <b className="text-[#0672a0] dark:text-[#35b8e8]">{durationDays} Hari</b>
                   </span>
                 ) : (
                   <span className="text-slate-400">Pilih rentang tanggal</span>
@@ -664,7 +664,7 @@ export default function PackageDetailPage() {
               {/* Tanggal Mulai & Tanggal Selesai */}
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-sky-600" />
+                  <Calendar className="w-4 h-4 text-[#0672a0]" />
                   <span>Jadwal Peminjaman Paket <span className="text-rose-500">*</span></span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -679,7 +679,7 @@ export default function PackageDetailPage() {
                       onChange={handleChange}
                       min={new Date().toISOString().split("T")[0]}
                       required
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 transition-all"
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 transition-all"
                     />
                   </div>
 
@@ -694,7 +694,7 @@ export default function PackageDetailPage() {
                       onChange={handleChange}
                       min={form.borrow_date || new Date().toISOString().split("T")[0]}
                       required
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 transition-all"
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 transition-all"
                     />
                   </div>
                 </div>
@@ -711,7 +711,7 @@ export default function PackageDetailPage() {
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Plus className="w-4 h-4 text-sky-600" />
+                    <Plus className="w-4 h-4 text-[#0672a0]" />
                     Tambahkan Barang Tambahan (Di luar paket)
                   </span>
                   <span className="text-[11px] font-normal text-slate-400">Opsional</span>
@@ -725,7 +725,7 @@ export default function PackageDetailPage() {
                         setSelectedItems((current) => [...current, selected]);
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-sky-500 transition-all cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl text-slate-700 dark:text-slate-200 bg-slate-50/50 dark:bg-slate-800/60 focus:outline-none focus:ring-2 focus:ring-[#0785BC] transition-all cursor-pointer"
                   >
                     <option value="">Pilih barang tambahan jika butuh perlengkapan ekstra...</option>
                     {availableItems
@@ -744,9 +744,9 @@ export default function PackageDetailPage() {
                     {selectedItems.map((entry) => (
                       <span
                         key={entry.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800 text-xs font-semibold text-sky-700 dark:text-sky-300 shadow-2xs"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#eef7fc] dark:bg-[#062b40]/60 border border-[#bfeeff] dark:border-[#034d6e] text-xs font-semibold text-[#055b80] dark:text-[#8ed8f5] shadow-2xs"
                       >
-                        <Package className="w-3 h-3 text-sky-600" />
+                        <Package className="w-3 h-3 text-[#0672a0]" />
                         <span className="max-w-[160px] truncate">{entry.name}</span>
                         <span className="text-[10px] text-slate-400">(1 unit)</span>
                         <button
@@ -771,7 +771,7 @@ export default function PackageDetailPage() {
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-1.5 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-sky-600" />
+                    <FileText className="w-4 h-4 text-[#0672a0]" />
                     {tr("catdetail.purpose", "Keperluan Peminjaman Paket")} <span className="text-rose-500">*</span>
                   </span>
                   <span className="text-[11px] text-slate-400 font-normal">
@@ -796,7 +796,7 @@ export default function PackageDetailPage() {
                             : preset,
                         }));
                       }}
-                      className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-sky-500/10 hover:text-sky-600 dark:hover:text-sky-300 border border-slate-200/60 dark:border-slate-700 transition-all cursor-pointer"
+                      className="px-2.5 py-1 text-[11px] rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-[#0785BC]/10 hover:text-[#0672a0] dark:hover:text-[#8ed8f5] border border-slate-200/60 dark:border-slate-700 transition-all cursor-pointer"
                     >
                       + {preset}
                     </button>
@@ -810,16 +810,16 @@ export default function PackageDetailPage() {
                   rows={3}
                   required
                   placeholder="Contoh: Keperluan pelaksanaan workshop praktikum mahasiswa di laboratorium..."
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 transition-all resize-none leading-relaxed"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0785BC] bg-slate-50/50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 transition-all resize-none leading-relaxed"
                 />
               </div>
 
               {/* Informative Note */}
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
-                <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
+                <Info className="w-4 h-4 text-[#0672a0] shrink-0 mt-0.5" />
                 <span>
                   Pengajuan paket ini akan mencakup seluruh komponen barang sekaligus. Status dapat dipantau di halaman{" "}
-                  <Link href="/user/riwayat_peminjaman" className="text-sky-600 font-semibold hover:underline">
+                  <Link href="/user/riwayat_peminjaman" className="text-[#0672a0] font-semibold hover:underline">
                     Riwayat Peminjaman
                   </Link>.
                 </span>
@@ -833,7 +833,7 @@ export default function PackageDetailPage() {
                   className={`w-full py-3.5 px-6 rounded-2xl font-bold text-sm text-white flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer ${
                     !isAvailable
                       ? "bg-slate-300 dark:bg-slate-700 text-slate-500 cursor-not-allowed"
-                      : "bg-gradient-to-r from-sky-600 via-[#0785BC] to-[#056794] hover:from-sky-700 hover:to-[#045277] shadow-lg shadow-sky-500/20 hover:shadow-xl hover:shadow-sky-500/30 hover:-translate-y-0.5 active:translate-y-0"
+                      : "bg-gradient-to-r from-[#0672a0] via-[#0785BC] to-[#056794] hover:from-[#055b80] hover:to-[#045277] shadow-lg shadow-#eef7fc0/20 hover:shadow-xl hover:shadow-#eef7fc0/30 hover:-translate-y-0.5 active:translate-y-0"
                   }`}
                 >
                   {submitting ? (
