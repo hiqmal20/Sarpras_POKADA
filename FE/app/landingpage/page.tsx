@@ -192,13 +192,24 @@ export default function LandingPage() {
     },
   ];
 
+  const normalizeSearch = (value: string) =>
+    value.toLowerCase().trim().replace(/&/g, "dan").replace(/[^a-z0-9\s]/g, "");
+
+  const searchAliases: Record<string, string[]> = {
+    health: ["health", "medis", "keperawatan", "kesehatan", "lab keperawatan"],
+    mik: ["mik", "komputer", "computer", "pc", "workstation", "simrs"],
+    multimedia: ["multimedia", "audio", "visual", "studio", "sound", "mic", "proyektor", "projector"],
+    auditorium: ["aula", "ruangan", "ruang", "seminar", "auditorium"],
+  };
+
+  const normalizedQuery = normalizeSearch(searchQuery);
   const filteredItems = featuredItems.filter((item) => {
     const matchCategory = activeTab === "all" || item.category === activeTab;
-    const matchSearch =
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.categoryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.code.toLowerCase().includes(searchQuery.toLowerCase());
+    const searchableText = normalizeSearch(
+      `${item.name} ${item.categoryName} ${item.location} ${item.code}`
+    );
+    const matchSearch = !normalizedQuery || searchableText.includes(normalizedQuery) ||
+      (searchAliases[item.category] || []).some((alias) => normalizedQuery.includes(alias));
     return matchCategory && matchSearch;
   });
 
