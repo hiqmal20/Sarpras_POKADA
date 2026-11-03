@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -119,7 +119,7 @@ export default function BorrowingDetailPage() {
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400">{tr("bdetail.items", "Barang / Paket")}</p>
           <p className="text-[13px] font-bold text-slate-900 mt-1 leading-snug line-clamp-2">{itemNames}</p>
         </div>
-        <div className="rounded-xl bg-sky-50/60 border border-sky-100/70 p-3.5">
+        <div className="rounded-xl bg-[#eef7fc]/60 border border-[#d9effa]/70 p-3.5">
           <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-slate-400 flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {tr("bdetail.borrow_date", "Tanggal Pinjam")}</p>
           <p className="text-[13px] font-bold text-slate-900 mt-1">{borrowing.borrow_date ? new Date(borrowing.borrow_date).toLocaleDateString(dateLocale, { day: "numeric", month: "short", year: "numeric" }) : "-"}</p>
         </div>

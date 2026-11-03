@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
@@ -17,7 +17,7 @@ import { UserLayout } from "@/components/user";
 import { normalizeItem } from "@/lib/item";
 import { useLanguage } from "@/lib/i18n";
 
-// â”€â”€ Types â”€â”€
+// ── Types ──
 type TabKey = "semua" | "paket";
 
 interface Item {
@@ -41,7 +41,7 @@ interface PackageItem {
   packages_items?: Array<{ quantity?: number; items?: { name?: string; image_url?: string; available_stock?: number; stock?: number } }>;
 }
 
-// â”€â”€ Status stock badge â”€â”€
+// ── Status stock badge ──
 function isItemEmpty(item: Item) {
   return item.status === "busy" || Number(item.stock ?? 0) <= 0;
 }
@@ -78,7 +78,7 @@ function StockBadge({ item }: { item: Item }) {
   );
 }
 
-// â”€â”€ Item Card â”€â”€
+// ── Item Card ──
 function ItemCard({ item }: { item: Item }) {
   const { t } = useLanguage();
   const tr = (k: string, fb: string) => {
@@ -155,7 +155,7 @@ function ItemCard({ item }: { item: Item }) {
   );
 }
 
-// â”€â”€ Package Card â”€â”€
+// ── Package Card ──
 function PackageCard({ pkg }: { pkg: PackageItem }) {
   const { t } = useLanguage();
   const tr = (k: string, fb: string) => {
@@ -205,7 +205,7 @@ function PackageCard({ pkg }: { pkg: PackageItem }) {
         )}
       </div>
       <div className="p-4 flex flex-1 flex-col">
-        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-sky-600">{tr("borrow.package_label", "Paket Barang")}</p>
+        <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#0672a0]">{tr("borrow.package_label", "Paket Barang")}</p>
         <h3 className="text-[13px] font-bold text-slate-900 mt-1 leading-[1.45] group-hover:text-[#0785BC] transition-colors line-clamp-2 min-h-[2.6rem]">
           {pkg.name}
         </h3>
@@ -225,7 +225,7 @@ function PackageCard({ pkg }: { pkg: PackageItem }) {
   );
 }
 
-// â”€â”€ Skeleton â”€â”€
+// ── Skeleton ──
 function CardSkeleton() {
   return (
     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
@@ -345,7 +345,7 @@ function ItemCatalogContent() {
           <div className="absolute right-28 bottom-[-2.5rem] w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm" />
           <div className="relative flex flex-col lg:flex-row lg:items-center gap-5">
             <div className="flex-1 min-w-0">
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-sky-200">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 border border-white/15 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#bfeeff]">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 {tr("borrow.tag", "Pinjam & Kembali")}
               </div>
@@ -358,10 +358,10 @@ function ItemCatalogContent() {
                   <Package className="w-3.5 h-3.5 text-[#0785BC]" /> {items.length} {tr("borrow.items", "Barang")}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1.5 text-white backdrop-blur">
-                  <Layers className="w-3.5 h-3.5 text-sky-300" /> {packages.length} {tr("borrow.packages", "Paket")}
+                  <Layers className="w-3.5 h-3.5 text-[#bfeeff]" /> {packages.length} {tr("borrow.packages", "Paket")}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/15 px-3 py-1.5 text-white backdrop-blur">
-                  <BookOpen className="w-3.5 h-3.5 text-sky-300" /> {categories.length} {tr("borrow.categories", "Kategori")}
+                  <BookOpen className="w-3.5 h-3.5 text-[#bfeeff]" /> {categories.length} {tr("borrow.categories", "Kategori")}
                 </span>
               </div>
             </div>

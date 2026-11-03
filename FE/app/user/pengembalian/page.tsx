@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -318,7 +318,7 @@ export default function UserReturnPage() {
   return (
     <UserLayout showSearch={false}>
       <div className="user-page-shell w-full min-w-0 space-y-6 pb-12">
-        {/* â”€â”€ HERO BANNER â”€â”€ */}
+        {/* ── HERO BANNER ── */}
         <div className="relative overflow-hidden rounded-[1.75rem] bg-gradient-to-br from-[#072d4a] via-[#095782] to-[#0284c7] p-6 text-white shadow-[0_20px_50px_-20px_rgba(2,132,199,0.5)] md:p-8">
           <div className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-cyan-400/20 blur-3xl" />
           <div className="pointer-events-none absolute right-40 -bottom-20 h-64 w-64 rounded-full bg-blue-500/15 blur-2xl" />
@@ -393,7 +393,7 @@ export default function UserReturnPage() {
           </div>
         </div>
 
-        {/* â”€â”€ STEPPER ALUR PENGEMBALIAN â”€â”€ */}
+        {/* ── STEPPER ALUR PENGEMBALIAN ── */}
         <div className="relative rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -461,7 +461,7 @@ export default function UserReturnPage() {
           </div>
         </div>
 
-        {/* â”€â”€ NOTIFIKASI FEEDBACK â”€â”€ */}
+        {/* ── NOTIFIKASI FEEDBACK ── */}
         {feedback && (
           <div
             className={`flex items-start justify-between gap-3 rounded-2xl border p-4 text-sm shadow-sm transition-all ${
@@ -492,7 +492,7 @@ export default function UserReturnPage() {
           </div>
         )}
 
-        {/* â”€â”€ TOOLBAR PENCARIAN & FILTER TAB â”€â”€ */}
+        {/* ── TOOLBAR PENCARIAN & FILTER TAB ── */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {/* Tab Filter */}
           <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-white p-1.5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -559,7 +559,7 @@ export default function UserReturnPage() {
           </div>
         </div>
 
-        {/* â”€â”€ DAFTAR PEMINJAMAN AKTIF (MODERN CARDS) â”€â”€ */}
+        {/* ── DAFTAR PEMINJAMAN AKTIF (MODERN CARDS) ── */}
         {loading ? (
           <div className="rounded-3xl border border-slate-200/80 bg-white p-16 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#0785BC]" />
@@ -646,7 +646,7 @@ export default function UserReturnPage() {
                           {b.borrow_code}
                         </span>
                         {b.packages && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-sky-50 px-2 py-0.5 text-[10px] font-bold text-sky-700 ring-1 ring-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:ring-sky-800">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-[#eef7fc] px-2 py-0.5 text-[10px] font-bold text-[#055b80] ring-1 ring-[#bfeeff] dark:bg-[#062b40]/60 dark:text-[#8ed8f5] dark:ring-[#034d6e]">
                             <Layers className="h-2.5 w-2.5" />
                             Paket
                           </span>
@@ -761,7 +761,7 @@ export default function UserReturnPage() {
           </div>
         )}
 
-        {/* â”€â”€ RIWAYAT PENGAJUAN KESIAPAN SAYA â”€â”€ */}
+        {/* ── RIWAYAT PENGAJUAN KESIAPAN SAYA ── */}
         {localRequests.length > 0 && (
           <div className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="mb-4 flex items-center justify-between">
@@ -801,7 +801,7 @@ export default function UserReturnPage() {
                           <span className="font-bold text-slate-700 dark:text-slate-300">
                             {r.planned_date}
                           </span>{" "}
-                          Â· Kondisi:{" "}
+                          · Kondisi:{" "}
                           <span className="font-bold text-slate-700 dark:text-slate-300">
                             {r.condition}
                           </span>
@@ -838,7 +838,7 @@ export default function UserReturnPage() {
           </div>
         )}
 
-        {/* â”€â”€ CARD INFORMASI & TATA CARA LOKET SARPRAS â”€â”€ */}
+        {/* ── CARD INFORMASI & TATA CARA LOKET SARPRAS ── */}
         <div className="relative overflow-hidden rounded-3xl bg-slate-900 p-6 text-white shadow-lg dark:bg-[#0b1220]">
           <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-[#0785BC]/20 blur-2xl" />
           <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -865,7 +865,7 @@ export default function UserReturnPage() {
           </div>
         </div>
 
-        {/* â”€â”€ MODAL FORMULIR KESIAPAN KEMBALI â”€â”€ */}
+        {/* ── MODAL FORMULIR KESIAPAN KEMBALI ── */}
         {isModalOpen && selectedBorrowing && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
             {/* Backdrop blur */}

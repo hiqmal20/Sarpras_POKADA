@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import {
   Clock,
   CheckCircle2,
   ClipboardList,
+  AlertTriangle,
   ArrowRight,
   User,
   Box,
@@ -56,7 +57,7 @@ interface PieSlice {
   color: string;
 }
 
-// â”€â”€ Interactive Pie / Donut Chart â”€â”€
+// ── Interactive Pie / Donut Chart ──
 function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
   const { t } = useLanguage();
   const tr = (key: string, fallback: string) => {
@@ -182,7 +183,7 @@ function StatusPieChart({ data, total }: { data: PieSlice[]; total: number }) {
   );
 }
 
-// â”€â”€ Status Pill â”€â”€
+// ── Status Pill ──
 function StatusPill({ status }: { status: string }) {
   const { t } = useLanguage();
   const tr = (key: string, fallback: string) => {
@@ -335,7 +336,6 @@ export default function UserDashboardPage() {
     const s = (b.status || "").toLowerCase();
     return s.includes("tolak") || s.includes("batal") || s.includes("rejected");
   }).length;
-
   // Pie chart data
   const pieData: PieSlice[] = [
     { label: tr("dash.pie_pending", "Menunggu Persetujuan"), value: pendingCount, color: "#F59E0B" },
@@ -344,36 +344,12 @@ export default function UserDashboardPage() {
     { label: tr("dash.pie_rejected", "Ditolak / Batal"), value: rejectedCount, color: "#EF4444" },
   ];
 
-  // Stat cards definition
+  // KPI cards mengikuti gaya admin, tetapi seluruh nilainya berasal dari data user real-time
   const statCards = [
-    {
-      label: tr("dash.total", "Total Pengajuan"),
-      value: totalCount,
-      icon: Package,
-      iconBg: "bg-blue-50 dark:bg-sky-950/60 text-[#0785BC] dark:text-sky-300",
-      border: "border-slate-100",
-    },
-    {
-      label: tr("dash.pending", "Menunggu Persetujuan"),
-      value: pendingCount,
-      icon: Clock,
-      iconBg: "bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-300",
-      border: "border-slate-100",
-    },
-    {
-      label: tr("dash.active", "Sedang Dipinjam"),
-      value: activeCount,
-      icon: BookOpen,
-      iconBg: "bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300",
-      border: "border-slate-100",
-    },
-    {
-      label: tr("dash.done", "Selesai Dikembalikan"),
-      value: returnedCount,
-      icon: CheckCircle2,
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300",
-      border: "border-slate-100",
-    },
+    { badge: "AKTIVITAS SAYA", label: "Total Pengajuan", value: loading ? "..." : totalCount, footer: `${totalCount} pengajuan peminjaman`, icon: Package, color: "sky", href: "/user/riwayat_peminjaman" },
+    { badge: "SEDANG BERJALAN", label: "Sedang Dipinjam", value: loading ? "..." : activeCount, footer: `${activeCount} barang sedang Anda pinjam`, icon: BookOpen, color: "emerald", href: "/user/riwayat_peminjaman?status=active" },
+    { badge: "PERLU DITUNGGU", label: "Menunggu Persetujuan", value: loading ? "..." : pendingCount, footer: "Pengajuan menunggu verifikasi admin", icon: Clock, color: "amber", href: "/user/riwayat_peminjaman?status=pending" },
+    { badge: "SELESAI", label: "Selesai Dikembalikan", value: loading ? "..." : returnedCount, footer: `${returnedCount} peminjaman telah selesai`, icon: CheckCircle2, color: "rose", href: "/user/riwayat_peminjaman?status=returned" },
   ];
 
   const recentBorrowings = borrowings.slice(0, 5);
@@ -383,18 +359,18 @@ export default function UserDashboardPage() {
   return (
     <UserLayout showSearch={true}>
       <div className="space-y-5 sm:space-y-6 max-w-7xl mx-auto pb-16 md:pb-10">
-        {/* â”€â”€ Hero Greeting ala ChatGPT/n8n â”€â”€ */}
-        <div className="relative overflow-hidden rounded-3xl border border-[#0785BC]/15 dark:border-sky-900 bg-gradient-to-br from-white via-[#eef7fc] to-[#e3f1f9] dark:from-[#111c30] dark:via-[#0f2740] dark:to-[#0b1a30] p-5 sm:p-8">
-          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-[#0785BC]/10 dark:bg-sky-500/10 blur-2xl pointer-events-none" />
-          <div className="absolute right-10 bottom-0 w-40 h-40 rounded-full bg-[#0785BC]/5 dark:bg-sky-500/5 blur-xl pointer-events-none" />
+        {/* ── Hero Greeting ala ChatGPT/n8n ── */}
+        <div className="relative overflow-hidden rounded-3xl border border-[#0785BC]/15 dark:border-[#023b55] bg-gradient-to-br from-white via-[#eef7fc] to-[#e3f1f9] dark:from-[#111c30] dark:via-[#0f2740] dark:to-[#0b1a30] p-5 sm:p-8">
+          <div className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-[#0785BC]/10 dark:bg-[#0785BC]/10 blur-2xl pointer-events-none" />
+          <div className="absolute right-10 bottom-0 w-40 h-40 rounded-full bg-[#0785BC]/5 dark:bg-[#0785BC]/5 blur-xl pointer-events-none" />
           <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="min-w-0">
-              <p className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#0785BC] dark:text-sky-300 bg-white/70 dark:bg-white/5 border border-[#0785BC]/20 rounded-full px-3 py-1">
+              <p className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-widest text-[#0785BC] dark:text-[#8ed8f5] bg-white/70 dark:bg-white/5 border border-[#0785BC]/20 rounded-full px-3 py-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {tr("dash.live", "Terhubung real-time")}
               </p>
               <h1 className="mt-2 text-xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight leading-tight">
-                {getGreeting()}, <span className="text-[#0785BC] dark:text-sky-300">{displayName}</span>
+                {getGreeting()}, <span className="text-[#0785BC] dark:text-[#8ed8f5]">{displayName}</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 mt-1.5 text-xs sm:text-sm max-w-xl">
                 {tr("dash.subtitle", "Pantau status peminjaman aset fasilitas Anda secara real-time.")}
@@ -419,32 +395,20 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* â”€â”€ Stat Cards â”€â”€ */}
+        {/* ── Stat Cards ── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          {statCards.map((stat, idx) => {
+          {statCards.map((stat) => {
             const Icon = stat.icon;
-            const href = idx === 0 ? "/user/riwayat_peminjaman" : idx === 1 ? "/user/riwayat_peminjaman?status=pending" : idx === 2 ? "/user/pengembalian" : "/user/riwayat_peminjaman?status=returned";
-              return (
-               <Link
-                 href={href}
-                 key={stat.label}
-                className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs p-4 sm:p-5 flex items-center justify-between gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 min-w-0"
-              >
-                <div className="min-w-0">
-                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium mb-1 truncate">{stat.label}</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tabular-nums">
-                    {loading ? "..." : stat.value}
-                  </p>
-                </div>
-                <div className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center shrink-0 ${stat.iconBg}`}>
-                   <Icon className="w-5 h-5" />
-                </div>
-               </Link>
-               );
-            })}
+            const tone = stat.color === "emerald" ? "text-emerald-600 bg-emerald-50 border-emerald-200" : stat.color === "amber" ? "text-amber-600 bg-amber-50 border-amber-200" : stat.color === "rose" ? "text-rose-600 bg-rose-50 border-rose-200" : "text-[#0785BC] bg-[#eef7fc] border-[#bfeeff]";
+            return <Link href={stat.href} key={stat.label} className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5 hover:shadow-md hover:-translate-y-0.5 transition-all min-w-0">
+              <div className="flex items-start justify-between gap-3"><span className={`rounded-full border px-2.5 py-1 text-[10px] font-bold ${tone}`}>{stat.badge}</span><div className={`w-11 h-11 rounded-xl flex items-center justify-center ${tone}`}><Icon className="w-5 h-5" /></div></div>
+              <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</p><p className="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">{stat.value}</p>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-400 flex justify-between"><span className="truncate">{stat.footer}</span><ChevronRight className="w-4 h-4 shrink-0" /></div>
+            </Link>;
+          })}
         </div>
 
-        {/* â”€â”€ Main Section: Pie Chart & Recent Borrowings â”€â”€ */}
+        {/* ── Main Section: Pie Chart & Recent Borrowings ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Pie Chart Card (1 column on lg) */}
           <div className="bg-white dark:bg-[#111c30] rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs p-5 sm:p-6 flex flex-col justify-between">
@@ -464,7 +428,7 @@ export default function UserDashboardPage() {
 
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
               <span>{tr("dash.auto_refresh", "Auto-refresh real-time")}</span>
-              <span className="font-semibold text-[#0785BC] dark:text-sky-300">{totalCount} {tr("dash.requests", "Pengajuan")}</span>
+              <span className="font-semibold text-[#0785BC] dark:text-[#8ed8f5]">{totalCount} {tr("dash.requests", "Pengajuan")}</span>
             </div>
           </div>
 
@@ -477,7 +441,7 @@ export default function UserDashboardPage() {
               </div>
               <Link
                 href="/user/riwayat_peminjaman"
-                className="shrink-0 text-xs font-semibold text-[#0785BC] dark:text-sky-300 hover:underline flex items-center gap-1"
+                className="shrink-0 text-xs font-semibold text-[#0785BC] dark:text-[#8ed8f5] hover:underline flex items-center gap-1"
               >
                 {tr("dash.view_all", "Lihat Semua")}
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -541,7 +505,7 @@ export default function UserDashboardPage() {
                         </div>
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           {tr("dash.borrow_date", "Tgl Pinjam")}: {borrowDate}
-                          {b.purpose && ` â€¢ ${tr("dash.purpose", "Tujuan")}: ${b.purpose}`}
+                          {b.purpose && ` • ${tr("dash.purpose", "Tujuan")}: ${b.purpose}`}
                         </p>
                       </div>
 
@@ -562,7 +526,7 @@ export default function UserDashboardPage() {
           </div>
         </div>
 
-        {/* â”€â”€ Bottom Row: Rekomendasi Barang & Aksi Cepat â”€â”€ */}
+        {/* ── Bottom Row: Rekomendasi Barang & Aksi Cepat ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Rekomendasi Barang Tersedia (2 cols) */}
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-xs p-6">
@@ -669,7 +633,7 @@ export default function UserDashboardPage() {
                     label: tr("dash.chat_admin", "Chat Admin Sarpras"),
                     desc: tr("dash.chat_admin_desc", "Konsultasi & bantuan peminjaman"),
                     icon: MessageSquare,
-                    color: "bg-sky-50 text-sky-600",
+                    color: "bg-[#eef7fc] text-[#0672a0]",
                   },
                   {
                     href: "/user/profile",

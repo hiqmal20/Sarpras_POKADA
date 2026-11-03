@@ -260,7 +260,6 @@ export default function PengembalianPage() {
               status: currentSt,
               raw_status: b.status || "Dipinjam",
               overdue_days: overdueDays > 0 ? overdueDays : undefined,
-              fine: overdueDays > 0 ? `Rp ${(overdueDays * 10000).toLocaleString("id-ID")}` : undefined,
               items: (b.borrowings_items || []).map((bi: any) => ({
                 id: bi.id,
                 item_id: bi.item_id,
@@ -624,9 +623,6 @@ export default function PengembalianPage() {
                         <td className="px-4 py-4">
                           <div className="space-y-1">
                             <StatusBadge status={row.status} />
-                            {row.fine && (
-                              <p className="text-xs font-semibold text-red-500 mt-1">{lang === "en" ? "Fine:" : "Denda:"} {row.fine}</p>
-                            )}
                           </div>
                         </td>
 
