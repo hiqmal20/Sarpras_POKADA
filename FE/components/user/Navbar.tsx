@@ -278,7 +278,7 @@ export default function UserNavbar({
 
   return (
     <header
-      className={`min-h-16 min-w-0 bg-white/90 dark:bg-[#111c30]/90 backdrop-blur border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-3 sm:px-6 gap-2 sm:gap-4 sticky top-0 z-20 transition-all duration-200 py-2 ${
+      className={`min-h-16 min-w-0 bg-white/90 dark:bg-[#111c30]/90 backdrop-blur border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-3 sm:px-6 gap-2 sm:gap-4 sticky top-0 z-50 transition-all duration-200 py-2 ${
         scrolled ? "shadow-sm" : "shadow-none"
       }`}
     >
@@ -334,7 +334,7 @@ export default function UserNavbar({
             )}
           </button>
           {showNotifDropdown && (
-            <div className="fixed sm:absolute right-2 sm:right-0 mt-2 w-[calc(100vw-1rem)] sm:w-96 bg-white dark:bg-[#16233d] rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 max-h-[480px] overflow-y-auto animate-fade-in z-50">
+            <div className="fixed sm:absolute inset-0 sm:inset-auto right-0 sm:right-0 top-0 sm:top-auto mt-0 sm:mt-2 w-screen sm:w-96 h-[100dvh] sm:h-auto max-h-none sm:max-h-[480px] bg-white dark:bg-[#16233d] rounded-none sm:rounded-2xl shadow-xl border border-slate-100 dark:border-slate-700 py-2 overflow-y-auto animate-fade-in z-[60]">
               <div className="px-4 py-2.5 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <h3 className="font-bold text-xs text-slate-900 dark:text-white">{tr("nav.notifications", "Notifikasi Sistem")}</h3>
                 {unreadCount > 0 && (
