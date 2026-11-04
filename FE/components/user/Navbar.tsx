@@ -277,11 +277,12 @@ export default function UserNavbar({
   const placeholder = searchPlaceholder || tr("nav.search", "Cari barang untuk dipinjam...");
 
   return (
-    <header
-      className={`min-h-16 min-w-0 bg-white/90 dark:bg-[#111c30]/90 backdrop-blur border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-3 sm:px-6 gap-2 sm:gap-4 sticky top-0 z-50 transition-all duration-200 py-2 ${
-        scrolled ? "shadow-sm" : "shadow-none"
-      }`}
-    >
+    <>
+      <header
+        className={`min-h-16 min-w-0 bg-white/90 dark:bg-[#111c30]/90 backdrop-blur border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-3 sm:px-6 gap-2 sm:gap-4 sticky top-0 z-50 transition-all duration-200 py-2 ${
+          scrolled ? "shadow-sm" : "shadow-none"
+        }`}
+      >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <button onClick={onOpenSidebar} className="md:hidden p-2 -ml-1 rounded-xl text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="Menu">
           <Menu className="w-5 h-5" />
@@ -423,7 +424,8 @@ export default function UserNavbar({
           )}
         </div>
       </div>
-      <BorrowingDetailModal borrowingId={detailBorrowingId} onClose={() => setDetailBorrowingId(null)} />
     </header>
-  );
+    <BorrowingDetailModal borrowingId={detailBorrowingId} onClose={() => setDetailBorrowingId(null)} />
+  </>
+);
 }

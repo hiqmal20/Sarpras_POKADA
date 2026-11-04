@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertTriangle,
   ArrowRight,
@@ -172,6 +173,11 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
   const locale = lang === "en" ? "en-US" : "id-ID";
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!borrowingId) {
@@ -210,7 +216,7 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
     };
   }, [borrowingId, onClose]);
 
-  if (!borrowingId) return null;
+  if (!borrowingId || !mounted) return null;
 
   const rows = data?.borrowings_items || data?.borrowing_items || [];
   const borrower = data?.users || data?.user || {};
@@ -228,7 +234,7 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
   const borrowerFoto = borrower.foto || data?.borrower_foto || null;
   const initials = String(borrowerName).split(" ").filter(Boolean).map((w: string) => w[0]).slice(0, 2).join("").toUpperCase();
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-3 sm:p-6 bg-slate-950/60 backdrop-blur-sm overflow-y-auto animate-fade-in"
       onMouseDown={(e) => {
@@ -419,6 +425,7 @@ export default function BorrowingDetailModal({ borrowingId, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -290,28 +290,32 @@ export default function UserMessagesPage() {
           setLastSeenMap((prev) => ({ ...initialLastSeen, ...prev }));
         }
 
-        // Sinkron banner chat aktif ke admin lawan bicara
-        const target = mapped.find((m) => m.id === activeIdRef.current) || mapped[0];
-        if (target) {
-          setAdminOnline(Boolean(target.isOnline));
-          setAdminLastSeen(target.lastSeen || null);
-          if (!activeIdRef.current) {
-            setActiveId(target.id);
-          }
-        }
-
         // Terapkan kembali status realtime yang mungkin diterima sebelum API selesai.
         const mappedWithPresence = mapped.map((conv) => ({
           ...conv,
           isOnline: conv.adminId ? presenceSetRef.current.has(String(conv.adminId)) : conv.isOnline,
         }));
         setConversations(mappedWithPresence);
-        const activeWithPresence = mappedWithPresence.find((m) => m.id === activeIdRef.current) || mappedWithPresence[0];
-        setAdminOnline(Boolean(activeWithPresence?.isOnline));
         mappedWithPresence.forEach((conv) => joinChatRoom(conv.id));
 
-        if (!activeIdRef.current && mapped.length > 0) {
-          setActiveId(mapped[0].id);
+        // Sinkron banner chat aktif HANYA jika sudah ada activeId atau dari query param
+        if (activeIdRef.current) {
+          const currentTarget = mappedWithPresence.find((m) => m.id === activeIdRef.current);
+          if (currentTarget) {
+            setAdminOnline(Boolean(currentTarget.isOnline));
+            setAdminLastSeen(currentTarget.lastSeen || null);
+          }
+        } else if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const targetChatId = params.get("chatId") || params.get("id");
+          if (targetChatId) {
+            const targeted = mappedWithPresence.find((m) => m.id === targetChatId);
+            if (targeted) {
+              setActiveId(targeted.id);
+              setAdminOnline(Boolean(targeted.isOnline));
+              setAdminLastSeen(targeted.lastSeen || null);
+            }
+          }
         }
       } else {
         const user = getCurrentUser();
@@ -331,7 +335,6 @@ export default function UserMessagesPage() {
           };
           setConversations([newConv]);
           joinChatRoom(newConv.id);
-          setActiveId(newConv.id);
         }
       }
     } catch (err) {
@@ -478,7 +481,10 @@ export default function UserMessagesPage() {
 
   // When activeId changes, join room, mark as read, and fetch
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId) {
+      setMessages([]);
+      return;
+    }
 
     setReplyingTo(null);
     joinChatRoom(activeId);
@@ -643,7 +649,7 @@ export default function UserMessagesPage() {
       setConversations((prev) => {
         const remaining = prev.filter((c) => c.id !== data.chatId);
         if (activeIdRef.current === data.chatId) {
-          setActiveId(remaining[0]?.id || null);
+          setActiveId(null);
           setMessages([]);
         }
         return remaining;
@@ -1118,7 +1124,7 @@ export default function UserMessagesPage() {
       if (res.status === "success") {
         const remaining = conversations.filter((item) => item.id !== activeId);
         setConversations(remaining);
-        setActiveId(remaining[0]?.id || null);
+        setActiveId(null);
         setMessages([]);
         toast.success("Percakapan berhasil dihapus.", "Dihapus");
       }
@@ -1222,8 +1228,9 @@ export default function UserMessagesPage() {
           </div>
         </div>
 
-        {/* ── Right Pane: Chat Window ── */}
-        <div className={`flex-1 flex flex-col h-full bg-[#f8faff] min-w-0 ${activeId ? "flex" : "hidden lg:flex"}`}>
+        {/* ── Right Pane: Chat Window or Initial State ── */}
+        {activeId ? (
+          <div className="flex-1 flex flex-col h-full bg-[#f8faff] min-w-0">
           {/* Chat Header */}
           <div className="h-16 px-4 sm:px-6 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
@@ -1687,8 +1694,33 @@ export default function UserMessagesPage() {
             </form>
           </div>
         </div>
-      </div>
-    </UserLayout>
-  );
+      ) : (
+        <div className="hidden lg:flex flex-1 items-center justify-center text-slate-400 text-xs bg-[#fafafa]">
+          <div className="text-center p-6 max-w-sm">
+            <div className="w-16 h-16 rounded-2xl bg-sky-50 text-[#0785BC] flex items-center justify-center mx-auto mb-4 border border-sky-100 shadow-sm">
+              <MessageSquare className="w-8 h-8" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">
+              {t("chat.no_conv_selected", "Pusat Bantuan & Konsultasi")}
+            </h3>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              {t("chat.no_conv_desc", "Pilih percakapan di sebelah kiri untuk berkonsultasi seputar fasilitas, peminjaman, atau kendala sarana prasarana.")}
+            </p>
+            {conversations.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveId(conversations[0].id)}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#0785BC] hover:bg-[#0672a0] text-white text-xs font-semibold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>Mulai Percakapan</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  </UserLayout>
+);
 }
 

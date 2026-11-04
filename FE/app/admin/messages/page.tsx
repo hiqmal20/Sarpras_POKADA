@@ -286,15 +286,20 @@ export default function MessagesPage() {
           joinChatRoom(c.id);
         });
 
-        if (!keepSelection || !selectedConvRef.current) {
-          if (mapped.length > 0) {
-            handleSelectConversation(mapped[0]);
-          }
-        } else {
+        if (selectedConvRef.current) {
           // Update selected conversation data if still exists
           const current = mapped.find((m) => m.id === selectedConvRef.current?.id);
           if (current) {
             setSelectedConversation((prev) => (prev ? { ...prev, ...current, unread: false } : current));
+          }
+        } else if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          const targetChatId = params.get("chatId") || params.get("id");
+          if (targetChatId) {
+            const targeted = mapped.find((m) => m.id === targetChatId);
+            if (targeted) {
+              handleSelectConversation(targeted);
+            }
           }
         }
       }
@@ -311,7 +316,10 @@ export default function MessagesPage() {
 
   // Fetch messages when conversation changes & sync periodically
   useEffect(() => {
-    if (!selectedConversation?.id) return;
+    if (!selectedConversation?.id) {
+      setMessages([]);
+      return;
+    }
     const chatId = selectedConversation.id;
     let isSubscribed = true;
 
@@ -649,12 +657,8 @@ export default function MessagesPage() {
       setConversations((prev) => {
         const remaining = prev.filter((c) => c.id !== data.chatId);
         if (selectedConvRef.current?.id === data.chatId) {
-          if (remaining.length > 0) {
-            handleSelectConversation(remaining[0]);
-          } else {
-            setSelectedConversation(null);
-            setMessages([]);
-          }
+          setSelectedConversation(null);
+          setMessages([]);
         }
         return remaining;
       });
@@ -822,12 +826,8 @@ export default function MessagesPage() {
       setConversations((prev) => {
         const remaining = prev.filter((c) => c.id !== chatId);
         if (selectedConversation?.id === chatId) {
-          if (remaining.length > 0) {
-            handleSelectConversation(remaining[0]);
-          } else {
-            setSelectedConversation(null);
-            setMessages([]);
-          }
+          setSelectedConversation(null);
+          setMessages([]);
         }
         return remaining;
       });
@@ -1474,10 +1474,12 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className="hidden lg:flex flex-1 items-center justify-center text-slate-400 text-xs bg-[#fafafa]">
-            <div className="text-center">
-              <MessageSquare className="w-9 h-9 mx-auto mb-2 text-slate-300" />
-              <p className="font-semibold text-slate-700">{t("chat.no_conv_selected", "Pusat Layanan & Chat Pengguna")}</p>
-              <p className="text-[11px] text-slate-400 mt-0.5">{t("chat.no_conv_desc", "Pilih salah satu percakapan di sebelah kiri untuk melihat pesan.")}</p>
+            <div className="text-center p-6 max-w-sm">
+              <div className="w-16 h-16 rounded-2xl bg-sky-50 text-[#0785BC] flex items-center justify-center mx-auto mb-4 border border-sky-100 shadow-sm">
+                <MessageSquare className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800">{t("chat.no_conv_selected", "Pusat Layanan & Chat Pengguna")}</h3>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">{t("chat.no_conv_desc", "Pilih salah satu percakapan di sebelah kiri untuk melihat pesan.")}</p>
             </div>
           </div>
         )}
