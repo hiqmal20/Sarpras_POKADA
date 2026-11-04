@@ -420,7 +420,7 @@ export default function ItemDetailPage() {
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <Boxes className="w-3.5 h-3.5 text-[#0785BC]" />
-                        <span>{tr("admin.items.th_category", "Kategori")}</span>
+                        <span>Kategori</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
                         {item?.category || "Umum"}
@@ -430,30 +430,30 @@ export default function ItemDetailPage() {
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>{tr("admin.items.th_condition", "Kondisi")}</span>
+                        <span>Kondisi</span>
                       </div>
                       <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        {lang === "en" ? "Good & Ready to Use" : "Baik & Siap Pakai"}
+                        Baik & Siap Pakai
                       </p>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <Package className="w-3.5 h-3.5 text-blue-500" />
-                        <span>{lang === "en" ? "Borrow Type" : "Tipe Peminjaman"}</span>
+                        <span>Tipe Peminjaman</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        {lang === "en" ? "Per Unit (Item)" : "Per Satuan (Item)"}
+                        Per Satuan (Item)
                       </p>
                     </div>
 
                     <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
                       <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 dark:text-slate-400 mb-1">
                         <Clock className="w-3.5 h-3.5 text-amber-500" />
-                        <span>{lang === "en" ? "Verification" : "Verifikasi"}</span>
+                        <span>Verifikasi</span>
                       </div>
                       <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
-                        {lang === "en" ? "Admin Approval" : "Persetujuan Admin"}
+                        Persetujuan Admin
                       </p>
                     </div>
                   </div>
@@ -462,20 +462,20 @@ export default function ItemDetailPage() {
                   <div className="rounded-2xl bg-blue-50/60 dark:bg-[#062b40]/30 border border-blue-100/80 dark:border-[#023b55]/50 p-4 space-y-2">
                     <p className="text-[11px] font-bold text-[#0785BC] dark:text-[#8ed8f5] uppercase tracking-wider flex items-center gap-1.5">
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      {lang === "en" ? "Borrowing Terms" : "Ketentuan Peminjaman"}
+                      Ketentuan Peminjaman
                     </p>
                     <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1.5">
                       <li className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{lang === "en" ? "Must maintain cleanliness and physical condition during borrowing." : "Wajib menjaga kebersihan dan fisik barang selama peminjaman."}</span>
+                        <span>Wajib menjaga kebersihan dan fisik barang selama peminjaman.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{lang === "en" ? "Return on time according to the planned return date." : "Kembalikan tepat waktu sesuai tanggal rencana pengembalian."}</span>
+                        <span>Kembalikan tepat waktu sesuai tanggal rencana pengembalian.</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>{lang === "en" ? "Report to admin if any issues occur during handover." : "Laporkan ke admin jika terjadi kendala saat serah terima barang."}</span>
+                        <span>Laporkan ke admin jika terjadi kendala saat serah terima barang.</span>
                       </li>
                     </ul>
                   </div>
@@ -526,13 +526,13 @@ export default function ItemDetailPage() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-[10px] font-bold text-[#0785BC] dark:text-[#8ed8f5] uppercase tracking-wide">
-                    {lang === "en" ? "Primary Item (1 Unit)" : "Barang Utama (1 Unit)"}
+                    Barang Utama (1 Unit)
                   </span>
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                    {item?.name || (lang === "en" ? "Loading item..." : "Memuat barang...")}
+                    {item?.name || "Memuat barang..."}
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                    {tr("admin.items.th_category", "Kategori")}: {item?.category || "-"}
+                    Kategori: {item?.category || "-"}
                   </p>
                 </div>
               </div>
@@ -542,10 +542,10 @@ export default function ItemDetailPage() {
                 <CalendarDays className="w-4 h-4 text-[#0785BC]" />
                 {durationDays ? (
                   <span>
-                    {lang === "en" ? "Duration:" : "Durasi:"} <b className="text-[#0785BC] dark:text-[#8ed8f5]">{durationDays} {lang === "en" ? "Days" : "Hari"}</b>
+                    Durasi: <b className="text-[#0785BC] dark:text-[#8ed8f5]">{durationDays} Hari</b>
                   </span>
                 ) : (
-                  <span className="text-slate-400">{lang === "en" ? "Select date range" : "Pilih rentang tanggal"}</span>
+                  <span className="text-slate-400">Pilih rentang tanggal</span>
                 )}
               </div>
             </div>
@@ -562,20 +562,20 @@ export default function ItemDetailPage() {
             <form onSubmit={handleSubmit} className="mt-6 space-y-5">
               {/* Quantity */}
               <div>
-                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">{lang === "en" ? "Item Quantity" : "Jumlah Barang"}</label>
-                <div className="flex items-center w-full max-w-xs overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60">
-                  <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1} className="w-11 h-11 text-xl font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">-</button>
-                  <div className="flex-1 text-center text-sm font-bold text-slate-800 dark:text-slate-100">{quantity}</div>
-                  <button type="button" onClick={() => setQuantity((value) => Math.min(currentStock, value + 1))} disabled={quantity >= currentStock} className="w-11 h-11 text-xl font-semibold text-[#0785BC] hover:bg-[#eef7fc] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">+</button>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1">{tr("admin.items.avail_stock", "Stok tersedia")}: {currentStock} {tr("common.units", "unit")}</p>
+                <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">Jumlah Barang</label>
+                 <div className="flex items-center w-full max-w-xs overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60">
+                   <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1} className="w-11 h-11 text-xl font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">-</button>
+                   <input type="number" min={1} max={currentStock} step={1} value={quantity} onChange={(event) => setQuantity(Math.max(1, Math.min(currentStock, Number(event.target.value) || 1)))} className="flex-1 h-11 min-w-0 text-center text-sm font-bold text-slate-800 dark:text-slate-100 bg-transparent border-0 focus:outline-none" aria-label="Jumlah barang" />
+                   <button type="button" onClick={() => setQuantity((value) => Math.min(currentStock, value + 1))} disabled={quantity >= currentStock} className="w-11 h-11 text-xl font-semibold text-[#0785BC] hover:bg-[#eef7fc] disabled:opacity-40 disabled:cursor-not-allowed">+</button>
+                 </div>
+                <p className="text-[11px] text-slate-500 mt-1">Stok tersedia: {currentStock} unit</p>
               </div>
 
               {/* Tanggal Mulai & Tanggal Selesai */}
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 flex items-center gap-1.5">
                   <Calendar className="w-4 h-4 text-[#0785BC]" />
-                  <span>{lang === "en" ? "Borrowing Schedule" : "Jadwal Peminjaman Barang"} <span className="text-rose-500">*</span></span>
+                  <span>Jadwal Peminjaman Barang <span className="text-rose-500">*</span></span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="relative">
@@ -731,9 +731,9 @@ export default function ItemDetailPage() {
               <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2.5">
                 <Info className="w-4 h-4 text-[#0785BC] shrink-0 mt-0.5" />
                 <span>
-                  {lang === "en" ? "Your application will be forwarded to the sarpras admin for verification. You can track status directly on the " : "Pengajuan akan diteruskan ke admin sarpras untuk verifikasi. Anda dapat memantau status secara langsung di halaman "}
+                  Pengajuan akan diteruskan ke admin sarpras untuk verifikasi. Anda dapat memantau status secara langsung di halaman{" "}
                   <Link href="/user/riwayat_peminjaman" className="text-[#0785BC] font-semibold hover:underline">
-                    {tr("nav.history", "Riwayat Peminjaman")}
+                    Riwayat Peminjaman
                   </Link>.
                 </span>
               </div>
@@ -752,12 +752,12 @@ export default function ItemDetailPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{lang === "en" ? "Submitting Application..." : "Mengirim Pengajuan..."}</span>
+                      <span>Mengirim Pengajuan...</span>
                     </>
                   ) : emptyStock ? (
                     <>
                       <Clock className="w-4 h-4" />
-                      <span>{lang === "en" ? "Out of Stock / Unavailable" : "Stok Barang Habis / Tidak Tersedia"}</span>
+                      <span>Stok Barang Habis / Tidak Tersedia</span>
                     </>
                   ) : (
                     <>

@@ -657,7 +657,11 @@ export default function PackageDetailPage() {
               {/* Quantity Paket */}
               <div>
                 <label className="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 block">Jumlah Paket</label>
-                <input type="number" min={1} max={Number(pkg?.stock_available ?? 0)} step={1} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} className="w-full px-3.5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/60" />
+                 <div className="flex items-center w-full overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/60">
+                   <button type="button" onClick={() => setQuantity((value) => Math.max(1, value - 1))} disabled={quantity <= 1} className="w-11 h-11 text-xl font-semibold text-slate-600 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">-</button>
+                   <input type="number" min={1} max={Number(pkg?.stock_available ?? 0)} step={1} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.min(Number(pkg?.stock_available ?? 0), Number(e.target.value) || 1)))} className="flex-1 h-11 min-w-0 text-center text-sm font-bold bg-transparent border-0 focus:outline-none" aria-label="Jumlah paket" />
+                   <button type="button" onClick={() => setQuantity((value) => Math.min(Number(pkg?.stock_available ?? 0), value + 1))} disabled={quantity >= Number(pkg?.stock_available ?? 0)} className="w-11 h-11 text-xl font-semibold text-[#0785BC] hover:bg-[#eef7fc] disabled:opacity-40 disabled:cursor-not-allowed">+</button>
+                 </div>
                 <p className="text-[11px] text-slate-500 mt-1">Stok paket tersedia: {Number(pkg?.stock_available ?? 0)} unit</p>
               </div>
 
