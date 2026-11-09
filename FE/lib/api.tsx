@@ -449,6 +449,15 @@ export const api = {
       damage_description?: string;
       fine_amount?: number;
       fine_reason?: string;
+      items_condition?: Array<{
+        borrowings_item_id: string;
+        condition_after: string;
+        note?: string;
+        quantity_returned?: number;
+        damage_description?: string;
+        fine_amount?: number;
+        fine_reason?: string;
+      }>;
     }) => {
       const normalized = {
         ...payload,

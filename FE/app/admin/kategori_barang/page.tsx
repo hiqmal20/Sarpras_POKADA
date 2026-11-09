@@ -934,7 +934,7 @@ export default function KategoriBarangPage() {
         )}
       </div>
 
-      {/* â”€â”€ Modal Create / Edit â”€â”€ */}
+      {/* -- Modal Create / Edit -- */}
       {modal.open && (
         <CategoryModal
           initial={modal.item}
@@ -943,7 +943,7 @@ export default function KategoriBarangPage() {
         />
       )}
 
-      {/* â”€â”€ Modal Confirm Delete â”€â”€ */}
+      {/* -- Modal Confirm Delete -- */}
       {deleteTarget && (
         <DeleteConfirmModal
           category={deleteTarget}

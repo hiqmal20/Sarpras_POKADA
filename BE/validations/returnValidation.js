@@ -15,8 +15,12 @@ const createReturnSchema = Joi.object({
   items_condition: Joi.array().items(
     Joi.object({
       borrowings_item_id: Joi.string().uuid().required(),
-      condition_after: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat').default('Baik'),
-      note: Joi.string().allow('', null)
+      condition_after: Joi.string().valid('Baik', 'Rusak Ringan', 'Rusak Berat', 'Hilang').default('Baik'),
+      note: Joi.string().allow('', null),
+      damage_description: Joi.string().allow('', null),
+      fine_amount: Joi.number().integer().min(0).default(0),
+      fine_reason: Joi.string().allow('', null),
+      quantity_returned: Joi.number().integer().min(0).required()
     })
   ).default([])
 });

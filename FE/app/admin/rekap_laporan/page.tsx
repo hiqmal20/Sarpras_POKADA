@@ -156,7 +156,7 @@ function StatusBadge({ status }: { status: ReportStatus }) {
   );
 }
 
-// â”€â”€ Avatar initials â”€â”€
+// -- Avatar initials --
 function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
   const safeName = (name || "").trim();
   const initials = safeName
@@ -781,7 +781,7 @@ export default function RekapLaporanPage() {
       onSearchChange={setSearch}
     >
       <div className="space-y-6">
-        {/* â”€â”€ Page Header â”€â”€ */}
+        {/* -- Page Header -- */}
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${mounted ? "animate-fade-up" : "opacity-0"}`}>
           <div>
             <div className="flex items-center gap-2">
@@ -822,7 +822,7 @@ export default function RekapLaporanPage() {
           </div>
         </div>
 
-        {/* â”€â”€ 3 Stat Cards (n8n Node Style) â”€â”€ */}
+        {/* -- 3 Stat Cards (n8n Node Style) -- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Card 1: Menunggu Tindak Lanjut */}
           <div
@@ -1038,7 +1038,7 @@ export default function RekapLaporanPage() {
           )}
         </div>
 
-        {/* â”€â”€ Tabel Rekap Laporan â”€â”€ */}
+        {/* -- Tabel Rekap Laporan -- */}
         <div className={`bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden ${mounted ? "animate-fade-up delay-300" : "opacity-0"}`}>
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left">
@@ -1245,7 +1245,7 @@ export default function RekapLaporanPage() {
           {/* Pagination */}
           <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
             <p className="text-xs text-slate-500">
-              Menampilkan {total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}â€“{Math.min(page * PAGE_SIZE, total)} dari {total} data
+              Menampilkan {total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}-{Math.min(page * PAGE_SIZE, total)} dari {total} data
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -1280,7 +1280,7 @@ export default function RekapLaporanPage() {
         </div>
       </div>
 
-      {/* â”€â”€ Modal Tindak Lanjut & Atur Denda (Modern Card Layout) â”€â”€ */}
+      {/* -- Modal Tindak Lanjut & Atur Denda (Modern Card Layout) -- */}
       {actionReport && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto my-auto animate-scale-in">
@@ -1483,7 +1483,7 @@ export default function RekapLaporanPage() {
         </div>
       )}
 
-      {/* â”€â”€ Modal Riwayat / Detail (Read-Only Case File) â”€â”€ */}
+      {/* -- Modal Riwayat / Detail (Read-Only Case File) -- */}
       {historyReport && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 my-auto animate-scale-in">
@@ -1612,7 +1612,7 @@ export default function RekapLaporanPage() {
         </div>
       )}
 
-      {/* â”€â”€ Modal Buat Laporan Baru (Lengkap Terelasi User & Item) â”€â”€ */}
+      {/* -- Modal Buat Laporan Baru (Lengkap Terelasi User & Item) -- */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[100] p-4 sm:p-6 overflow-y-auto animate-fade-in">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto my-auto animate-scale-in">
@@ -1661,7 +1661,7 @@ export default function RekapLaporanPage() {
               </div>
 
               {modalMode === "by_transaction" ? (
-                /* â”€â”€ FLOW 1: BERDASARKAN TRANSAKSI PEMINJAMAN â”€â”€ */
+                /* -- FLOW 1: BERDASARKAN TRANSAKSI PEMINJAMAN -- */
                 <div className="space-y-3">
                   {selectedBorrowing && (formData.item_id || formData.package_id) ? (
                     /* Card Transaksi & Barang Terpilih */
@@ -1890,7 +1890,7 @@ export default function RekapLaporanPage() {
                                                 </span>
                                               </div>
                                               <p className="text-[10px] text-slate-400 mt-0.5">
-                                                Jumlah: {bi.quantity || 1} unit â€¢ Kondisi awal: {bi.condition_before || "Baik"}
+                                                Jumlah: {bi.quantity || 1} unit - Kondisi awal: {bi.condition_before || "Baik"}
                                               </p>
                                             </div>
 
@@ -1926,7 +1926,7 @@ export default function RekapLaporanPage() {
                   )}
                 </div>
               ) : (
-                /* â”€â”€ FLOW 2: MANUAL / KATALOG LANGSUNG (TANPA TRANSAKSI) â”€â”€ */
+                /* -- FLOW 2: MANUAL / KATALOG LANGSUNG (TANPA TRANSAKSI) -- */
                 <div className="space-y-3.5">
                   {/* Pilih Barang / Paket (Filter Per Item / Paket & Auto-Detect Search) */}
                   <div ref={itemDropdownRef} className="relative">
@@ -2126,7 +2126,7 @@ export default function RekapLaporanPage() {
                                             </div>
                                             <p className="text-[11px] text-slate-400 truncate">
                                               Berisi {pkg.item_count || 0} item komponen
-                                              {pkg.description ? ` â€¢ ${pkg.description}` : ""}
+                                              {pkg.description ? ` - ${pkg.description}` : ""}
                                             </p>
                                           </div>
                                         </div>
@@ -2180,7 +2180,7 @@ export default function RekapLaporanPage() {
                                             </div>
                                             <p className="text-[11px] text-slate-400 truncate">
                                               {item.category ? `Kategori: ${item.category}` : "Barang SARPRAS"}
-                                              {item.condition ? ` â€¢ Kondisi: ${item.condition}` : ""}
+                                              {item.condition ? ` - Kondisi: ${item.condition}` : ""}
                                             </p>
                                           </div>
                                         </div>
@@ -2458,7 +2458,7 @@ export default function RekapLaporanPage() {
         </div>
       )}
 
-      {/* â”€â”€ Modal Export Kerusakan & Denda dengan Filter Tanggal â”€â”€ */}
+      {/* -- Modal Export Kerusakan & Denda dengan Filter Tanggal -- */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}

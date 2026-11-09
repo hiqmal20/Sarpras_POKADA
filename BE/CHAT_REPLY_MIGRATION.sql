@@ -8,7 +8,7 @@
 -- agar apabila pesan asli yang dibalas dihapus, pesan balasan
 -- TIDAK terhapus, melainkan nilai reply_to_message_id menjadi NULL.
 ALTER TABLE chat_messages
-ADD COLUMN IF NOT EXISTS a UUID REFERENCES chat_messages(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS reply_to_message_id UUID REFERENCES chat_messages(id) ON DELETE SET NULL;
 
 -- 2. Buat index pada reply_to_message_id untuk mempercepat pencarian relasi reply
 CREATE INDEX IF NOT EXISTS idx_chat_messages_reply_to_message_id

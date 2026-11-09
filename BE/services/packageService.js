@@ -485,7 +485,8 @@ exports.importPackagesFromCSV = async (csvBuffer) => {
  * Mengubah stock dan available_stock pada seluruh item komponen di dalam paket.
  */
 exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 }) => {
-  const numQty = Number(quantity);
+  throw new AppError('Stok paket bersifat virtual dan dihitung otomatis dari stok komponen. Ubah stok barang satuan atau komposisi paket.', 400);
+  /* const numQty = Number(quantity);
   if (!numQty || numQty <= 0 || !Number.isInteger(numQty)) {
     throw new AppError('Jumlah perubahan stok paket harus berupa bilangan bulat lebih dari 0', 400);
   }
@@ -578,4 +579,5 @@ exports.adjustPackageStock = async (packageId, { action = 'add', quantity = 1 })
   }
 
   return exports.findPackageById(packageId);
+  */
 };

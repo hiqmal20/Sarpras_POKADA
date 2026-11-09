@@ -18,6 +18,8 @@ import {
   RefreshCw,
   Download,
   FileSpreadsheet,
+  ShieldAlert,
+  Info,
 } from "lucide-react";
 import api from "@/lib/api";
 import { getSocket } from "@/lib/socket";
@@ -39,6 +41,19 @@ interface ReturnItemDetail {
     code: string;
     image_url?: string;
   };
+}
+
+// Kondisi per item saat konfirmasi pengembalian
+interface ItemConditionEntry {
+  borrowings_item_id: string;
+  item_name: string;
+  item_code: string;
+  quantity: number;
+  source: "paket" | "tambahan"; // label asal item
+  condition_after: string;      // "Baik" | "Rusak Ringan" | "Rusak Berat" | "Hilang"
+  damage_description: string;
+  fine_amount: string;
+  fine_reason: string;
 }
 
 interface ReturnItem {
@@ -64,6 +79,9 @@ interface ReturnItem {
   overdue_days?: number;
   items: ReturnItemDetail[];
   purpose?: string;
+  package_id?: string | null;        // ada jika peminjaman paket
+  package_name?: string | null;      // nama paket jika ada
+  package_item_ids?: string[];       // item_id yang termasuk komponen paket
 }
 
 function useMount() {
@@ -77,26 +95,28 @@ function StatusBadge({ status }: { status: ReturnItem["status"] }) {
   const { t, lang } = useLanguage();
   if (status === "overdue")
     return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-500 text-white uppercase tracking-wide inline-flex items-center gap-1">
-        <AlertTriangle className="w-3 h-3" />
+      <span className="inline-flex w-max min-w-max items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-500 text-white uppercase tracking-wide whitespace-nowrap shadow-xs">
+        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
         {t("modal.st_late", "Terlambat")}
       </span>
     );
   if (status === "due_today")
     return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500 text-white uppercase tracking-wide">
+      <span className="inline-flex w-max min-w-max items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500 text-white uppercase tracking-wide whitespace-nowrap shadow-xs">
+        <Clock className="w-3.5 h-3.5 shrink-0" />
         {lang === "en" ? "Due Today" : "Jatuh Tempo Hari Ini"}
       </span>
     );
   if (status === "returned")
     return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white uppercase tracking-wide inline-flex items-center gap-1">
-        <Check className="w-3 h-3" />
+      <span className="inline-flex w-max min-w-max items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500 text-white uppercase tracking-wide whitespace-nowrap shadow-xs">
+        <Check className="w-3.5 h-3.5 shrink-0" />
         {t("modal.st_done", "Dikembalikan")}
       </span>
     );
   return (
-    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500 text-white uppercase tracking-wide">
+    <span className="inline-flex w-max min-w-max items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500 text-white uppercase tracking-wide whitespace-nowrap shadow-xs">
+      <Clock className="w-3.5 h-3.5 shrink-0" />
       {t("modal.st_borrowed", "Sedang Dipinjam")}
     </span>
   );
@@ -131,6 +151,108 @@ function Avatar({ name, foto }: { name?: string; foto?: string | null }) {
     </div>
   );
 }
+
+// ── Sub-komponen: satu baris kondisi item dalam modal konfirmasi ──
+function ItemConditionRow({
+  ic,
+  idx,
+  onUpdate,
+}: {
+  ic: ItemConditionEntry;
+  idx: number;
+  onUpdate: (idx: number, field: keyof ItemConditionEntry, value: string) => void;
+}) {
+  const isRusak = ic.condition_after !== "Baik";
+  return (
+    <div className={`rounded-xl border p-4 space-y-3 transition-all ${
+      isRusak ? "border-red-200 bg-red-50/40" : "border-slate-200 bg-white"
+    }`}>
+      {/* Baris atas: nama + pilih kondisi */}
+      <div className="flex items-center gap-3">
+        {/* Icon */}
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+          isRusak ? "bg-red-100" : "bg-slate-100"
+        }`}>
+          <Package className={`w-4 h-4 ${isRusak ? "text-red-400" : "text-slate-400"}`} />
+        </div>
+        {/* Nama + kode */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-800 truncate">{ic.item_name}</p>
+          <p className="text-[11px] text-slate-400 font-mono">{ic.item_code} · {ic.quantity} unit</p>
+        </div>
+        {/* Select kondisi */}
+        <select
+          value={ic.condition_after}
+          onChange={(e) => onUpdate(idx, "condition_after", e.target.value)}
+          className={`text-xs font-bold border rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#0785BC] shrink-0 ${
+            isRusak
+              ? ic.condition_after === "Hilang"
+                ? "border-red-300 bg-red-50 text-red-700"
+                : ic.condition_after === "Rusak Berat"
+                ? "border-orange-300 bg-orange-50 text-orange-700"
+                : "border-yellow-300 bg-yellow-50 text-yellow-800"
+              : "border-slate-200 bg-slate-50 text-slate-700"
+          }`}
+        >
+          <option value="Baik">✅ Baik</option>
+          <option value="Rusak Ringan">⚠️ Rusak Ringan</option>
+          <option value="Rusak Berat">🔴 Rusak Berat</option>
+          <option value="Hilang">❌ Hilang</option>
+        </select>
+      </div>
+
+      {/* Form detail kerusakan — muncul jika bukan "Baik" */}
+      {isRusak && (
+        <div className="space-y-2.5 pt-1 pl-12">
+          {/* Detail kerusakan */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Detail kerusakan / kehilangan
+            </label>
+            <textarea
+              rows={2}
+              value={ic.damage_description}
+              onChange={(e) => onUpdate(idx, "damage_description", e.target.value)}
+              placeholder="Jelaskan kondisi barang secara detail..."
+              className="w-full text-xs border border-slate-200 rounded-lg p-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+            />
+          </div>
+          {/* Denda */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              Nominal Denda <span className="font-normal text-slate-400">(opsional)</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">Rp</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={ic.fine_amount ? Number(ic.fine_amount.replace(/\D/g, "")).toLocaleString("id-ID") : ""}
+                onChange={(e) => onUpdate(idx, "fine_amount", e.target.value.replace(/\D/g, ""))}
+                placeholder="0"
+                className="w-full text-xs border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+              />
+            </div>
+          </div>
+          {/* Alasan denda */}
+          {Number(ic.fine_amount.replace(/\D/g, "") || 0) > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Alasan denda</label>
+              <textarea
+                rows={1}
+                value={ic.fine_reason}
+                onChange={(e) => onUpdate(idx, "fine_reason", e.target.value)}
+                placeholder="Alasan penetapan denda..."
+                className="w-full text-xs border border-slate-200 rounded-lg p-2.5 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const PAGE_SIZE = 10;
 
 export default function PengembalianPage() {
@@ -150,6 +272,9 @@ export default function PengembalianPage() {
   const [fineReason, setFineReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  // State untuk kondisi per item (diisi dari items milik peminjaman yang dikonfirmasi)
+  const [itemConditions, setItemConditions] = useState<ItemConditionEntry[]>([]);
+  const [confirmingBorrowItems, setConfirmingBorrowItems] = useState<ReturnItemDetail[]>([]);
 
   // Real Stat Counts
   const [realStats, setRealStats] = useState({
@@ -269,6 +394,10 @@ export default function PengembalianPage() {
                 items: bi.items,
               })),
               purpose: b.purpose || "-",
+              package_id: b.package_id || null,
+              package_name: b.packages?.name || null,
+              // item_id yang termasuk komponen paket (dari packages_items)
+              package_item_ids: (b.packages?.packages_items || []).map((pi: any) => pi.item_id),
             });
           }
         });
@@ -402,19 +531,55 @@ export default function PengembalianPage() {
     if (!confirmingId) return;
     try {
       setActionLoading(true);
+
+      // Hitung kondisi global dari seluruh item:
+      // jika ada yang Hilang → global = Hilang, Rusak Berat → Rusak Berat, dst.
+      const conditionPriority: Record<string, number> = {
+        "Baik": 0,
+        "Rusak Ringan": 1,
+        "Rusak Berat": 2,
+        "Hilang": 3,
+      };
+      let globalCondition = "Baik";
+      let totalFine = 0;
+      const allFineReasons: string[] = [];
+      const allDamageDesc: string[] = [];
+
+      const items_condition = itemConditions.map((ic) => {
+        // Tentukan kondisi global (ambil yang terparah)
+        if ((conditionPriority[ic.condition_after] ?? 0) > (conditionPriority[globalCondition] ?? 0)) {
+          globalCondition = ic.condition_after;
+        }
+        const fineNum = Number(ic.fine_amount.replace(/\D/g, "") || 0);
+        totalFine += fineNum;
+        if (ic.damage_description) allDamageDesc.push(`[${ic.item_name}] ${ic.damage_description}`);
+        if (fineNum > 0 && ic.fine_reason) allFineReasons.push(`[${ic.item_name}] ${ic.fine_reason}`);
+        return {
+          borrowings_item_id: ic.borrowings_item_id,
+          condition_after: ic.condition_after,
+          damage_description: ic.damage_description || "",
+          fine_amount: fineNum,
+          fine_reason: ic.fine_reason || "",
+          quantity_returned: ic.quantity,
+        };
+      });
+
       await api.returns.create({
         borrowing_id: confirmingId,
         notes: confirmNote || "Dikonfirmasi admin",
-        condition: confirmCondition,
-        damage_description: damageDescription || undefined,
-        fine_amount: fineAmount === "" ? 0 : Number(fineAmount),
-        fine_reason: fineReason || undefined,
+        condition: itemConditions.length > 0 ? globalCondition : confirmCondition,
+        items_condition: items_condition.length > 0 ? items_condition : undefined,
+        damage_description: allDamageDesc.join(" | ") || damageDescription || undefined,
+        fine_amount: totalFine > 0 ? totalFine : (fineAmount === "" ? 0 : Number(fineAmount)),
+        fine_reason: allFineReasons.join(" | ") || fineReason || undefined,
       });
       setConfirmingId(null);
       setConfirmNote("");
       setDamageDescription("");
       setFineAmount("");
       setFineReason("");
+      setItemConditions([]);
+      setConfirmingBorrowItems([]);
       toast.success("Pengembalian fisik berhasil diverifikasi dan stok telah dipulihkan!", "Barang Kembali");
       await fetchData();
     } catch (err: any) {
@@ -422,6 +587,50 @@ export default function PengembalianPage() {
     } finally {
       setActionLoading(false);
     }
+  }
+
+  // Helper: buka modal konfirmasi dan inisialisasi kondisi per item
+  function openConfirmModal(
+    borrowingId: string,
+    borrowItems: ReturnItemDetail[],
+    packageItemIds: string[] = []
+  ) {
+    setConfirmingId(borrowingId);
+    setConfirmCondition("Baik");
+    setConfirmNote("");
+    setDamageDescription("");
+    setFineAmount("");
+    setFineReason("");
+    setConfirmingBorrowItems(borrowItems);
+    // Inisialisasi kondisi per item → default "Baik"
+    // Tandai source: "paket" jika item_id ada di packageItemIds, "tambahan" jika tidak
+    setItemConditions(
+      borrowItems.map((bi) => ({
+        borrowings_item_id: bi.id,
+        item_name: bi.items?.name || "Barang",
+        item_code: bi.items?.code || bi.item_id,
+        quantity: bi.quantity,
+        source: (packageItemIds || []).includes(bi.item_id) ? "paket" : "tambahan",
+        condition_after: "Baik",
+        damage_description: "",
+        fine_amount: "",
+        fine_reason: "",
+      }))
+    );
+  }
+
+  function updateItemCondition(idx: number, field: keyof ItemConditionEntry, value: string) {
+    setItemConditions((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [field]: value };
+      // Reset field denda/kerusakan jika kondisi kembali "Baik"
+      if (field === "condition_after" && value === "Baik") {
+        updated[idx].damage_description = "";
+        updated[idx].fine_amount = "";
+        updated[idx].fine_reason = "";
+      }
+      return updated;
+    });
   }
 
   return (
@@ -547,7 +756,7 @@ export default function PengembalianPage() {
                   <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.dash.th_item_code", "Barang & Kode")}</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.dash.th_borrower", "Peminjam")}</th>
                   <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.borrow.th_return_date", "Jatuh Tempo / Kembali")}</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">{t("admin.items.th_status", "Status")}</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t("admin.items.th_status", "Status")}</th>
                   <th className="px-6 py-3 text-xs font-semibold text-slate-400 uppercase tracking-wider text-right">{t("admin.items.th_action", "Aksi")}</th>
                 </tr>
               </thead>
@@ -620,10 +829,8 @@ export default function PengembalianPage() {
                         </td>
 
                         {/* Status */}
-                        <td className="px-4 py-4">
-                          <div className="space-y-1">
-                            <StatusBadge status={row.status} />
-                          </div>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <StatusBadge status={row.status} />
                         </td>
 
                         {/* Aksi */}
@@ -641,9 +848,7 @@ export default function PengembalianPage() {
                             {row.status !== "returned" ? (
                               <button
                                 onClick={() => {
-                                  setConfirmingId(row.borrowing_id);
-                                  setConfirmCondition("Baik");
-                                  setConfirmNote("");
+                                  openConfirmModal(row.borrowing_id, row.items, row.package_item_ids || []);
                                 }}
                                 className="px-3 py-1.5 text-xs font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] active:scale-95 rounded-xl transition-all shadow-sm cursor-pointer"
                               >
@@ -853,10 +1058,10 @@ export default function PengembalianPage() {
                 <button
                   onClick={() => {
                     const borrowId = selectedItem.borrowing_id;
+                    const borrowItems = selectedItem.items;
+                    const pkgItemIds = selectedItem.package_item_ids || [];
                     setSelectedItem(null);
-                    setConfirmingId(borrowId);
-                    setConfirmCondition("Baik");
-                    setConfirmNote("");
+                    openConfirmModal(borrowId, borrowItems, pkgItemIds);
                   }}
                   className="px-4 py-2 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
@@ -868,109 +1073,194 @@ export default function PengembalianPage() {
         </div>
       )}
 
-      {/* ── Modal Konfirmasi Pengembalian ── */}
-      {confirmingId && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 my-auto animate-scale-in">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h3 className="font-bold text-slate-800 text-base">{t("admin.return.modal_title", "Konfirmasi Barang Kembali")}</h3>
-              <button
-                onClick={() => setConfirmingId(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {t("admin.return.cond_label", "Kondisi Barang Saat Dikembalikan")}
-                </label>
-                <select
-                  value={confirmCondition}
-                  onChange={(e) => {
-                    setConfirmCondition(e.target.value);
-                    if (e.target.value === "Baik") {
-                      setDamageDescription("");
-                      setFineAmount("");
-                      setFineReason("");
-                    }
-                  }}
-                  className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-[#0785BC] cursor-pointer"
-                >
-                  <option value="Baik">{t("admin.return.cond_good_desc", "Baik (Lengkap tanpa kerusakan)")}</option>
-                  <option value="Rusak Ringan">{t("admin.return.cond_slight_desc", "Rusak Ringan")}</option>
-                  <option value="Rusak Berat">{t("admin.return.cond_heavy_desc", "Rusak Berat")}</option>
-                  <option value="Hilang">{t("admin.return.cond_lost_desc", "Hilang")}</option>
-                </select>
-              </div>
+      {/* ── Modal Konfirmasi Pengembalian (Per Item) ── */}
+      {confirmingId && (() => {
+        const paketItems   = itemConditions.filter(ic => ic.source === "paket");
+        const tambahanItems = itemConditions.filter(ic => ic.source === "tambahan");
+        const totalDenda   = itemConditions.reduce((s, ic) => s + Number(ic.fine_amount.replace(/\D/g,"") || 0), 0);
+        const adaYangRusak = itemConditions.some(ic => ic.condition_after !== "Baik");
 
-              {confirmCondition !== "Baik" && (
-                <div className="space-y-4 rounded-xl border-[3px] border-slate-300 bg-white p-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{t("admin.return.damage_detail_label", "Detail Kerusakan / Kehilangan")}</label>
-                    <textarea rows={3} value={damageDescription} onChange={(e) => setDamageDescription(e.target.value)} placeholder={t("admin.return.damage_detail_ph", "Jelaskan kondisi barang secara detail...")} className="w-full text-sm border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]" />
+        return (
+          <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl border border-slate-200 my-6 animate-scale-in flex flex-col">
+
+              {/* ── Header ── */}
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 rounded-t-2xl shrink-0">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#0785BC]/10 text-[#0785BC] flex items-center justify-center">
+                    <ShieldAlert className="w-5 h-5" />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">{t("admin.return.fine_amount_label", "Nominal Denda (Rp)")}</label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-500">Rp</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        min="0"
-                        value={fineAmount ? Number(fineAmount).toLocaleString("id-ID") : ""}
-                        onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "");
-                          setFineAmount(digits);
-                        }}
-                        placeholder="0"
-                        className="w-full text-sm border border-slate-200 rounded-xl pl-10 pr-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                      />
-                    </div>
+                    <h3 className="font-bold text-slate-800 text-base">Konfirmasi Pengembalian Barang</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Periksa kondisi tiap barang — yang rusak tidak akan masuk stok
+                    </p>
                   </div>
-                  {Number(fineAmount || 0) > 0 && (
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">{t("admin.return.fine_reason_label", "Alasan Penetapan Denda")}</label>
-                      <textarea rows={2} value={fineReason} onChange={(e) => setFineReason(e.target.value)} placeholder={t("admin.return.fine_reason_ph", "Masukkan alasan denda...")} className="w-full text-sm border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]" />
-                    </div>
-                  )}
                 </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  {t("admin.return.note_return_label", "Catatan Pengembalian (Opsional)")}
-                </label>
-                <textarea
-                  rows={3}
-                  value={confirmNote}
-                  onChange={(e) => setConfirmNote(e.target.value)}
-                  placeholder={t("admin.return.note_return_ph", "Contoh: Barang dikembalikan tepat waktu dalam kondisi bersih...")}
-                  className="w-full text-sm border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
-                />
+                <button
+                  onClick={() => { setConfirmingId(null); setItemConditions([]); setConfirmingBorrowItems([]); }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-            </div>
-            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2">
-              <button
-                onClick={() => setConfirmingId(null)}
-                disabled={actionLoading}
-                className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200/70 rounded-xl transition-all cursor-pointer"
-              >
-                {t("common.cancel", "Batal")}
-              </button>
-              <button
-                onClick={handleConfirmSubmit}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                <Check className="w-4 h-4" />
-                {actionLoading ? t("admin.return.processing", "Memproses...") : t("admin.return.confirm_done_btn", "Konfirmasi Selesai")}
-              </button>
+
+              {/* ── Info legend ── */}
+              <div className="px-6 pt-4 pb-0 flex items-start gap-2">
+                <Info className="w-3.5 h-3.5 text-[#0785BC] mt-0.5 shrink-0" />
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Semua barang di-set <span className="font-semibold text-emerald-600">Baik</span> secara default.
+                  Ubah kondisi hanya pada barang yang rusak atau hilang — stoknya <span className="font-semibold text-red-500">tidak akan dikembalikan</span>.
+                  Barang yang kondisinya Baik akan otomatis masuk kembali ke stok.
+                </p>
+              </div>
+
+              {/* ── Body scrollable ── */}
+              <div className="overflow-y-auto px-6 py-4 space-y-5 max-h-[60vh]">
+
+                {/* Kelompok: Barang Paket */}
+                {paketItems.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-700 border border-blue-200">
+                        <Package className="w-3 h-3" /> DARI PAKET
+                      </span>
+                      <span className="text-xs text-slate-400">{paketItems.length} barang</span>
+                    </div>
+                    <div className="space-y-2">
+                      {paketItems.map((ic) => {
+                        const idx = itemConditions.findIndex(x => x.borrowings_item_id === ic.borrowings_item_id);
+                        return (
+                          <ItemConditionRow
+                            key={ic.borrowings_item_id}
+                            ic={ic}
+                            idx={idx}
+                            onUpdate={updateItemCondition}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Kelompok: Barang Tambahan */}
+                {tambahanItems.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                        <Package className="w-3 h-3" /> BARANG TAMBAHAN
+                      </span>
+                      <span className="text-xs text-slate-400">{tambahanItems.length} barang</span>
+                    </div>
+                    <div className="space-y-2">
+                      {tambahanItems.map((ic) => {
+                        const idx = itemConditions.findIndex(x => x.borrowings_item_id === ic.borrowings_item_id);
+                        return (
+                          <ItemConditionRow
+                            key={ic.borrowings_item_id}
+                            ic={ic}
+                            idx={idx}
+                            onUpdate={updateItemCondition}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Fallback: semua item tanpa group */}
+                {paketItems.length === 0 && tambahanItems.length === 0 && itemConditions.length > 0 && (
+                  <div className="space-y-2">
+                    {itemConditions.map((ic, idx) => (
+                      <ItemConditionRow
+                        key={ic.borrowings_item_id}
+                        ic={ic}
+                        idx={idx}
+                        onUpdate={updateItemCondition}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                {/* Ringkasan denda */}
+                {totalDenda > 0 && (
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-amber-50 border border-amber-200">
+                    <div className="flex items-center gap-2 text-amber-700">
+                      <AlertTriangle className="w-4 h-4 shrink-0" />
+                      <span className="text-xs font-semibold">Total Denda dari seluruh barang rusak</span>
+                    </div>
+                    <span className="text-sm font-bold text-amber-800">
+                      Rp {totalDenda.toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                )}
+
+                {/* Ringkasan stok */}
+                {itemConditions.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 space-y-1.5">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Ringkasan Stok</p>
+                    {itemConditions.map(ic => (
+                      <div key={ic.borrowings_item_id} className="flex items-center justify-between text-xs">
+                        <span className="text-slate-600 truncate max-w-[65%]">{ic.item_name}</span>
+                        {ic.condition_after === "Baik" ? (
+                          <span className="inline-flex items-center gap-1 text-emerald-600 font-semibold">
+                            <Check className="w-3 h-3" /> +{ic.quantity} kembali ke stok
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-red-500 font-semibold">
+                            <X className="w-3 h-3" /> tidak masuk stok ({ic.condition_after})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Catatan umum */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Catatan Pengembalian <span className="font-normal text-slate-400">(Opsional)</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={confirmNote}
+                    onChange={(e) => setConfirmNote(e.target.value)}
+                    placeholder="Contoh: Barang dikembalikan tepat waktu..."
+                    className="w-full text-sm border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#0785BC]"
+                  />
+                </div>
+              </div>
+
+              {/* ── Footer ── */}
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl flex items-center justify-between gap-2 shrink-0">
+                <div className="text-xs text-slate-400">
+                  {adaYangRusak
+                    ? <span className="text-red-500 font-semibold">⚠ Ada barang rusak/hilang — tidak masuk stok</span>
+                    : <span className="text-emerald-600 font-semibold">✓ Semua barang dalam kondisi baik</span>
+                  }
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => { setConfirmingId(null); setItemConditions([]); setConfirmingBorrowItems([]); }}
+                    disabled={actionLoading}
+                    className="px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-200/70 rounded-xl transition-all cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleConfirmSubmit}
+                    disabled={actionLoading}
+                    className="inline-flex items-center gap-1.5 px-5 py-2 text-sm font-bold text-white bg-[#0785BC] hover:bg-[#0672a0] rounded-xl transition-all shadow-sm active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    {actionLoading ? "Memproses..." : "Konfirmasi Selesai"}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ── Modal Export Pengembalian dengan Filter Tanggal ── */}
       <ExportModal

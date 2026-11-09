@@ -30,6 +30,7 @@ exports.findAllBorrowings = async ({ user_id, status, search, page = 1, limit = 
       actual_return_date,
       purpose,
       package_id,
+      packages (id, name, packages_items (item_id, quantity)),
       status,
       admin_note,
       created_at,
@@ -149,8 +150,32 @@ exports.createBorrowingRequest = async ({ user_id, package_id, package_quantity 
     );
   }
 
-  // Validasi ketersediaan stok
-  for (const item of items) {
+  // Paket adalah virtual: komponen paket harus dialokasikan sebagai stok fisik item.
+  // Gabungkan komponen paket dengan barang tambahan agar setiap unit hanya dihitung sekali.
+  let allocationItems = Array.isArray(items) ? [...items] : [];
+  if (package_id) {
+    const { data: packageComponents, error: packageError } = await supabase
+      .from('packages_items')
+      .select('item_id, quantity, items (id, name)')
+      .eq('package_id', package_id);
+    if (packageError) throw packageError;
+    if (!packageComponents || packageComponents.length === 0) {
+      throw new AppError('Paket tidak memiliki komponen yang valid', 400);
+    }
+    const packageQty = normalizeQuantity(package_quantity, package_id);
+    const totals = new Map();
+    for (const component of packageComponents) {
+      totals.set(component.item_id, (totals.get(component.item_id) || 0) + Number(component.quantity || 1) * packageQty);
+    }
+    for (const extra of allocationItems) {
+      const qty = normalizeQuantity(extra.quantity, extra.item_id);
+      totals.set(extra.item_id, (totals.get(extra.item_id) || 0) + qty);
+    }
+    allocationItems = [...totals.entries()].map(([item_id, quantity]) => ({ item_id, quantity }));
+  }
+
+  // Validasi ketersediaan stok fisik seluruh item (komponen + tambahan).
+  for (const item of allocationItems) {
     const { data: itemData, error: itemError } = await supabase
       .from('items')
       .select('id, name, available_stock, status')
@@ -196,10 +221,9 @@ exports.createBorrowingRequest = async ({ user_id, package_id, package_quantity 
 
   const stockAdjustments = [];
   try {
-    if (package_id) await decrementPackageStock(package_id, package_quantity);
-    // Insert items & kurangi stok
+    // Insert detail alokasi fisik & kurangi stok item secara atomic/OCC.
     const borrowingItemsPayload = [];
-    for (const item of items) {
+    for (const item of allocationItems) {
       const qty = normalizeQuantity(item.quantity, item.item_id);
 
       borrowingItemsPayload.push({
@@ -210,11 +234,8 @@ exports.createBorrowingRequest = async ({ user_id, package_id, package_quantity 
         note: item.note || ''
       });
 
-      // Paket memiliki stok unit tersendiri; komponen tidak dikurangi lagi agar stok fisik tidak dihitung ganda.
-      if (!package_id) {
-        await decrementStock(item.item_id, qty);
-        stockAdjustments.push({ item_id: item.item_id, qty });
-      }
+      await decrementStock(item.item_id, qty);
+      stockAdjustments.push({ item_id: item.item_id, qty });
     }
 
     const { error: insertItemsError } = await supabase
@@ -223,9 +244,6 @@ exports.createBorrowingRequest = async ({ user_id, package_id, package_quantity 
 
     if (insertItemsError) throw insertItemsError;
   } catch (err) {
-    if (package_id) {
-      try { const { incrementPackageStock } = require('../utils/stockManager'); await incrementPackageStock(package_id, package_quantity); } catch (_) { /* best effort rollback */ }
-    }
     for (const adj of stockAdjustments) {
       try {
         await incrementStock(adj.item_id, adj.qty);
@@ -300,10 +318,6 @@ exports.updateStatus = async (id, { status, admin_note }) => {
     !['Ditolak', 'Dibatalkan', 'Dikembalikan'].includes(currentBorrowing.status);
 
   if (isCancelling && bItems) {
-    if (currentBorrowing.package_id) {
-      const { incrementPackageStock } = require('../utils/stockManager');
-      await incrementPackageStock(currentBorrowing.package_id, currentBorrowing.package_quantity || 1);
-    }
     for (const bItem of bItems) {
       await incrementStock(bItem.item_id, bItem.quantity);
     }

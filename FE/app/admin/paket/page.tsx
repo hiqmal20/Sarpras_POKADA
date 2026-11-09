@@ -1492,7 +1492,7 @@ export default function PaketPage() {
                               <option value="">-- Pilih Barang Per Item --</option>
                               {filteredAvailableItems.map((item) => (
                                 <option key={item.id} value={item.id}>
-                                  [{item.category || "Umum"}] {item.name} ({item.code}) ΓÇö Sisa Stok: {item.available_stock} unit
+                                  [{item.category || "Umum"}] {item.name} ({item.code})  Sisa Stok: {item.available_stock} unit
                                 </option>
                               ))}
                             </select>
