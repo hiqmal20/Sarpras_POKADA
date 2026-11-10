@@ -194,10 +194,10 @@ function ItemConditionRow({
               : "border-slate-200 bg-slate-50 text-slate-700"
           }`}
         >
-          <option value="Baik">✅ Baik</option>
-          <option value="Rusak Ringan">⚠️ Rusak Ringan</option>
-          <option value="Rusak Berat">🔴 Rusak Berat</option>
-          <option value="Hilang">❌ Hilang</option>
+          <option value="Baik">Baik</option>
+          <option value="Rusak Ringan">Rusak Ringan</option>
+          <option value="Rusak Berat">Rusak Berat</option>
+          <option value="Hilang">Hilang</option>
         </select>
       </div>
 
@@ -1147,7 +1147,7 @@ export default function PengembalianPage() {
                 {tambahanItems.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-green-100 text-purple-700 border border-purple-200">
                         <Package className="w-3 h-3" /> BARANG TAMBAHAN
                       </span>
                       <span className="text-xs text-slate-400">{tambahanItems.length} barang</span>

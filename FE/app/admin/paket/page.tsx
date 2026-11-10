@@ -1909,7 +1909,7 @@ export default function PaketPage() {
                                     {pi.items?.category || pi.items?.categories?.name}
                                   </span>
                                 )}
-                                <span>ΓÇó Kondisi: <strong className="text-slate-600">{pi.items?.condition || "Baik"}</strong></span>
+                                <span>Kondisi: <strong className="text-slate-600">{pi.items?.condition || "Baik"}</strong></span>
                               </div>
                             </div>
                           </div>
